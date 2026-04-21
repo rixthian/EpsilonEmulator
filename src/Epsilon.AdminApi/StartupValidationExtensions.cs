@@ -11,11 +11,17 @@ public static class StartupValidationExtensions
 
         services.AddOptions<InfrastructureOptions>()
             .Bind(configuration.GetSection(InfrastructureOptions.SectionName))
-            .Validate(options => !string.IsNullOrWhiteSpace(options.PostgresConnectionString), "PostgreSQL connection string is required.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.RedisConnectionString), "Redis connection string is required.")
+            .Validate(options =>
+                    !string.Equals(options.Provider, "Mongo", StringComparison.OrdinalIgnoreCase) ||
+                    !string.IsNullOrWhiteSpace(options.MongoConnectionString),
+                "MongoDB connection string is required when Infrastructure.Provider is Mongo.")
+            .Validate(options =>
+                    !string.Equals(options.Provider, "Postgres", StringComparison.OrdinalIgnoreCase) ||
+                    !string.IsNullOrWhiteSpace(options.PostgresConnectionString),
+                "PostgreSQL connection string is required when Infrastructure.Provider is Postgres.")
             .ValidateOnStart();
 
         return services;
     }
 }
-

@@ -31,12 +31,15 @@ The mission is simple:
 - Admin/API: `ASP.NET Core`
 - Target compatibility family: Flash `RELEASE63`
 
+The compatibility target is the hotel contract, not Adobe Flash as a mandatory runtime. Epsilon should be able to preserve protocol and gameplay behavior while supporting newer client platforms.
+
 ## Repository Map
 
 - [docs/architecture/overview.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/overview.md)
 - [docs/architecture/modules.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modules.md)
 - [docs/architecture/design-principles.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/design-principles.md)
 - [docs/architecture/configuration-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/configuration-strategy.md)
+- [docs/architecture/client-platform-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-platform-strategy.md)
 - [docs/compatibility/target-client.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/compatibility/target-client.md)
 - [docs/reference-sources/cataloging-rules.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/reference-sources/cataloging-rules.md)
 - [docs/roadmap/phase-01.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/roadmap/phase-01.md)

@@ -34,6 +34,46 @@ public static class DependencyInjection
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryPetProfileRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresPetProfileRepository>()));
+        services.AddSingleton<IWalletRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryWalletRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed wallet repository is not wired yet.")));
+        services.AddSingleton<IMessengerRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryMessengerRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed messenger repository is not wired yet.")));
+        services.AddSingleton<IBadgeRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryBadgeRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed badge repository is not wired yet.")));
+        services.AddSingleton<IAchievementRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryAchievementRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed achievement repository is not wired yet.")));
+        services.AddSingleton<IChatCommandRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryChatCommandRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed chat-command repository is not wired yet.")));
+        services.AddSingleton<IRoleAccessRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryRoleAccessRepository>(),
+                postgres: sp => throw new NotSupportedException("Document-backed role-access repository is not wired yet.")));
+        services.AddSingleton<IHotelAdvertisementRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryHotelAdvertisementRepository>(),
+                postgres: sp => throw new NotSupportedException("Document-backed advertisement repository is not wired yet.")));
+        services.AddSingleton<ISupportCenterRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemorySupportCenterRepository>(),
+                postgres: sp => throw new NotSupportedException("Document-backed support-center repository is not wired yet.")));
         services.AddSingleton<IRoomRepository>(provider =>
             ResolveProvider(
                 provider,
@@ -64,16 +104,36 @@ public static class DependencyInjection
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryPublicRoomAssetPackageRepository>(),
                 postgres: sp => throw new NotSupportedException("Postgres-backed public-room asset package repository is not wired yet.")));
+        services.AddSingleton<IClientPackageRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryClientPackageRepository>(),
+                postgres: sp => throw new NotSupportedException("Document-backed client-package repository is not wired yet.")));
+        services.AddSingleton<IRoomRuntimeRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryRoomRuntimeRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed room-runtime repository is not wired yet.")));
 
         services.AddSingleton<InMemoryCharacterProfileRepository>();
         services.AddSingleton<InMemorySubscriptionRepository>();
         services.AddSingleton<InMemoryPetProfileRepository>();
+        services.AddSingleton<InMemoryWalletRepository>();
+        services.AddSingleton<InMemoryMessengerRepository>();
+        services.AddSingleton<InMemoryBadgeRepository>();
+        services.AddSingleton<InMemoryAchievementRepository>();
+        services.AddSingleton<InMemoryChatCommandRepository>();
+        services.AddSingleton<InMemoryRoleAccessRepository>();
+        services.AddSingleton<InMemoryHotelAdvertisementRepository>();
+        services.AddSingleton<InMemorySupportCenterRepository>();
         services.AddSingleton<InMemoryRoomRepository>();
         services.AddSingleton<InMemoryRoomLayoutRepository>();
         services.AddSingleton<InMemoryRoomItemRepository>();
         services.AddSingleton<InMemoryItemDefinitionRepository>();
         services.AddSingleton<InMemoryNavigatorPublicRoomRepository>();
         services.AddSingleton<InMemoryPublicRoomAssetPackageRepository>();
+        services.AddSingleton<InMemoryClientPackageRepository>();
+        services.AddSingleton<InMemoryRoomRuntimeRepository>();
         services.AddSingleton<PostgresCharacterProfileRepository>();
         services.AddSingleton<PostgresSubscriptionRepository>();
         services.AddSingleton<PostgresPetProfileRepository>();

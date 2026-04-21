@@ -1,0 +1,42 @@
+{
+  "family": "RELEASE63",
+  "revision": "baseline",
+  "commands": [
+    {
+      "name": "session.initialize_crypto",
+      "packetName": "init_crypto",
+      "flow": "session_bootstrap",
+      "required": true
+    },
+    {
+      "name": "session.authenticate_with_ticket",
+      "packetName": "ssoticket",
+      "flow": "session_bootstrap",
+      "required": true
+    },
+    {
+      "name": "identity.get_self",
+      "packetName": "get_info",
+      "flow": "identity",
+      "required": true
+    },
+    {
+      "name": "rooms.enter_room",
+      "packetName": "enter_room",
+      "flow": "room_entry",
+      "required": true
+    },
+    {
+      "name": "rooms.move_avatar",
+      "packetName": "move_avatar",
+      "flow": "room_interaction",
+      "required": true
+    },
+    {
+      "name": "rooms.chat",
+      "packetName": "chat",
+      "flow": "room_interaction",
+      "required": true
+    }
+  ]
+}

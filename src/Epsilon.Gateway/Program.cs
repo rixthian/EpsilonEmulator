@@ -21,10 +21,11 @@ var app = builder.Build();
 
 app.MapGet("/health", (
     PacketRegistry registry,
+    ProtocolSelfCheckService protocolSelfCheckService,
     Microsoft.Extensions.Options.IOptions<GatewayRuntimeOptions> gatewayOptions) => Results.Ok(new
 {
     service = "Epsilon.Gateway",
-    status = "ok",
+    status = protocolSelfCheckService.Run().IsHealthy ? "ok" : "degraded",
     hotelName = gatewayOptions.Value.HotelName,
     compatibility = registry.Family,
     incomingPacketCount = registry.Incoming.Count,
@@ -95,6 +96,71 @@ app.MapGet("/hotel/public-rooms/{entryId:int}", async (
     CancellationToken cancellationToken) =>
 {
     PublicRoomHotelSnapshot? snapshot = await hotelReadService.GetPublicRoomSnapshotAsync(entryId, cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapGet("/hotel/sessions/{characterId:long}", async (
+    long characterId,
+    IHotelSessionSnapshotService hotelSessionSnapshotService,
+    CancellationToken cancellationToken) =>
+{
+    HotelSessionSnapshot? snapshot = await hotelSessionSnapshotService.BuildAsync(new CharacterId(characterId), cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapGet("/hotel/support", async (
+    ISupportCenterService supportCenterService,
+    CancellationToken cancellationToken) =>
+{
+    SupportCenterSnapshot snapshot = await supportCenterService.GetSnapshotAsync(cancellationToken);
+    return Results.Ok(snapshot);
+});
+
+app.MapPost("/hotel/support/calls", async (
+    SupportCallRequest request,
+    ISupportCenterService supportCenterService,
+    CancellationToken cancellationToken) =>
+{
+    SupportCallResult result = await supportCenterService.CreateCallAsync(request, cancellationToken);
+    return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapPost("/hotel/rooms/entry", async (
+    RoomEntryRequest request,
+    IRoomEntryService roomEntryService,
+    CancellationToken cancellationToken) =>
+{
+    RoomEntryResult result = await roomEntryService.EnterAsync(request, cancellationToken);
+
+    return result.Succeeded
+        ? Results.Ok(result)
+        : Results.BadRequest(result);
+});
+
+app.MapPost("/hotel/rooms/move", async (
+    RoomActorMovementRequest request,
+    IRoomInteractionService roomInteractionService,
+    CancellationToken cancellationToken) =>
+{
+    RoomActorMovementResult result = await roomInteractionService.MoveActorAsync(request, cancellationToken);
+    return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapPost("/hotel/rooms/chat", async (
+    RoomChatRequest request,
+    IRoomInteractionService roomInteractionService,
+    CancellationToken cancellationToken) =>
+{
+    RoomChatResult result = await roomInteractionService.SendChatAsync(request, cancellationToken);
+    return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
+});
+
+app.MapGet("/hotel/rooms/{roomId:long}/runtime", async (
+    long roomId,
+    IRoomRuntimeSnapshotService roomRuntimeSnapshotService,
+    CancellationToken cancellationToken) =>
+{
+    RoomRuntimeSnapshot? snapshot = await roomRuntimeSnapshotService.BuildAsync(new RoomId(roomId), cancellationToken);
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 

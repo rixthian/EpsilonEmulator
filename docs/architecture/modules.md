@@ -28,6 +28,8 @@ Must not:
 - own gameplay state
 - talk directly to the database
 
+It should translate packet payloads into typed application commands that are then handled by the flow model defined in [client-hotel-flow-blueprint.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-hotel-flow-blueprint.md).
+
 ## `Epsilon.Auth`
 
 Responsibilities:
@@ -43,8 +45,9 @@ Responsibilities:
 
 - shared application services
 - user profile operations
-- inventory orchestration
-- currencies and progression primitives
+- session bootstrap composition
+- wallet, badge, achievement, and messenger read models
+- command availability and other hotel-wide gameplay primitives
 
 ## `Epsilon.Rooms`
 
@@ -54,6 +57,7 @@ Responsibilities:
 - actor positions
 - chat and room presence
 - item placement
+- room-scoped minigame state
 - deterministic simulation ticks
 
 This module is the heart of gameplay correctness and should stay highly testable.

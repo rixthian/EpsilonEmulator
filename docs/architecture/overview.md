@@ -10,6 +10,7 @@ Epsilon Emulator should begin as a modular monolith with strong internal boundar
 - versioned compatibility adapters
 - source-backed behavior decisions
 - testability before feature breadth
+- document-oriented persistence without leaking database shapes into domain code
 
 ## High-Level Layers
 
@@ -35,14 +36,21 @@ The emulator needs tight coordination between packets, simulation, and persisten
 
 - `Gateway` accepts connections and owns transport concerns.
 - `Protocol` maps raw messages to internal commands.
+- application flows orchestrate session bootstrap, navigator, room entry, purchases, and trade.
 - `Auth` resolves sessions and identity.
-- `CoreGame` hosts shared game application services.
+- `CoreGame` hosts shared game application services and session-level read models such as wallet, messenger, badges, achievements, and command availability.
 - `Rooms` runs deterministic room state and ticks.
 - `Content` supplies furni, texts, figure data, and product metadata.
 - `Persistence` owns repositories and import/export.
+- `Persistence` is designed to support document-oriented storage as the long-term default.
 - `AdminApi` exposes moderation and operational controls.
+
+The packet-to-application translation boundary is defined in [client-hotel-flow-blueprint.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-hotel-flow-blueprint.md).
+Runtime surfaces above the packet layer are defined in [hotel-runtime-domains.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/hotel-runtime-domains.md).
+The persistence direction is defined in [document-storage-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/document-storage-strategy.md).
 
 ## Compatibility Strategy
 
 The initial compatibility target is Flash `RELEASE63`. Later versions should be supported through additional protocol adapters, not by polluting the core domain with version switches.
 
+Compatibility does not mean dependence on Flash as the runtime platform. The server strategy is defined in [client-platform-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-platform-strategy.md).

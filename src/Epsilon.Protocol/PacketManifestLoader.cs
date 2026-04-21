@@ -19,7 +19,7 @@ public sealed class PacketManifestLoader
             throw new InvalidOperationException("Protocol packet manifest path is not configured.");
         }
 
-        string resolvedPath = ResolveManifestPath(_options.ManifestPath);
+        string resolvedPath = ResolvePath(_options.ManifestPath);
 
         if (!File.Exists(resolvedPath))
         {
@@ -40,7 +40,7 @@ public sealed class PacketManifestLoader
         return manifest;
     }
 
-    private static string ResolveManifestPath(string configuredPath)
+    internal static string ResolvePath(string configuredPath)
     {
         if (Path.IsPathRooted(configuredPath))
         {

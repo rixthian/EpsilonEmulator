@@ -1,4 +1,5 @@
 using Epsilon.Persistence;
+using Epsilon.Protocol;
 using Microsoft.Extensions.Options;
 
 namespace Epsilon.Gateway;
@@ -31,11 +32,14 @@ public static class StartupValidationExtensions
             IOptions<GatewayRuntimeOptions> gatewayOptions,
             IOptions<InfrastructureOptions> infrastructureOptions,
             PacketRegistry packetRegistry,
+            ProtocolCommandRegistry commandRegistry,
+            ProtocolSelfCheckService protocolSelfCheckService,
             IPersistenceReadinessChecker persistenceChecker) =>
         {
             GatewayRuntimeOptions gateway = gatewayOptions.Value;
             InfrastructureOptions infrastructure = infrastructureOptions.Value;
             PersistenceReadinessReport readiness = persistenceChecker.Check();
+            ProtocolSelfCheckReport protocolSelfCheck = protocolSelfCheckService.Run();
 
             return Results.Ok(new
             {
@@ -55,8 +59,28 @@ public static class StartupValidationExtensions
                 {
                     packetRegistry.Family,
                     incomingPacketCount = packetRegistry.Incoming.Count,
-                    outgoingPacketCount = packetRegistry.Outgoing.Count
+                    outgoingPacketCount = packetRegistry.Outgoing.Count,
+                    commandFamily = commandRegistry.Family,
+                    commandRevision = commandRegistry.Revision,
+                    commandCount = commandRegistry.Commands.Count,
+                    selfCheckHealthy = protocolSelfCheck.IsHealthy
                 }
+            });
+        });
+
+        diagnostics.MapGet("/protocol", (
+            PacketRegistry packetRegistry,
+            ProtocolCommandRegistry commandRegistry,
+            ProtocolSelfCheckService protocolSelfCheckService) =>
+        {
+            ProtocolSelfCheckReport report = protocolSelfCheckService.Run();
+
+            return Results.Ok(new
+            {
+                report,
+                incomingPackets = packetRegistry.Incoming,
+                outgoingPackets = packetRegistry.Outgoing,
+                commands = commandRegistry.Commands
             });
         });
 

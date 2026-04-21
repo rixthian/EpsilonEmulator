@@ -1,4 +1,5 @@
 using Epsilon.Persistence;
+using Epsilon.CoreGame;
 using Microsoft.Extensions.Options;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -27,6 +28,15 @@ app.MapGet("/readiness", (IPersistenceReadinessChecker persistenceChecker) =>
         detail: string.Join(" ", report.Issues),
         statusCode: StatusCodes.Status503ServiceUnavailable,
         title: "Infrastructure is not ready.");
+});
+
+app.MapGet("/housekeeping/characters/{characterId:long}", async (
+    long characterId,
+    IHousekeepingSnapshotService housekeepingSnapshotService,
+    CancellationToken cancellationToken) =>
+{
+    HousekeepingSnapshot? snapshot = await housekeepingSnapshotService.BuildAsync(new CharacterId(characterId), cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
 app.Run();

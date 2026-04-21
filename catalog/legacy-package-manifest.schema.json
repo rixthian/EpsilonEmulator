@@ -1,0 +1,25 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon.local/schemas/legacy-package-manifest.schema.json",
+  "title": "Legacy Package Manifest",
+  "type": "object",
+  "required": ["manifestVersion", "generatedAtUtc", "rootPath", "packages"],
+  "properties": {
+    "manifestVersion": { "type": "string" },
+    "generatedAtUtc": { "type": "string" },
+    "rootPath": { "type": "string" },
+    "packages": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["packageKey", "relativePath", "extension", "sizeBytes"],
+        "properties": {
+          "packageKey": { "type": "string" },
+          "relativePath": { "type": "string" },
+          "extension": { "type": "string" },
+          "sizeBytes": { "type": "integer" }
+        }
+      }
+    }
+  }
+}

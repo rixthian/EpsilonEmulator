@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon.local/schemas/visual-asset-manifest.schema.json",
+  "title": "Visual Asset Manifest",
+  "type": "object",
+  "required": ["manifestVersion", "generatedAtUtc", "rootPath", "assets"],
+  "properties": {
+    "manifestVersion": { "type": "string" },
+    "generatedAtUtc": { "type": "string" },
+    "rootPath": { "type": "string" },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["assetKey", "relativePath", "extension", "assetKind", "sizeBytes"],
+        "properties": {
+          "assetKey": { "type": "string" },
+          "relativePath": { "type": "string" },
+          "extension": { "type": "string" },
+          "assetKind": { "type": "string" },
+          "sizeBytes": { "type": "integer" },
+          "width": { "type": ["integer", "null"] },
+          "height": { "type": ["integer", "null"] }
+        }
+      }
+    }
+  }
+}

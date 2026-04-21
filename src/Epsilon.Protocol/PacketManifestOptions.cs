@@ -6,4 +6,5 @@ public sealed class PacketManifestOptions
 
     public string Family { get; set; } = string.Empty;
     public string ManifestPath { get; set; } = string.Empty;
+    public string CommandManifestPath { get; set; } = string.Empty;
 }

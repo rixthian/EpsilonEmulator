@@ -27,6 +27,6 @@ Track it through:
 - offline notes
 - private provenance records
 - importer-ready normalized datasets
+- architecture translations that describe what Epsilon should keep and what it should discard
 
 Do not let the runtime or deployable artifacts depend on public archive links.
-

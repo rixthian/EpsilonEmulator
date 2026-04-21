@@ -1,4 +1,5 @@
 using Epsilon.Content;
+using Epsilon.CoreGame;
 
 namespace Epsilon.Persistence;
 
@@ -14,6 +15,14 @@ internal sealed class InMemoryNavigatorPublicRoomRepository : INavigatorPublicRo
     public ValueTask<NavigatorPublicRoomDefinition?> GetByEntryIdAsync(int entryId, CancellationToken cancellationToken = default)
     {
         _store.NavigatorPublicRooms.TryGetValue(entryId, out NavigatorPublicRoomDefinition? entry);
+        return ValueTask.FromResult(entry);
+    }
+
+    public ValueTask<NavigatorPublicRoomDefinition?> GetByRoomIdAsync(RoomId roomId, CancellationToken cancellationToken = default)
+    {
+        NavigatorPublicRoomDefinition? entry = _store.NavigatorPublicRooms.Values
+            .FirstOrDefault(candidate => candidate.RoomId == roomId);
+
         return ValueTask.FromResult(entry);
     }
 
