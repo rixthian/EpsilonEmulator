@@ -14,17 +14,19 @@ public sealed class PacketManifestLoader
 
     public PacketManifest Load()
     {
-        if (string.IsNullOrWhiteSpace(_options.Path))
+        if (string.IsNullOrWhiteSpace(_options.ManifestPath))
         {
             throw new InvalidOperationException("Protocol packet manifest path is not configured.");
         }
 
-        if (!File.Exists(_options.Path))
+        string resolvedPath = ResolveManifestPath(_options.ManifestPath);
+
+        if (!File.Exists(resolvedPath))
         {
-            throw new FileNotFoundException("Configured protocol packet manifest was not found.", _options.Path);
+            throw new FileNotFoundException("Configured protocol packet manifest was not found.", resolvedPath);
         }
 
-        string json = File.ReadAllText(_options.Path);
+        string json = File.ReadAllText(resolvedPath);
         PacketManifest? manifest = JsonSerializer.Deserialize<PacketManifest>(json, new JsonSerializerOptions
         {
             PropertyNameCaseInsensitive = true
@@ -37,5 +39,14 @@ public sealed class PacketManifestLoader
 
         return manifest;
     }
-}
 
+    private static string ResolveManifestPath(string configuredPath)
+    {
+        if (Path.IsPathRooted(configuredPath))
+        {
+            return configuredPath;
+        }
+
+        return Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, configuredPath));
+    }
+}

@@ -67,6 +67,7 @@ Responsibilities:
 - texts and variables
 - figure data
 - badge/effect metadata
+- room visual asset manifests
 
 ## `Epsilon.Persistence`
 
@@ -86,3 +87,11 @@ Responsibilities:
 - replay/test tooling endpoints
 - content and compatibility inspection tools
 
+## `tools/importers`
+
+Responsibilities:
+
+- convert legacy asset packages into canonical Epsilon manifests
+- inventory public-room bundles and shared assets
+- normalize filenames and metadata
+- separate extraction concerns from runtime loading concerns

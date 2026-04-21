@@ -4,10 +4,10 @@
     <RootNamespace>Epsilon.Gateway</RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <ProjectReference Include="..\Epsilon.Persistence\Epsilon.Persistence.csproj" />
     <ProjectReference Include="..\Epsilon.Protocol\Epsilon.Protocol.csproj" />
     <ProjectReference Include="..\Epsilon.Auth\Epsilon.Auth.csproj" />
     <ProjectReference Include="..\Epsilon.CoreGame\Epsilon.CoreGame.csproj" />
     <ProjectReference Include="..\Epsilon.Rooms\Epsilon.Rooms.csproj" />
   </ItemGroup>
 </Project>
-

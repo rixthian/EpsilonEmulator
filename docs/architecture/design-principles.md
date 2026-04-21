@@ -34,6 +34,8 @@ Every compatibility behavior should be explainable through:
 - test evidence
 - an architectural decision record
 
+But source provenance should remain outside runtime code paths. Research is necessary; contamination of runtime files is not.
+
 ### Deterministic Simulation
 
 Rooms and actor state should behave the same regardless of machine speed or infrastructure topology.
@@ -56,4 +58,3 @@ Ask of every design choice:
 - can this be migrated without rewriting gameplay
 - can another developer understand and replace this in five years
 - does this make multi-era support easier instead of harder
-

@@ -7,4 +7,5 @@ This module owns imported compatibility data such as:
 - texts and vars
 - figure data
 - badges and effects
-
+- public-room asset packages
+- navigator public-room entries

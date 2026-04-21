@@ -8,4 +8,5 @@ Examples:
 - currencies
 - inventory services
 - achievement and progression primitives
+- hotel read services and domain-level application orchestration
 

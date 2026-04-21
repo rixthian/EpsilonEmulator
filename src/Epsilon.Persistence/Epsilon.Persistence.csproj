@@ -3,5 +3,12 @@
     <AssemblyName>Epsilon.Persistence</AssemblyName>
     <RootNamespace>Epsilon.Persistence</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Npgsql" Version="8.0.0" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Epsilon.CoreGame\Epsilon.CoreGame.csproj" />
+    <ProjectReference Include="..\Epsilon.Rooms\Epsilon.Rooms.csproj" />
+    <ProjectReference Include="..\Epsilon.Content\Epsilon.Content.csproj" />
+  </ItemGroup>
 </Project>
-

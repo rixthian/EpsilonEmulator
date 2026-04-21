@@ -3,5 +3,7 @@
     <AssemblyName>Epsilon.AdminApi</AssemblyName>
     <RootNamespace>Epsilon.AdminApi</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Epsilon.Persistence\Epsilon.Persistence.csproj" />
+  </ItemGroup>
 </Project>
-

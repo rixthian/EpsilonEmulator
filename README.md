@@ -1,7 +1,3 @@
-<<<<<<< HEAD
-# EpsilonEmulator
-Emulador clasico
-=======
 # Epsilon Emulator
 
 Epsilon Emulator is a modern, compatibility-first Habbo emulator project built from public reference material and legacy open-source research, without inheriting old emulator architecture as its foundation.
@@ -24,6 +20,7 @@ The mission is simple:
 - Protocol, content, and compatibility rules should be data-driven.
 - Infrastructure should be replaceable without rewriting gameplay.
 - Ten-year survivability matters more than quick imitation.
+- Research material must stay separated from operational runtime code.
 
 ## Initial Direction
 
@@ -44,7 +41,7 @@ The mission is simple:
 - [docs/reference-sources/cataloging-rules.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/reference-sources/cataloging-rules.md)
 - [docs/roadmap/phase-01.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/roadmap/phase-01.md)
 - [catalog/source-catalog.schema.json](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/catalog/source-catalog.schema.json)
-- [catalog/source-catalog.seed.json](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/catalog/source-catalog.seed.json)
+- [research/README.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/research/README.md)
 
 ## Scope For V1
 
@@ -66,6 +63,7 @@ More advanced systems such as pets, quests, effects, trading, wired, and minigam
 - bundling questionable proprietary assets without provenance review
 - mixing many client revisions into one unstable first release
 - embedding packet ids, content metadata, or hotel rules directly in code when they can be loaded from versioned manifests
+- mixing public archive provenance directly into product runtime files
 
 ## Status
 
@@ -76,4 +74,5 @@ This repository is currently a foundation scaffold:
 - module skeletons exist for implementation
 - first code is focused on protocol and runtime boundaries
 - protocol registration is being moved to manifest-driven configuration
->>>>>>> 2951a13 (Initial scaffold for Epsilon Emulator)
+- PostgreSQL-backed read repositories now exist for the first hotel slice
+- public-room asset conversion is being normalized through importer tooling instead of runtime hardcoding

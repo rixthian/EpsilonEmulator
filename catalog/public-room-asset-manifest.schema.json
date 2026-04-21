@@ -1,0 +1,110 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon-emulator.local/schemas/public-room-asset-manifest.schema.json",
+  "title": "PublicRoomAssetManifest",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "generatedAtUtc",
+    "sourceDirectory",
+    "entries"
+  ],
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generatedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "sourceDirectory": {
+      "type": "string",
+      "minLength": 1
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/publicRoomAssetEntry"
+      }
+    }
+  },
+  "$defs": {
+    "publicRoomAssetEntry": {
+      "type": "object",
+      "required": [
+        "assetId",
+        "sourceFilename",
+        "roomKey",
+        "variantKey",
+        "conversionStatus",
+        "classification"
+      ],
+      "properties": {
+        "assetId": {
+          "type": "string",
+          "pattern": "^[a-z0-9_\\-]+$"
+        },
+        "sourceFilename": {
+          "type": "string",
+          "pattern": "^.+\\.swf$"
+        },
+        "roomKey": {
+          "type": "string",
+          "pattern": "^[a-z0-9_\\-]+$"
+        },
+        "variantKey": {
+          "type": "string",
+          "pattern": "^[a-z0-9_\\-]+$"
+        },
+        "classification": {
+          "type": "string",
+          "enum": [
+            "canonical",
+            "regional_variant",
+            "seasonal_variant",
+            "campaign_variant",
+            "brand_variant",
+            "unknown"
+          ]
+        },
+        "conversionStatus": {
+          "type": "string",
+          "enum": [
+            "inventory_only",
+            "metadata_extracted",
+            "assets_extracted",
+            "runtime_ready",
+            "blocked"
+          ]
+        },
+        "brandTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "localeTags": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "notes": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "swfMetadata": {
+          "type": [
+            "object",
+            "null"
+          ]
+        }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": false
+}
