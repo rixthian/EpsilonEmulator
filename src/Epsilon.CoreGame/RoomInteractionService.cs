@@ -9,6 +9,8 @@ public sealed class RoomInteractionService : IRoomInteractionService
     private readonly IRoomRuntimeRepository _roomRuntimeRepository;
     private readonly IChatCommandRepository _chatCommandRepository;
     private readonly IRoleAccessRepository _roleAccessRepository;
+    // Flood control is tracked per room and character so the room runtime can
+    // reject bursts before they become packet spam or command spam.
     private readonly ConcurrentDictionary<string, Queue<DateTime>> _chatWindows = new(StringComparer.Ordinal);
     private readonly ConcurrentDictionary<string, object> _chatWindowLocks = new(StringComparer.Ordinal);
 
@@ -151,6 +153,9 @@ public sealed class RoomInteractionService : IRoomInteractionService
             return new RoomChatResult(false, $"Unknown command '{parts[0]}'.", true, null, null);
         }
 
+        // The command catalog alone is not trusted as the final authority.
+        // Commands that affect room or hotel state are re-checked against
+        // capability assignments here to avoid client-driven privilege abuse.
         string? requiredCapability = GetRequiredCapability(command.CommandKey);
         if (requiredCapability is not null &&
             !await HasCapabilityAsync(request.CharacterId, requiredCapability, cancellationToken))
@@ -326,6 +331,9 @@ public sealed class RoomInteractionService : IRoomInteractionService
         int y,
         CancellationToken cancellationToken)
     {
+        // The current runtime slice only performs basic blocking checks.
+        // This prevents obvious clipping through actors and non-walkable furni
+        // until a fuller pathing and occupancy model is introduced.
         IReadOnlyList<RoomActorState> actors = await _roomRuntimeRepository.GetActorsByRoomIdAsync(
             room.Room.RoomId,
             cancellationToken);
@@ -364,6 +372,8 @@ public sealed class RoomInteractionService : IRoomInteractionService
         DateTime utcNow = DateTime.UtcNow;
         DateTime cutoff = utcNow.AddSeconds(-policy.FloodWindowSeconds);
 
+        // The queue contains only timestamps inside the active anti-flood
+        // window, which keeps enforcement deterministic and cheap.
         lock (syncRoot)
         {
             while (window.Count > 0 && window.Peek() < cutoff)
@@ -389,6 +399,8 @@ public sealed class RoomInteractionService : IRoomInteractionService
         string capabilityKey,
         CancellationToken cancellationToken)
     {
+        // Role assignments are resolved dynamically so moderation-sensitive
+        // commands react to role changes without relying on stale client state.
         IReadOnlyList<StaffRoleAssignment> assignments =
             await _roleAccessRepository.GetAssignmentsByCharacterIdAsync(characterId, cancellationToken);
         if (assignments.Count == 0)
@@ -426,6 +438,8 @@ public sealed class RoomInteractionService : IRoomInteractionService
         normalizedValue = "0";
         failure = null;
 
+        // Sign values are intentionally narrow because these status payloads
+        // eventually flow into client rendering and packet serialization.
         string candidate = string.IsNullOrWhiteSpace(rawValue) ? "0" : rawValue.Trim();
         if (!int.TryParse(candidate, NumberStyles.None, CultureInfo.InvariantCulture, out int signNumber) ||
             signNumber < 0 ||
@@ -447,6 +461,8 @@ public sealed class RoomInteractionService : IRoomInteractionService
         normalizedValue = 0;
         failure = null;
 
+        // Carry item ids are restricted to a small numeric range until the
+        // content pipeline owns a canonical hand-item catalog.
         string candidate = string.IsNullOrWhiteSpace(rawValue) ? "0" : rawValue.Trim();
         if (!int.TryParse(candidate, NumberStyles.None, CultureInfo.InvariantCulture, out int itemTypeId) ||
             itemTypeId < 0 ||

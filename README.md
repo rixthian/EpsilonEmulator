@@ -20,6 +20,8 @@
   ·
   <a href="docs/compatibility/target-client.md">Compatibility</a>
   ·
+  <a href="CHANGELOG.md">Changelog</a>
+  ·
   <a href="docs/roadmap/phase-01.md">Roadmap</a>
   ·
   <a href="docs/decisions/0001-modern-runtime.md">Decisions</a>

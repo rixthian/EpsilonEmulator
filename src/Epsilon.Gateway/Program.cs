@@ -6,6 +6,8 @@ using Epsilon.Protocol;
 using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
+// Mutable hotel actions are bound to a server-issued session ticket instead of
+// trusting caller-supplied character ids in request bodies.
 const string SessionTicketHeaderName = "X-Epsilon-Session-Ticket";
 
 builder.Configuration
@@ -241,6 +243,8 @@ static async ValueTask<SessionTicket?> ResolveSessionAsync(
     }
 
     SessionTicket? session = await sessionStore.FindByTicketAsync(ticket, cancellationToken);
+    // Expired tickets are treated as invalid immediately so gateway endpoints
+    // never mutate room or support state on behalf of dead sessions.
     if (session is null || session.ExpiresAtUtc <= DateTime.UtcNow)
     {
         return null;

@@ -5,6 +5,9 @@ namespace Epsilon.Persistence;
 internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
 {
     private readonly InMemoryHotelStore _store;
+    // The in-memory runtime is shared by multiple endpoints. A single lock keeps
+    // mutations predictable until the authoritative runtime moves to a stronger
+    // persistence and scheduling model.
     private readonly object _syncRoot = new();
     private long _nextMessageId;
 
@@ -41,6 +44,7 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
     {
         lock (_syncRoot)
         {
+            // A snapshot copy avoids exposing the mutable backing list to callers.
             IReadOnlyList<RoomActorState> result = _store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors)
                 ? actors.ToArray()
                 : [];
@@ -116,6 +120,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
     {
         lock (_syncRoot)
         {
+            // Chat history is returned in message-id order so read models stay
+            // stable even when messages were appended concurrently.
             IReadOnlyList<RoomChatMessage> result = _store.RoomChatMessages.TryGetValue(roomId, out List<RoomChatMessage>? messages)
                 ? messages.OrderBy(message => message.MessageId).ToArray()
                 : [];
