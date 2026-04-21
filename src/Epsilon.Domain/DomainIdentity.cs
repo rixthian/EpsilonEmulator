@@ -8,4 +8,3 @@ public readonly record struct ItemDefinitionId(long Value);
 public readonly record struct CatalogPageId(long Value);
 public readonly record struct CatalogOfferId(long Value);
 public readonly record struct PetId(long Value);
-

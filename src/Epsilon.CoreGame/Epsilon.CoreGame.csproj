@@ -3,5 +3,12 @@
     <AssemblyName>Epsilon.CoreGame</AssemblyName>
     <RootNamespace>Epsilon.CoreGame</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Epsilon.Domain\Epsilon.Domain.csproj" />
+    <ProjectReference Include="..\Epsilon.Content\Epsilon.Content.csproj" />
+    <ProjectReference Include="..\Epsilon.Rooms\Epsilon.Rooms.csproj" />
+  </ItemGroup>
 </Project>
-

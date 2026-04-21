@@ -1,6 +1,8 @@
+using Epsilon.AdminApi;
 using Epsilon.Persistence;
 using Epsilon.CoreGame;
 using Microsoft.Extensions.Options;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +20,7 @@ app.MapGet("/health", (IOptions<AdminRuntimeOptions> adminOptions) => Results.Ok
 {
     service = adminOptions.Value.ServiceName,
     status = "ok",
+    version = ResolveInformationalVersion(typeof(AdminRuntimeOptions).Assembly),
     utc = DateTime.UtcNow
 }));
 
@@ -40,3 +43,10 @@ app.MapGet("/housekeeping/characters/{characterId:long}", async (
 });
 
 app.Run();
+
+static string ResolveInformationalVersion(Assembly assembly)
+{
+    return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? assembly.GetName().Version?.ToString()
+        ?? "unknown";
+}

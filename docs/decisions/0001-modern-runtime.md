@@ -18,7 +18,7 @@ Epsilon Emulator needs long-term maintainability without losing protocol fidelit
 
 ## Decision
 
-Use a modern `.NET 8` codebase with explicit module boundaries and versioned compatibility adapters.
+Use a modern `.NET 10` codebase with explicit module boundaries and versioned compatibility adapters.
 
 ## Consequences
 
@@ -35,4 +35,3 @@ Costs:
 - no direct compatibility with legacy code layouts
 - more up-front specification work
 - requires disciplined documentation to avoid folklore-driven behavior
-

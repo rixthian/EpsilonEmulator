@@ -1,9 +1,12 @@
 using Epsilon.Auth;
 using Epsilon.CoreGame;
+using Epsilon.Gateway;
 using Epsilon.Persistence;
 using Epsilon.Protocol;
+using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
+const string SessionTicketHeaderName = "X-Epsilon-Session-Ticket";
 
 builder.Configuration
     .AddJsonFile("appsettings.json", optional: false, reloadOnChange: true)
@@ -27,6 +30,7 @@ app.MapGet("/health", (
     service = "Epsilon.Gateway",
     status = protocolSelfCheckService.Run().IsHealthy ? "ok" : "degraded",
     hotelName = gatewayOptions.Value.HotelName,
+    version = ResolveInformationalVersion(typeof(GatewayRuntimeOptions).Assembly),
     compatibility = registry.Family,
     incomingPacketCount = registry.Incoming.Count,
     outgoingPacketCount = registry.Outgoing.Count,
@@ -117,20 +121,46 @@ app.MapGet("/hotel/support", async (
 });
 
 app.MapPost("/hotel/support/calls", async (
+    HttpContext httpContext,
     SupportCallRequest request,
+    ISessionStore sessionStore,
     ISupportCenterService supportCenterService,
     CancellationToken cancellationToken) =>
 {
-    SupportCallResult result = await supportCenterService.CreateCallAsync(request, cancellationToken);
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    SupportCallRequest authorizedRequest = request with
+    {
+        SenderCharacterId = new CharacterId(session.CharacterId)
+    };
+
+    SupportCallResult result = await supportCenterService.CreateCallAsync(authorizedRequest, cancellationToken);
     return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
 });
 
 app.MapPost("/hotel/rooms/entry", async (
+    HttpContext httpContext,
     RoomEntryRequest request,
+    ISessionStore sessionStore,
     IRoomEntryService roomEntryService,
     CancellationToken cancellationToken) =>
 {
-    RoomEntryResult result = await roomEntryService.EnterAsync(request, cancellationToken);
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    RoomEntryRequest authorizedRequest = request with
+    {
+        CharacterId = new CharacterId(session.CharacterId)
+    };
+
+    RoomEntryResult result = await roomEntryService.EnterAsync(authorizedRequest, cancellationToken);
 
     return result.Succeeded
         ? Results.Ok(result)
@@ -138,20 +168,46 @@ app.MapPost("/hotel/rooms/entry", async (
 });
 
 app.MapPost("/hotel/rooms/move", async (
+    HttpContext httpContext,
     RoomActorMovementRequest request,
+    ISessionStore sessionStore,
     IRoomInteractionService roomInteractionService,
     CancellationToken cancellationToken) =>
 {
-    RoomActorMovementResult result = await roomInteractionService.MoveActorAsync(request, cancellationToken);
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    RoomActorMovementRequest authorizedRequest = request with
+    {
+        CharacterId = new CharacterId(session.CharacterId)
+    };
+
+    RoomActorMovementResult result = await roomInteractionService.MoveActorAsync(authorizedRequest, cancellationToken);
     return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
 });
 
 app.MapPost("/hotel/rooms/chat", async (
+    HttpContext httpContext,
     RoomChatRequest request,
+    ISessionStore sessionStore,
     IRoomInteractionService roomInteractionService,
     CancellationToken cancellationToken) =>
 {
-    RoomChatResult result = await roomInteractionService.SendChatAsync(request, cancellationToken);
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    RoomChatRequest authorizedRequest = request with
+    {
+        CharacterId = new CharacterId(session.CharacterId)
+    };
+
+    RoomChatResult result = await roomInteractionService.SendChatAsync(authorizedRequest, cancellationToken);
     return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
 });
 
@@ -167,3 +223,35 @@ app.MapGet("/hotel/rooms/{roomId:long}/runtime", async (
 app.MapRuntimeDiagnostics();
 
 app.Run();
+
+static async ValueTask<SessionTicket?> ResolveSessionAsync(
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    CancellationToken cancellationToken)
+{
+    if (!httpContext.Request.Headers.TryGetValue(SessionTicketHeaderName, out var values))
+    {
+        return null;
+    }
+
+    string? ticket = values.FirstOrDefault();
+    if (string.IsNullOrWhiteSpace(ticket))
+    {
+        return null;
+    }
+
+    SessionTicket? session = await sessionStore.FindByTicketAsync(ticket, cancellationToken);
+    if (session is null || session.ExpiresAtUtc <= DateTime.UtcNow)
+    {
+        return null;
+    }
+
+    return session;
+}
+
+static string ResolveInformationalVersion(Assembly assembly)
+{
+    return assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
+        ?? assembly.GetName().Version?.ToString()
+        ?? "unknown";
+}

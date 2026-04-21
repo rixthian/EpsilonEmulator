@@ -20,17 +20,17 @@ public static class DependencyInjection
         services.AddSingleton(_ => InMemoryHotelSeedBuilder.Build());
         services.AddSingleton<PostgresDataSourceProvider>();
         services.AddSingleton<ICharacterProfileRepository>(provider =>
-            ResolveProvider(
+            ResolveProvider<ICharacterProfileRepository>(
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryCharacterProfileRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresCharacterProfileRepository>()));
         services.AddSingleton<ISubscriptionRepository>(provider =>
-            ResolveProvider(
+            ResolveProvider<ISubscriptionRepository>(
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemorySubscriptionRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresSubscriptionRepository>()));
         services.AddSingleton<IPetProfileRepository>(provider =>
-            ResolveProvider(
+            ResolveProvider<IPetProfileRepository>(
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryPetProfileRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresPetProfileRepository>()));
@@ -75,22 +75,22 @@ public static class DependencyInjection
                 inMemory: sp => sp.GetRequiredService<InMemorySupportCenterRepository>(),
                 postgres: sp => throw new NotSupportedException("Document-backed support-center repository is not wired yet.")));
         services.AddSingleton<IRoomRepository>(provider =>
-            ResolveProvider(
+            ResolveProvider<IRoomRepository>(
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryRoomRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresRoomRepository>()));
         services.AddSingleton<IRoomLayoutRepository>(provider =>
-            ResolveProvider(
+            ResolveProvider<IRoomLayoutRepository>(
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryRoomLayoutRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresRoomLayoutRepository>()));
         services.AddSingleton<IRoomItemRepository>(provider =>
-            ResolveProvider(
+            ResolveProvider<IRoomItemRepository>(
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryRoomItemRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresRoomItemRepository>()));
         services.AddSingleton<IItemDefinitionRepository>(provider =>
-            ResolveProvider(
+            ResolveProvider<IItemDefinitionRepository>(
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryItemDefinitionRepository>(),
                 postgres: sp => sp.GetRequiredService<PostgresItemDefinitionRepository>()));

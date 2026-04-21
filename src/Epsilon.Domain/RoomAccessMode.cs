@@ -6,4 +6,3 @@ public enum RoomAccessMode
     Locked = 1,
     PasswordProtected = 2
 }
-

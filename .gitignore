@@ -9,3 +9,10 @@ obj/
 .env
 catalog/cache/
 references/raw/
+
+# Python tooling caches (tools/importers, etc.)
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/

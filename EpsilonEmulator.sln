@@ -2,6 +2,8 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Epsilon.Domain", "src\Epsilon.Domain\Epsilon.Domain.csproj", "{B1A2C3D4-E5F6-7890-ABCD-EF1234567890}"
+EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Epsilon.Gateway", "src\Epsilon.Gateway\Epsilon.Gateway.csproj", "{F500D83E-BBFE-4D37-A049-24A018A5771A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Epsilon.Protocol", "src\Epsilon.Protocol\Epsilon.Protocol.csproj", "{6851C709-C9F9-4900-A85C-132F2B26D097}"
@@ -26,6 +28,10 @@ Global
     Release|Any CPU = Release|Any CPU
   EndGlobalSection
   GlobalSection(ProjectConfigurationPlatforms) = postSolution
+    {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+    {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}.Debug|Any CPU.Build.0 = Debug|Any CPU
+    {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.ActiveCfg = Release|Any CPU
+    {B1A2C3D4-E5F6-7890-ABCD-EF1234567890}.Release|Any CPU.Build.0 = Release|Any CPU
     {F500D83E-BBFE-4D37-A049-24A018A5771A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
     {F500D83E-BBFE-4D37-A049-24A018A5771A}.Debug|Any CPU.Build.0 = Debug|Any CPU
     {F500D83E-BBFE-4D37-A049-24A018A5771A}.Release|Any CPU.ActiveCfg = Release|Any CPU

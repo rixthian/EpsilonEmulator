@@ -3,5 +3,8 @@
     <AssemblyName>Epsilon.Content</AssemblyName>
     <RootNamespace>Epsilon.Content</RootNamespace>
   </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Epsilon.Domain\Epsilon.Domain.csproj" />
+  </ItemGroup>
 </Project>
 

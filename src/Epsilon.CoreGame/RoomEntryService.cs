@@ -182,7 +182,7 @@ public sealed class RoomEntryService : IRoomEntryService
 
         return character.Subscriptions.Any(subscription =>
             subscription.ExpiresAtUtc > utcNow &&
-            (subscription.Type == SubscriptionType.Club || subscription.Type == SubscriptionType.Vip));
+            (subscription.SubscriptionType == SubscriptionType.Club || subscription.SubscriptionType == SubscriptionType.Vip));
     }
 
     private static RoomEntryResult Fail(

@@ -1,3 +1,5 @@
+using Epsilon.Rooms;
+
 namespace Epsilon.CoreGame;
 
 public sealed class SupportCenterService : ISupportCenterService

@@ -1,5 +1,7 @@
 # Epsilon Emulator
 
+![Epsilon Emulator Logo](assets/epsilon-logo.png)
+
 Epsilon Emulator is a modern, compatibility-first Habbo emulator project built from public reference material and legacy open-source research, without inheriting old emulator architecture as its foundation.
 
 The mission is simple:
@@ -24,7 +26,8 @@ The mission is simple:
 
 ## Initial Direction
 
-- Runtime: `.NET 8`
+- Current version: `0.3.0-alpha.1`
+- Runtime: `.NET 10`
 - Architecture: modular monolith
 - Database: `PostgreSQL`
 - Cache: `Redis`

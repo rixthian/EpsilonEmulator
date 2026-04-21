@@ -10,4 +10,17 @@
     <ProjectReference Include="..\Epsilon.CoreGame\Epsilon.CoreGame.csproj" />
     <ProjectReference Include="..\Epsilon.Rooms\Epsilon.Rooms.csproj" />
   </ItemGroup>
+  <!--
+    Propagate protocol manifests into the Gateway output. ProjectReference does
+    not copy Content items transitively, so we mirror the JSON files via Link so
+    the runtime can find them at AppContext.BaseDirectory.
+  -->
+  <ItemGroup>
+    <None Include="..\Epsilon.Protocol\packet-manifests\*.json"
+          Link="packet-manifests\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\Epsilon.Protocol\command-manifests\*.json"
+          Link="command-manifests\%(Filename)%(Extension)"
+          CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 </Project>

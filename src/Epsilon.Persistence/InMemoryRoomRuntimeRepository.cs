@@ -5,6 +5,7 @@ namespace Epsilon.Persistence;
 internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
 {
     private readonly InMemoryHotelStore _store;
+    private readonly object _syncRoot = new();
     private long _nextMessageId;
 
     public InMemoryRoomRuntimeRepository(InMemoryHotelStore store)
@@ -22,40 +23,52 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         long actorId,
         CancellationToken cancellationToken = default)
     {
-        RoomActorState? actor = null;
-        if (_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
+        lock (_syncRoot)
         {
-            actor = actors.FirstOrDefault(candidate => candidate.ActorId == actorId);
-        }
+            RoomActorState? actor = null;
+            if (_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
+            {
+                actor = actors.FirstOrDefault(candidate => candidate.ActorId == actorId);
+            }
 
-        return ValueTask.FromResult(actor);
+            return ValueTask.FromResult(actor);
+        }
     }
 
     public ValueTask<IReadOnlyList<RoomActorState>> GetActorsByRoomIdAsync(
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<RoomActorState> result = _store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors)
-            ? actors
-            : [];
+        lock (_syncRoot)
+        {
+            IReadOnlyList<RoomActorState> result = _store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors)
+                ? actors.ToArray()
+                : [];
 
-        return ValueTask.FromResult(result);
+            return ValueTask.FromResult(result);
+        }
     }
 
     public ValueTask<RoomActivitySnapshot?> GetActivityByRoomIdAsync(
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        _store.RoomActivities.TryGetValue(roomId, out RoomActivitySnapshot? activity);
-        return ValueTask.FromResult(activity);
+        lock (_syncRoot)
+        {
+            _store.RoomActivities.TryGetValue(roomId, out RoomActivitySnapshot? activity);
+            return ValueTask.FromResult(activity);
+        }
     }
 
     public ValueTask<RoomChatPolicySnapshot?> GetChatPolicyByRoomIdAsync(
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        _store.RoomChatPolicies.TryGetValue(roomId, out RoomChatPolicySnapshot? policy);
-        return ValueTask.FromResult(policy);
+        lock (_syncRoot)
+        {
+            _store.RoomChatPolicies.TryGetValue(roomId, out RoomChatPolicySnapshot? policy);
+            return ValueTask.FromResult(policy);
+        }
     }
 
     public ValueTask StoreActorStateAsync(
@@ -63,23 +76,26 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomActorState actorState,
         CancellationToken cancellationToken = default)
     {
-        if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
+        lock (_syncRoot)
         {
-            actors = [];
-            _store.RoomActors[roomId] = actors;
-        }
+            if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
+            {
+                actors = [];
+                _store.RoomActors[roomId] = actors;
+            }
 
-        int index = actors.FindIndex(candidate => candidate.ActorId == actorState.ActorId);
-        if (index >= 0)
-        {
-            actors[index] = actorState;
-        }
-        else
-        {
-            actors.Add(actorState);
-        }
+            int index = actors.FindIndex(candidate => candidate.ActorId == actorState.ActorId);
+            if (index >= 0)
+            {
+                actors[index] = actorState;
+            }
+            else
+            {
+                actors.Add(actorState);
+            }
 
-        return ValueTask.CompletedTask;
+            return ValueTask.CompletedTask;
+        }
     }
 
     public ValueTask StoreChatPolicyAsync(
@@ -87,19 +103,25 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomChatPolicySnapshot chatPolicy,
         CancellationToken cancellationToken = default)
     {
-        _store.RoomChatPolicies[roomId] = chatPolicy;
-        return ValueTask.CompletedTask;
+        lock (_syncRoot)
+        {
+            _store.RoomChatPolicies[roomId] = chatPolicy;
+            return ValueTask.CompletedTask;
+        }
     }
 
     public ValueTask<IReadOnlyList<RoomChatMessage>> GetChatMessagesByRoomIdAsync(
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        IReadOnlyList<RoomChatMessage> result = _store.RoomChatMessages.TryGetValue(roomId, out List<RoomChatMessage>? messages)
-            ? messages.OrderBy(message => message.MessageId).ToArray()
-            : [];
+        lock (_syncRoot)
+        {
+            IReadOnlyList<RoomChatMessage> result = _store.RoomChatMessages.TryGetValue(roomId, out List<RoomChatMessage>? messages)
+                ? messages.OrderBy(message => message.MessageId).ToArray()
+                : [];
 
-        return ValueTask.FromResult(result);
+            return ValueTask.FromResult(result);
+        }
     }
 
     public ValueTask<RoomChatMessage> AppendChatMessageAsync(
@@ -110,22 +132,25 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomChatMessageKind messageKind,
         CancellationToken cancellationToken = default)
     {
-        if (!_store.RoomChatMessages.TryGetValue(roomId, out List<RoomChatMessage>? messages))
+        lock (_syncRoot)
         {
-            messages = [];
-            _store.RoomChatMessages[roomId] = messages;
+            if (!_store.RoomChatMessages.TryGetValue(roomId, out List<RoomChatMessage>? messages))
+            {
+                messages = [];
+                _store.RoomChatMessages[roomId] = messages;
+            }
+
+            RoomChatMessage chatMessage = new(
+                MessageId: _nextMessageId++,
+                RoomId: roomId,
+                SenderActorId: senderActorId,
+                SenderName: senderName,
+                Message: message,
+                MessageKind: messageKind,
+                SentAtUtc: DateTime.UtcNow);
+
+            messages.Add(chatMessage);
+            return ValueTask.FromResult(chatMessage);
         }
-
-        RoomChatMessage chatMessage = new(
-            MessageId: _nextMessageId++,
-            RoomId: roomId,
-            SenderActorId: senderActorId,
-            SenderName: senderName,
-            Message: message,
-            MessageKind: messageKind,
-            SentAtUtc: DateTime.UtcNow);
-
-        messages.Add(chatMessage);
-        return ValueTask.FromResult(chatMessage);
     }
 }

@@ -1,3 +1,6 @@
+using System.Collections.Concurrent;
+using System.Globalization;
+
 namespace Epsilon.CoreGame;
 
 public sealed class RoomInteractionService : IRoomInteractionService
@@ -5,15 +8,20 @@ public sealed class RoomInteractionService : IRoomInteractionService
     private readonly IHotelReadService _hotelReadService;
     private readonly IRoomRuntimeRepository _roomRuntimeRepository;
     private readonly IChatCommandRepository _chatCommandRepository;
+    private readonly IRoleAccessRepository _roleAccessRepository;
+    private readonly ConcurrentDictionary<string, Queue<DateTime>> _chatWindows = new(StringComparer.Ordinal);
+    private readonly ConcurrentDictionary<string, object> _chatWindowLocks = new(StringComparer.Ordinal);
 
     public RoomInteractionService(
         IHotelReadService hotelReadService,
         IRoomRuntimeRepository roomRuntimeRepository,
-        IChatCommandRepository chatCommandRepository)
+        IChatCommandRepository chatCommandRepository,
+        IRoleAccessRepository roleAccessRepository)
     {
         _hotelReadService = hotelReadService;
         _roomRuntimeRepository = roomRuntimeRepository;
         _chatCommandRepository = chatCommandRepository;
+        _roleAccessRepository = roleAccessRepository;
     }
 
     public async ValueTask<RoomActorMovementResult> MoveActorAsync(
@@ -39,6 +47,11 @@ public sealed class RoomInteractionService : IRoomInteractionService
         if (!IsWalkable(room.Layout, request.DestinationX, request.DestinationY, out double targetHeight))
         {
             return new RoomActorMovementResult(false, "Destination tile is not walkable.", actor);
+        }
+
+        if (await IsTileBlockedAsync(room, actor, request.DestinationX, request.DestinationY, cancellationToken))
+        {
+            return new RoomActorMovementResult(false, "Destination tile is blocked by another actor or furniture.", actor);
         }
 
         RoomActorState updatedActor = actor with
@@ -87,6 +100,11 @@ public sealed class RoomInteractionService : IRoomInteractionService
             return new RoomChatResult(false, $"Message exceeds the maximum length of {policy.MaxMessageLength}.", false, null, null);
         }
 
+        if (!TryRegisterChatWindow(request, policy, out string? floodFailure))
+        {
+            return new RoomChatResult(false, floodFailure ?? "Flood control is active.", false, null, null);
+        }
+
         if (trimmedMessage.StartsWith(':'))
         {
             return await ExecuteCommandAsync(request, actor, trimmedMessage, cancellationToken);
@@ -131,6 +149,18 @@ public sealed class RoomInteractionService : IRoomInteractionService
         if (command is null)
         {
             return new RoomChatResult(false, $"Unknown command '{parts[0]}'.", true, null, null);
+        }
+
+        string? requiredCapability = GetRequiredCapability(command.CommandKey);
+        if (requiredCapability is not null &&
+            !await HasCapabilityAsync(request.CharacterId, requiredCapability, cancellationToken))
+        {
+            return new RoomChatResult(
+                false,
+                $"Command '{command.CommandKey}' requires capability '{requiredCapability}'.",
+                true,
+                command.CommandKey,
+                null);
         }
 
         string response = command.CommandKey switch
@@ -180,7 +210,11 @@ public sealed class RoomInteractionService : IRoomInteractionService
         string? signValue,
         CancellationToken cancellationToken)
     {
-        string resolvedSign = string.IsNullOrWhiteSpace(signValue) ? "0" : signValue.Trim();
+        if (!TryNormalizeSignValue(signValue, out string resolvedSign, out string? failure))
+        {
+            return failure ?? "Invalid sign value.";
+        }
+
         IReadOnlyList<ActorStatusEntry> statusEntries = actor.StatusEntries
             .Where(entry => !string.Equals(entry.Key, "sign", StringComparison.OrdinalIgnoreCase))
             .Concat([new ActorStatusEntry("sign", resolvedSign)])
@@ -201,9 +235,9 @@ public sealed class RoomInteractionService : IRoomInteractionService
         string? itemCode,
         CancellationToken cancellationToken)
     {
-        if (!int.TryParse(itemCode, out int resolvedItemTypeId))
+        if (!TryNormalizeCarryItemTypeId(itemCode, out int resolvedItemTypeId, out string? failure))
         {
-            resolvedItemTypeId = 0;
+            return failure ?? "Invalid carry item.";
         }
 
         CarryItemState? carryItem = resolvedItemTypeId > 0
@@ -283,6 +317,147 @@ public sealed class RoomInteractionService : IRoomInteractionService
         }
 
         return false;
+    }
+
+    private async ValueTask<bool> IsTileBlockedAsync(
+        RoomHotelSnapshot room,
+        RoomActorState actor,
+        int x,
+        int y,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<RoomActorState> actors = await _roomRuntimeRepository.GetActorsByRoomIdAsync(
+            room.Room.RoomId,
+            cancellationToken);
+
+        bool occupiedByOtherActor = actors.Any(other =>
+            other.ActorId != actor.ActorId &&
+            other.Position.X == x &&
+            other.Position.Y == y);
+
+        if (occupiedByOtherActor)
+        {
+            return true;
+        }
+
+        return room.Items.Any(item =>
+            item.Item.Placement.FloorPosition is { } floorPosition &&
+            floorPosition.X == x &&
+            floorPosition.Y == y &&
+            !(item.Definition?.IsWalkable ?? false));
+    }
+
+    private bool TryRegisterChatWindow(
+        RoomChatRequest request,
+        RoomChatPolicySnapshot policy,
+        out string? failure)
+    {
+        if (policy.FloodWindowSeconds <= 0 || policy.MaxMessagesPerWindow <= 0)
+        {
+            failure = null;
+            return true;
+        }
+
+        string windowKey = $"{request.RoomId.Value}:{request.CharacterId.Value}";
+        object syncRoot = _chatWindowLocks.GetOrAdd(windowKey, static _ => new object());
+        Queue<DateTime> window = _chatWindows.GetOrAdd(windowKey, static _ => new Queue<DateTime>());
+        DateTime utcNow = DateTime.UtcNow;
+        DateTime cutoff = utcNow.AddSeconds(-policy.FloodWindowSeconds);
+
+        lock (syncRoot)
+        {
+            while (window.Count > 0 && window.Peek() < cutoff)
+            {
+                window.Dequeue();
+            }
+
+            if (window.Count >= policy.MaxMessagesPerWindow)
+            {
+                failure = $"Flood control is active. Max {policy.MaxMessagesPerWindow} messages every {policy.FloodWindowSeconds} seconds.";
+                return false;
+            }
+
+            window.Enqueue(utcNow);
+        }
+
+        failure = null;
+        return true;
+    }
+
+    private async ValueTask<bool> HasCapabilityAsync(
+        CharacterId characterId,
+        string capabilityKey,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<StaffRoleAssignment> assignments =
+            await _roleAccessRepository.GetAssignmentsByCharacterIdAsync(characterId, cancellationToken);
+        if (assignments.Count == 0)
+        {
+            return false;
+        }
+
+        HashSet<string> assignedRoles = assignments
+            .Select(assignment => assignment.RoleKey)
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        IReadOnlyList<StaffRoleDefinition> roleDefinitions =
+            await _roleAccessRepository.GetRoleDefinitionsAsync(cancellationToken);
+
+        return roleDefinitions.Any(role =>
+            assignedRoles.Contains(role.RoleKey) &&
+            role.CapabilityKeys.Any(candidate => string.Equals(candidate, capabilityKey, StringComparison.OrdinalIgnoreCase)));
+    }
+
+    private static string? GetRequiredCapability(string commandKey)
+    {
+        return commandKey.ToLowerInvariant() switch
+        {
+            "roommute" => "room.mute",
+            "pickall" => "room.pick_all",
+            "ha" => "hotel.alert",
+            _ => null
+        };
+    }
+
+    private static bool TryNormalizeSignValue(
+        string? rawValue,
+        out string normalizedValue,
+        out string? failure)
+    {
+        normalizedValue = "0";
+        failure = null;
+
+        string candidate = string.IsNullOrWhiteSpace(rawValue) ? "0" : rawValue.Trim();
+        if (!int.TryParse(candidate, NumberStyles.None, CultureInfo.InvariantCulture, out int signNumber) ||
+            signNumber < 0 ||
+            signNumber > 99)
+        {
+            failure = "Sign value must be an integer between 0 and 99.";
+            return false;
+        }
+
+        normalizedValue = signNumber.ToString(CultureInfo.InvariantCulture);
+        return true;
+    }
+
+    private static bool TryNormalizeCarryItemTypeId(
+        string? rawValue,
+        out int normalizedValue,
+        out string? failure)
+    {
+        normalizedValue = 0;
+        failure = null;
+
+        string candidate = string.IsNullOrWhiteSpace(rawValue) ? "0" : rawValue.Trim();
+        if (!int.TryParse(candidate, NumberStyles.None, CultureInfo.InvariantCulture, out int itemTypeId) ||
+            itemTypeId < 0 ||
+            itemTypeId > 999)
+        {
+            failure = "Carry item type must be an integer between 0 and 999.";
+            return false;
+        }
+
+        normalizedValue = itemTypeId;
+        return true;
     }
 
     private static string BuildHelpMessage(IReadOnlyList<ChatCommandDefinition> availableCommands)

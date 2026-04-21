@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Epsilon.Domain</AssemblyName>
+    <!--
+      RootNamespace stays Epsilon.CoreGame so that every existing file in
+      Epsilon.Rooms and Epsilon.Content that does "using Epsilon.CoreGame;"
+      continues to resolve these types without any using-directive changes.
+    -->
+    <RootNamespace>Epsilon.CoreGame</RootNamespace>
+  </PropertyGroup>
+</Project>
