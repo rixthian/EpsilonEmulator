@@ -1,84 +1,201 @@
-# Epsilon Emulator
+<p align="center">
+  <img src="assets/epsilon-logo.png" alt="Epsilon Emulator logo" width="520" />
+</p>
 
-![Epsilon Emulator Logo](assets/epsilon-logo.png)
+<h1 align="center">Epsilon Emulator</h1>
 
-Epsilon Emulator is a modern, compatibility-first Habbo emulator project built from public reference material and legacy open-source research, without inheriting old emulator architecture as its foundation.
+<p align="center">
+  Modern, compatibility-first hotel emulation focused on long-term maintainability,
+  clean architecture, and ethical preservation.
+</p>
 
-The mission is simple:
+<p align="center">
+  <strong>Version:</strong> <code>0.3.0-alpha.1</code>
+  <strong>&nbsp;•&nbsp;</strong>
+  <strong>Runtime:</strong> <code>.NET 10</code>
+  <strong>&nbsp;•&nbsp;</strong>
+  <strong>Target Family:</strong> <code>RELEASE63</code>
+</p>
 
-- preserve classic client behavior
-- replace fragile legacy runtime assumptions
-- document uncertainty instead of guessing
-- build a modern, testable emulator that can survive long term
-- hardcode as little game knowledge as possible
+## What Epsilon Is
 
-## Project Principles
+Epsilon Emulator is a clean-room hotel emulator project designed to preserve classic
+client behavior without inheriting the architectural debt of legacy emulators.
 
-- Legacy emulators are reference material, not base code.
-- Original client behavior beats emulator folklore.
-- Compatibility targets are versioned and explicit.
-- Internal architecture is modern even when the external protocol is weird.
-- Every inference should be traceable to a source.
-- Protocol, content, and compatibility rules should be data-driven.
-- Infrastructure should be replaceable without rewriting gameplay.
-- Ten-year survivability matters more than quick imitation.
-- Research material must stay separated from operational runtime code.
+The compatibility target is the hotel contract:
 
-## Initial Direction
+- protocol behavior
+- room simulation rules
+- item and catalog behavior
+- social and moderation flows
+- content loading rules
 
-- Current version: `0.3.0-alpha.1`
+The runtime is intentionally modern:
+
+- versioned compatibility adapters
+- modular monolith boundaries
+- manifest-driven protocol and content rules
+- replaceable infrastructure
+- testable gameplay services
+
+## Why This Project Exists
+
+Most older emulator projects proved that the game could be revived, but they also
+showed recurring problems:
+
+- hardcoded packet and content rules
+- fragile threading and runtime state
+- weak authentication and admin boundaries
+- mixed CMS/runtime responsibilities
+- database schemas treated as application design
+
+Epsilon exists to solve those problems directly.
+
+## Principles
+
+- Legacy emulators are research input, not base code.
+- Compatibility rules must be explicit and versioned.
+- Runtime code must remain independent from archive material.
+- Security boundaries matter as much as gameplay correctness.
+- Ten-year survivability matters more than short-term imitation.
+- Uncertainty should be documented instead of guessed.
+
+## Ethics
+
+Epsilon is a preservation and interoperability project.
+
+This repository does **not** aim to:
+
+- redistribute proprietary client assets without review
+- normalize cracked or malware-risk archive material
+- present leaked or low-trust sources as production dependencies
+- impersonate or misrepresent affiliation with Sulake or Habbo
+
+When archive material is studied, it is treated as reference evidence for behavior,
+formats, and compatibility, not as inherited runtime code.
+
+## Current Technical Direction
+
 - Runtime: `.NET 10`
 - Architecture: modular monolith
-- Database: `PostgreSQL`
-- Cache: `Redis`
-- Admin/API: `ASP.NET Core`
-- Target compatibility family: Flash `RELEASE63`
+- Persistence: PostgreSQL-backed read model with replaceable providers
+- Cache / transient infra: Redis
+- Admin surface: ASP.NET Core
+- Protocol definition: external packet and command manifests
+- Content strategy: importer pipelines and versioned manifests
 
-The compatibility target is the hotel contract, not Adobe Flash as a mandatory runtime. Epsilon should be able to preserve protocol and gameplay behavior while supporting newer client platforms.
+## Current Status
 
-## Repository Map
+The repository is beyond scaffold stage and already contains real implementation work:
 
-- [docs/architecture/overview.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/overview.md)
-- [docs/architecture/modules.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modules.md)
-- [docs/architecture/design-principles.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/design-principles.md)
-- [docs/architecture/configuration-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/configuration-strategy.md)
-- [docs/architecture/client-platform-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-platform-strategy.md)
-- [docs/compatibility/target-client.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/compatibility/target-client.md)
-- [docs/reference-sources/cataloging-rules.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/reference-sources/cataloging-rules.md)
-- [docs/roadmap/phase-01.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/roadmap/phase-01.md)
-- [catalog/source-catalog.schema.json](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/catalog/source-catalog.schema.json)
-- [research/README.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/research/README.md)
+- protocol packet and command registries
+- room entry state machine
+- room runtime snapshots and mutable room interaction services
+- session/bootstrap surfaces
+- housekeeping and support slices
+- asset and package import pipelines
+- centralized package management on current stable .NET packages
 
-## Scope For V1
+Recent hardening already addressed:
 
-The first shippable milestone should support:
+- forged in-room identity for movement and chat
+- command execution without capability checks
+- room runtime concurrency issues
+- unsanitized `sign` / `carry` payloads
+- missing chat flood control
+- basic actor and furni collision gaps
 
-- handshake and authentication
-- character selection
-- room entry and actor presence
-- movement and chat
-- basic inventory and item placement
-- basic navigator
+## Project Layout
 
-More advanced systems such as pets, quests, effects, trading, wired, and minigames should follow only after protocol stability and room simulation correctness are proven.
+- [`src/`](src/) — production code
+- [`tests/`](tests/) — automated tests
+- [`docs/architecture/`](docs/architecture/) — architecture and domain design
+- [`docs/compatibility/`](docs/compatibility/) — protocol and target-client material
+- [`docs/decisions/`](docs/decisions/) — architectural decisions
+- [`docs/roadmap/`](docs/roadmap/) — execution roadmap
+- [`catalog/`](catalog/) — schemas and generated manifests
+- [`tools/`](tools/) — importers and supporting tooling
+- [`research/`](research/) — analysis, never runtime dependency
+
+## Key Documents
+
+- [Architecture Overview](docs/architecture/overview.md)
+- [Module Boundaries](docs/architecture/modules.md)
+- [Design Principles](docs/architecture/design-principles.md)
+- [Client Platform Strategy](docs/architecture/client-platform-strategy.md)
+- [Hotel Domain Blueprint](docs/architecture/hotel-domain-blueprint.md)
+- [Protocol Baseline](docs/compatibility/protocol-baseline.md)
+- [Target Client](docs/compatibility/target-client.md)
+- [Modern Runtime Decision](docs/decisions/0001-modern-runtime.md)
+- [No Hardcoded Protocol And Content Rules](docs/decisions/0002-no-hardcoded-protocol-and-content-rules.md)
+
+## Local Development
+
+### Requirements
+
+- `.NET SDK 10`
+- Docker or Docker Desktop
+
+### Infrastructure
+
+The repository includes a local development stack in [`compose.yaml`](compose.yaml):
+
+- PostgreSQL `16`
+- Redis `7`
+
+Environment defaults live in [`.env.example`](.env.example).
+
+### Typical Flow
+
+```bash
+cp .env.example .env
+docker compose up -d
+dotnet restore
+dotnet build
+dotnet test
+dotnet run --project src/Epsilon.Gateway/Epsilon.Gateway.csproj
+```
+
+### Health Check
+
+Once the gateway is running:
+
+```bash
+curl http://127.0.0.1:5000/health
+```
+
+## Security Position
+
+Epsilon is still in alpha. The project already compiles and runs, but the security
+surface is still being tightened as gameplay becomes more complete.
+
+Near-term priorities include:
+
+- replacing development-only authentication
+- reducing open diagnostic and read surfaces
+- binding all mutable actions to authenticated sessions
+- moving more mutable runtime state off in-memory storage
+- enforcing authorization consistently across gateway and services
 
 ## Non-Goals
 
 - cloning a specific legacy emulator architecture
-- shipping with copied legacy SQL schemas as the core model
-- bundling questionable proprietary assets without provenance review
-- mixing many client revisions into one unstable first release
-- embedding packet ids, content metadata, or hotel rules directly in code when they can be loaded from versioned manifests
-- mixing public archive provenance directly into product runtime files
+- copying legacy SQL schemas as the core domain
+- embedding compatibility rules directly into gameplay code
+- mixing research artifacts into runtime execution
+- building the project around Adobe Flash as a runtime dependency
 
-## Status
+## Roadmap
 
-This repository is currently a foundation scaffold:
+The next major milestones are:
 
-- architecture docs are in place
-- source cataloging rules are defined
-- module skeletons exist for implementation
-- first code is focused on protocol and runtime boundaries
-- protocol registration is being moved to manifest-driven configuration
-- PostgreSQL-backed read repositories now exist for the first hotel slice
-- public-room asset conversion is being normalized through importer tooling instead of runtime hardcoding
+1. complete authenticated session flow and remove development auth assumptions
+2. wire more gameplay actions through the protocol layer
+3. implement inventory and furni mutation with anti-duplication guarantees
+4. expand persistence beyond the current read-heavy slices
+5. continue content extraction pipelines for public rooms, icons, packages, and client assets
+
+## Disclaimer
+
+Epsilon Emulator is an independent software project. It is not affiliated with,
+endorsed by, or represented as an official Habbo or Sulake product.
