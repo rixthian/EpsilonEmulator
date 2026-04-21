@@ -1,0 +1,54 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon-emulator.local/catalog/source-catalog.schema.json",
+  "title": "Epsilon Source Catalog",
+  "type": "object",
+  "required": ["version", "entries"],
+  "properties": {
+    "version": {
+      "type": "string"
+    },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "sourceUrl",
+          "packageName",
+          "category",
+          "trustTier",
+          "status",
+          "signals"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "sourceUrl": { "type": "string", "format": "uri" },
+          "packageName": { "type": "string" },
+          "category": {
+            "type": "string",
+            "enum": ["client", "packet-doc", "emulator", "database", "cms", "asset-pack", "tool", "mixed-archive"]
+          },
+          "estimatedEra": { "type": "string" },
+          "trustTier": {
+            "type": "string",
+            "enum": ["tier-1", "tier-2", "tier-3", "rejected"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["queued", "reviewed", "extracted", "ignored"]
+          },
+          "notes": { "type": "string" },
+          "legalNotes": { "type": "string" },
+          "signals": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}
+

@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Epsilon.Protocol</AssemblyName>
+    <RootNamespace>Epsilon.Protocol</RootNamespace>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="packet-manifests\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+</Project>

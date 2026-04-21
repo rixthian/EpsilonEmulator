@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Epsilon.Persistence</AssemblyName>
+    <RootNamespace>Epsilon.Persistence</RootNamespace>
+  </PropertyGroup>
+</Project>
+

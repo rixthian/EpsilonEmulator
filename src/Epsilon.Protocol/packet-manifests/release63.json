@@ -1,0 +1,63 @@
+{
+  "family": "RELEASE63",
+  "revision": "baseline",
+  "packets": [
+    {
+      "name": "init_crypto",
+      "direction": "incoming",
+      "id": 206,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "ssoticket",
+      "direction": "incoming",
+      "id": 415,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "get_info",
+      "direction": "incoming",
+      "id": 7,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "enter_room",
+      "direction": "incoming",
+      "id": 390,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "move_avatar",
+      "direction": "incoming",
+      "id": 75,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "chat",
+      "direction": "incoming",
+      "id": 52,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "authentication_ok",
+      "direction": "outgoing",
+      "id": 249,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "user_object",
+      "direction": "outgoing",
+      "id": 5,
+      "confidence": "inferred",
+      "notes": "Starter id to be confirmed against packet docs and fixtures."
+    }
+  ]
+}
+

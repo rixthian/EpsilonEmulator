@@ -1,0 +1,7 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <AssemblyName>Epsilon.Content</AssemblyName>
+    <RootNamespace>Epsilon.Content</RootNamespace>
+  </PropertyGroup>
+</Project>
+

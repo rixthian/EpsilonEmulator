@@ -1,0 +1,11 @@
+bin/
+obj/
+.DS_Store
+.idea/
+.vscode/
+*.user
+*.suo
+*.nupkg
+catalog/cache/
+references/raw/
+
