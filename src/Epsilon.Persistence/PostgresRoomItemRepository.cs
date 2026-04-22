@@ -65,4 +65,9 @@ internal sealed class PostgresRoomItemRepository : IRoomItemRepository
 
         return items;
     }
+
+    public ValueTask<IReadOnlyList<RoomItemState>> RemoveByRoomIdAsync(RoomId roomId, CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Postgres-backed room-item removal is not wired yet.");
+    }
 }

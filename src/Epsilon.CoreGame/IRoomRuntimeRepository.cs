@@ -24,6 +24,10 @@ public interface IRoomRuntimeRepository
         RoomActorState actorState,
         CancellationToken cancellationToken = default);
 
+    ValueTask<IReadOnlyList<RoomId>> RemoveActorFromAllRoomsAsync(
+        long actorId,
+        CancellationToken cancellationToken = default);
+
     ValueTask StoreChatPolicyAsync(
         RoomId roomId,
         RoomChatPolicySnapshot chatPolicy,
@@ -40,4 +44,16 @@ public interface IRoomRuntimeRepository
         string message,
         RoomChatMessageKind messageKind,
         CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the ids of all rooms that currently have at least one actor present.
+    /// Used for hotel-wide broadcasts and emergency evictions.
+    /// </summary>
+    ValueTask<IReadOnlyList<RoomId>> GetAllActiveRoomIdsAsync(CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Removes every player actor from the specified room.
+    /// Non-player actors (pets, NPCs) are left in place.
+    /// </summary>
+    ValueTask<int> EvictAllPlayersFromRoomAsync(RoomId roomId, CancellationToken cancellationToken = default);
 }

@@ -6,13 +6,25 @@ public sealed class RoomEntryService : IRoomEntryService
 {
     private readonly IHotelReadService _hotelReadService;
     private readonly INavigatorPublicRoomRepository _navigatorPublicRoomRepository;
+    private readonly IRoomRuntimeRepository _roomRuntimeRepository;
+    private readonly IRoomRuntimeCoordinator _roomRuntimeCoordinator;
+    private readonly IModerationRepository _moderationRepository;
+    private readonly IHotelOperationalState _hotelOperationalState;
 
     public RoomEntryService(
         IHotelReadService hotelReadService,
-        INavigatorPublicRoomRepository navigatorPublicRoomRepository)
+        INavigatorPublicRoomRepository navigatorPublicRoomRepository,
+        IRoomRuntimeRepository roomRuntimeRepository,
+        IRoomRuntimeCoordinator roomRuntimeCoordinator,
+        IModerationRepository moderationRepository,
+        IHotelOperationalState hotelOperationalState)
     {
         _hotelReadService = hotelReadService;
         _navigatorPublicRoomRepository = navigatorPublicRoomRepository;
+        _roomRuntimeRepository = roomRuntimeRepository;
+        _roomRuntimeCoordinator = roomRuntimeCoordinator;
+        _moderationRepository = moderationRepository;
+        _hotelOperationalState = hotelOperationalState;
     }
 
     public async ValueTask<RoomEntryResult> EnterAsync(
@@ -23,6 +35,17 @@ public sealed class RoomEntryService : IRoomEntryService
         [
             new(RoomEntryStage.Requested, true, $"Room entry requested for character {request.CharacterId.Value} and room {request.RoomId.Value}.")
         ];
+
+        // Lockdown check runs before any other validation so staff-initiated
+        // lockdowns take effect immediately regardless of room or character state.
+        if (_hotelOperationalState.IsLockdownActive)
+        {
+            string lockdownDetail = string.IsNullOrWhiteSpace(_hotelOperationalState.LockdownMessage)
+                ? "The hotel is temporarily locked down. Room entry is not permitted."
+                : _hotelOperationalState.LockdownMessage;
+
+            return Fail(stages, RoomEntryFailureCode.HotelLockdown, lockdownDetail);
+        }
 
         CharacterHotelSnapshot? character = await _hotelReadService.GetCharacterSnapshotAsync(
             request.CharacterId,
@@ -40,6 +63,18 @@ public sealed class RoomEntryService : IRoomEntryService
             RoomEntryStage.CharacterResolved,
             true,
             $"Character '{character.Profile.Username}' was resolved."));
+
+        ModerationBanRecord? activeBan =
+            await _moderationRepository.GetActiveBanByCharacterIdAsync(request.CharacterId, cancellationToken);
+        if (activeBan is not null)
+        {
+            return Fail(
+                stages,
+                RoomEntryFailureCode.Banned,
+                activeBan.IsPermanent
+                    ? $"Character '{character.Profile.Username}' is permanently banned. Reason: {activeBan.Reason}"
+                    : $"Character '{character.Profile.Username}' is banned until {activeBan.ExpiresAtUtc:O}. Reason: {activeBan.Reason}");
+        }
 
         RoomHotelSnapshot? room = await _hotelReadService.GetRoomSnapshotAsync(
             request.RoomId,
@@ -111,6 +146,36 @@ public sealed class RoomEntryService : IRoomEntryService
                 ? "Entry context prepared without public-room navigator metadata."
                 : $"Public-room entry '{publicRoomEntry.Caption}' was linked."));
 
+        if (!request.SpectatorMode)
+        {
+            IReadOnlyList<RoomId> removedRoomIds = await _roomRuntimeRepository.RemoveActorFromAllRoomsAsync(
+                request.CharacterId.Value,
+                cancellationToken);
+
+            RoomActorState actorState = BuildEnteredActorState(character.Profile, room.Layout);
+            await _roomRuntimeRepository.StoreActorStateAsync(request.RoomId, actorState, cancellationToken);
+
+            foreach (RoomId removedRoomId in removedRoomIds.Where(candidate => candidate != request.RoomId))
+            {
+                await _roomRuntimeCoordinator.SignalMutationAsync(
+                    removedRoomId,
+                    RoomRuntimeMutationKind.ActorPresenceChanged,
+                    cancellationToken);
+            }
+
+            await _roomRuntimeCoordinator.SignalMutationAsync(
+                request.RoomId,
+                RoomRuntimeMutationKind.ActorPresenceChanged,
+                cancellationToken);
+
+            stages.Add(new RoomEntryStageSnapshot(
+                RoomEntryStage.RuntimePresenceRegistered,
+                true,
+                removedRoomIds.Count == 0
+                    ? "Room runtime presence was registered."
+                    : $"Room runtime presence was registered and actor state was migrated from {removedRoomIds.Count} room slot(s)."));
+        }
+
         RoomEntrySnapshot snapshot = new(
             character,
             room,
@@ -129,6 +194,31 @@ public sealed class RoomEntryService : IRoomEntryService
             null,
             stages,
             snapshot);
+    }
+
+    private static RoomActorState BuildEnteredActorState(
+        CharacterProfile character,
+        Epsilon.Rooms.RoomLayoutDefinition layout)
+    {
+        RoomCoordinate doorCoordinate = new(
+            layout.DoorPosition.X,
+            layout.DoorPosition.Y,
+            layout.DoorPosition.Z);
+
+        return new RoomActorState(
+            ActorId: character.CharacterId.Value,
+            ActorKind: RoomActorKind.Player,
+            DisplayName: character.Username,
+            Position: doorCoordinate,
+            BodyRotation: layout.DoorRotation,
+            HeadRotation: layout.DoorRotation,
+            IsTyping: false,
+            IsWalking: false,
+            IsSitting: false,
+            IsLaying: false,
+            CarryItem: null,
+            Goal: null,
+            StatusEntries: []);
     }
 
     private static RoomEntryResult? ValidateAccess(

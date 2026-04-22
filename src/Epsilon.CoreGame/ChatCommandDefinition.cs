@@ -5,4 +5,5 @@ public sealed record ChatCommandDefinition(
     string Description,
     ChatCommandScope Scope,
     bool RequiresRoomContext,
-    IReadOnlyList<string> Aliases);
+    IReadOnlyList<string> Aliases,
+    string? RequiredCapabilityKey);

@@ -1,24 +1,18 @@
 using Epsilon.CoreGame;
+using System.Collections.Concurrent;
 
 namespace Epsilon.Persistence;
 
 internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
 {
     private readonly InMemoryHotelStore _store;
-    // The in-memory runtime is shared by multiple endpoints. A single lock keeps
-    // mutations predictable until the authoritative runtime moves to a stronger
-    // persistence and scheduling model.
-    private readonly object _syncRoot = new();
-    private long _nextMessageId;
+    // Room-local shards keep hot rooms from serializing the whole hotel behind
+    // one lock. This is the minimum viable shape for a fast single-node runtime.
+    private readonly ConcurrentDictionary<RoomId, RoomRuntimeShardState> _shards = new();
 
     public InMemoryRoomRuntimeRepository(InMemoryHotelStore store)
     {
         _store = store;
-        _nextMessageId = _store.RoomChatMessages.Values
-            .SelectMany(messages => messages)
-            .Select(message => message.MessageId)
-            .DefaultIfEmpty(0)
-            .Max() + 1;
     }
 
     public ValueTask<RoomActorState?> GetActorByIdAsync(
@@ -26,7 +20,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         long actorId,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             RoomActorState? actor = null;
             if (_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
@@ -42,7 +37,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             // A snapshot copy avoids exposing the mutable backing list to callers.
             IReadOnlyList<RoomActorState> result = _store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors)
@@ -57,7 +53,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             _store.RoomActivities.TryGetValue(roomId, out RoomActivitySnapshot? activity);
             return ValueTask.FromResult(activity);
@@ -68,7 +65,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             _store.RoomChatPolicies.TryGetValue(roomId, out RoomChatPolicySnapshot? policy);
             return ValueTask.FromResult(policy);
@@ -80,7 +78,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomActorState actorState,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
             {
@@ -102,12 +101,50 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         }
     }
 
+    public ValueTask<IReadOnlyList<RoomId>> RemoveActorFromAllRoomsAsync(
+        long actorId,
+        CancellationToken cancellationToken = default)
+    {
+        List<RoomId> removedRoomIds = [];
+        RoomId[] roomIds = _store.RoomActors.Keys
+            .OrderBy(static roomId => roomId.Value)
+            .ToArray();
+
+        foreach (RoomId roomId in roomIds)
+        {
+            RoomRuntimeShardState shard = GetShard(roomId);
+            lock (shard.SyncRoot)
+            {
+                if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
+                {
+                    continue;
+                }
+
+                int removedCount = actors.RemoveAll(candidate => candidate.ActorId == actorId);
+                if (removedCount == 0)
+                {
+                    continue;
+                }
+
+                if (actors.Count == 0)
+                {
+                    _store.RoomActors.Remove(roomId);
+                }
+
+                removedRoomIds.Add(roomId);
+            }
+        }
+
+        return ValueTask.FromResult<IReadOnlyList<RoomId>>(removedRoomIds);
+    }
+
     public ValueTask StoreChatPolicyAsync(
         RoomId roomId,
         RoomChatPolicySnapshot chatPolicy,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             _store.RoomChatPolicies[roomId] = chatPolicy;
             return ValueTask.CompletedTask;
@@ -118,7 +155,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomId roomId,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             // Chat history is returned in message-id order so read models stay
             // stable even when messages were appended concurrently.
@@ -138,7 +176,8 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomChatMessageKind messageKind,
         CancellationToken cancellationToken = default)
     {
-        lock (_syncRoot)
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
         {
             if (!_store.RoomChatMessages.TryGetValue(roomId, out List<RoomChatMessage>? messages))
             {
@@ -147,7 +186,7 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
             }
 
             RoomChatMessage chatMessage = new(
-                MessageId: _nextMessageId++,
+                MessageId: shard.NextMessageId++,
                 RoomId: roomId,
                 SenderActorId: senderActorId,
                 SenderName: senderName,
@@ -158,5 +197,50 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
             messages.Add(chatMessage);
             return ValueTask.FromResult(chatMessage);
         }
+    }
+
+    public ValueTask<IReadOnlyList<RoomId>> GetAllActiveRoomIdsAsync(CancellationToken cancellationToken = default)
+    {
+        // Snapshot the keys under a brief iteration — no per-shard lock needed
+        // because we only need approximate membership, not a consistent count.
+        IReadOnlyList<RoomId> roomIds = _store.RoomActors
+            .Where(pair => pair.Value.Count > 0)
+            .Select(pair => pair.Key)
+            .ToArray();
+        return ValueTask.FromResult(roomIds);
+    }
+
+    public ValueTask<int> EvictAllPlayersFromRoomAsync(RoomId roomId, CancellationToken cancellationToken = default)
+    {
+        RoomRuntimeShardState shard = GetShard(roomId);
+        lock (shard.SyncRoot)
+        {
+            if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
+            {
+                return ValueTask.FromResult(0);
+            }
+
+            int removed = actors.RemoveAll(static actor => actor.ActorKind == RoomActorKind.Player);
+            if (actors.Count == 0)
+            {
+                _store.RoomActors.Remove(roomId);
+            }
+
+            return ValueTask.FromResult(removed);
+        }
+    }
+
+    private RoomRuntimeShardState GetShard(RoomId roomId)
+    {
+        return _shards.GetOrAdd(
+            roomId,
+            roomKey =>
+            {
+                long nextMessageId = _store.RoomChatMessages.TryGetValue(roomKey, out List<RoomChatMessage>? messages)
+                    ? messages.Select(message => message.MessageId).DefaultIfEmpty(0).Max() + 1
+                    : 1;
+
+                return new RoomRuntimeShardState(nextMessageId);
+            });
     }
 }

@@ -9,6 +9,7 @@ public enum RoomEntryStage
     LayoutValidated = 4,
     ContentPrepared = 5,
     ContextPrepared = 6,
-    Completed = 7,
-    Failed = 8
+    RuntimePresenceRegistered = 7,
+    Completed = 8,
+    Failed = 9
 }

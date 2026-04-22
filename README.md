@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.3.0--alpha.1-F4B400?style=for-the-badge" alt="Version badge" />
+  <img src="https://img.shields.io/badge/version-0.4.0--alpha.2-F4B400?style=for-the-badge" alt="Version badge" />
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512BD4?style=for-the-badge" alt=".NET 10 badge" />
   <img src="https://img.shields.io/badge/compatibility-RELEASE63-111111?style=for-the-badge" alt="Compatibility badge" />
   <img src="https://img.shields.io/badge/status-active%20alpha-0F9D58?style=for-the-badge" alt="Alpha status badge" />
@@ -72,7 +72,7 @@ Epsilon exists to fix those problems directly.
 | Area | Choice |
 |---|---|
 | Runtime | `.NET 10` |
-| Version | `0.3.0-alpha.1` |
+| Version | `0.4.0-alpha.2` |
 | Architecture | Modular monolith |
 | Primary persistence | `PostgreSQL` |
 | Cache / transient infra | `Redis` |
@@ -92,6 +92,15 @@ Epsilon is already beyond scaffold stage. The repository currently includes:
 - package and asset import pipelines
 - security hardening for current gameplay endpoints
 
+Current release focus in `0.4.0-alpha.2`:
+
+- rank-derived in-game command catalog from regular user through owner
+- real room entry presence registration in runtime
+- real moderation commands for room-present targets
+- command-driven BattleBall session control
+- safer chat normalization for classic symbol-heavy chat
+- classic room/runtime commands such as `:chooser`, `:furni`, `:whisper`, and `:shout`
+
 Recent hardening already covered:
 
 - forged in-room identity for movement and chat
@@ -100,6 +109,13 @@ Recent hardening already covered:
 - unsafe `sign` and `carry` payload handling
 - missing flood control in room chat
 - basic actor and furni collision checks
+
+Recent runtime expansion now covered:
+
+- `:pickall` returns room items to inventory
+- room presence migrates cleanly when an actor enters another room
+- moderation commands now cover kick, mute, ban, transfer, and alert paths
+- room inspection and directed chat commands now exist in the runtime layer
 
 ## Architecture Shape
 

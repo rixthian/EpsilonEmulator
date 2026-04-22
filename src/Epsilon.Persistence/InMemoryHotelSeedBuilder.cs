@@ -1,5 +1,6 @@
 using Epsilon.Content;
 using Epsilon.CoreGame;
+using Epsilon.Games;
 using Epsilon.Rooms;
 
 namespace Epsilon.Persistence;
@@ -11,6 +12,12 @@ internal static class InMemoryHotelSeedBuilder
         InMemoryHotelStore store = new();
 
         CharacterId characterId = new(1);
+        CharacterId roomGuardianCharacterId = new(2);
+        CharacterId linceCharacterId = new(3);
+        CharacterId moderatorCharacterId = new(4);
+        CharacterId administratorCharacterId = new(5);
+        CharacterId managerCharacterId = new(6);
+        CharacterId playerCharacterId = new(7);
         AccountId accountId = new(1);
         RoomId homeRoomId = new(1);
 
@@ -27,6 +34,90 @@ internal static class InMemoryHotelSeedBuilder
             RespectPoints: 25,
             DailyRespectPoints: 3,
             DailyPetRespectPoints: 3);
+
+        store.Characters[roomGuardianCharacterId] = new CharacterProfile(
+            roomGuardianCharacterId,
+            new AccountId(2),
+            "delta",
+            "Room guardian",
+            "hd-180-1.ch-210-66.lg-270-82.sh-290-80",
+            "M",
+            homeRoomId,
+            2500,
+            250,
+            5,
+            3,
+            3);
+
+        store.Characters[linceCharacterId] = new CharacterProfile(
+            linceCharacterId,
+            new AccountId(3),
+            "nova",
+            "Hotel guardian",
+            "hd-600-1.ch-665-92.lg-715-82.sh-725-80",
+            "F",
+            homeRoomId,
+            3000,
+            400,
+            8,
+            3,
+            3);
+
+        store.Characters[moderatorCharacterId] = new CharacterProfile(
+            moderatorCharacterId,
+            new AccountId(4),
+            "atlas",
+            "Moderator on duty",
+            "hd-180-1.ch-215-92.lg-275-82.sh-300-62",
+            "M",
+            homeRoomId,
+            3500,
+            500,
+            12,
+            3,
+            3);
+
+        store.Characters[administratorCharacterId] = new CharacterProfile(
+            administratorCharacterId,
+            new AccountId(5),
+            "pixel",
+            "Administrator",
+            "hd-600-1.ch-630-92.lg-695-82.sh-725-62",
+            "F",
+            homeRoomId,
+            4000,
+            600,
+            15,
+            3,
+            3);
+
+        store.Characters[managerCharacterId] = new CharacterProfile(
+            managerCharacterId,
+            new AccountId(6),
+            "ember",
+            "Operations manager",
+            "hd-190-1.ch-255-66.lg-280-82.sh-290-80",
+            "M",
+            homeRoomId,
+            4500,
+            650,
+            18,
+            3,
+            3);
+
+        store.Characters[playerCharacterId] = new CharacterProfile(
+            playerCharacterId,
+            new AccountId(7),
+            "vector",
+            "Regular user",
+            "hd-180-1.ch-210-66.lg-270-82.sh-290-80",
+            "M",
+            homeRoomId,
+            1200,
+            100,
+            2,
+            3,
+            3);
 
         store.Subscriptions[characterId] =
         [
@@ -46,6 +137,51 @@ internal static class InMemoryHotelSeedBuilder
                 new WalletLedgerEntry("duckets", 250, "daily_reward", DateTime.UtcNow.AddDays(-1)),
                 new WalletLedgerEntry("diamonds", 20, "seasonal_reward", DateTime.UtcNow.AddHours(-8))
             ]);
+
+        store.Wallets[roomGuardianCharacterId] = new WalletSnapshot(
+            roomGuardianCharacterId,
+            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
+            []);
+        store.Wallets[linceCharacterId] = new WalletSnapshot(
+            linceCharacterId,
+            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
+            []);
+        store.Wallets[moderatorCharacterId] = new WalletSnapshot(
+            moderatorCharacterId,
+            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
+            []);
+        store.Wallets[administratorCharacterId] = new WalletSnapshot(
+            administratorCharacterId,
+            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
+            []);
+        store.Wallets[managerCharacterId] = new WalletSnapshot(
+            managerCharacterId,
+            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
+            []);
+        store.Wallets[playerCharacterId] = new WalletSnapshot(
+            playerCharacterId,
+            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
+            []);
+
+        store.InterfacePreferences[characterId] = new CharacterInterfacePreference(
+            CharacterId: characterId,
+            LanguageCode: "en",
+            UpdatedAt: DateTimeOffset.UtcNow.AddDays(-5),
+            UpdatedBy: "seed");
+
+        store.InterfaceLanguages.AddRange(EmbeddedSeedContentLoader.LoadInterfaceLanguages());
+        foreach (ItemDefinition itemDefinition in EmbeddedSeedContentLoader.LoadItemDefinitions())
+        {
+            store.ItemDefinitions[itemDefinition.ItemDefinitionId] = itemDefinition;
+        }
+
+        ItemDefinitionId sofaDefinitionId = new(1001);
+        ItemDefinitionId teleporterDefinitionId = new(1002);
+        ItemDefinitionId plantDefinitionId = new(1003);
+
+        store.BadgeDefinitions.AddRange(EmbeddedSeedContentLoader.LoadBadgeDefinitions());
+
+        store.InventoryItems[characterId] = [];
 
         store.Pets[characterId] =
         [
@@ -91,42 +227,112 @@ internal static class InMemoryHotelSeedBuilder
             new SupportTopicEntry(3, "How to report harassment", "Use the support button and select the abuse category.", 2, false, true)
         ]);
 
-        store.ChatCommands[characterId] =
+        store.ChatCommandCatalog.AddRange(
         [
-            new ChatCommandDefinition("help", "Show the available command list.", ChatCommandScope.Player, false, ["commands"]),
-            new ChatCommandDefinition("coords", "Show the current room coordinates.", ChatCommandScope.Player, true, []),
-            new ChatCommandDefinition("userinfo", "Show the current actor runtime information.", ChatCommandScope.Player, true, []),
-            new ChatCommandDefinition("sign", "Set the visible sign/status value.", ChatCommandScope.Player, true, []),
-            new ChatCommandDefinition("carry", "Set the carried hand item for testing.", ChatCommandScope.Player, true, []),
-            new ChatCommandDefinition("pickall", "Return every floor item in the current room to storage.", ChatCommandScope.RoomModerator, true, []),
-            new ChatCommandDefinition("roommute", "Mute or unmute the current room chat.", ChatCommandScope.RoomModerator, true, []),
-            new ChatCommandDefinition("ha", "Broadcast a hotel-wide alert.", ChatCommandScope.HotelModerator, false, ["hotelalert"])
-        ];
+            new ChatCommandDefinition("help", "Show the available command list.", ChatCommandScope.Player, false, ["commands"], null),
+            new ChatCommandDefinition("coords", "Show the current room coordinates.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("roomid", "Show the current room identity and type.", ChatCommandScope.Player, true, ["rid"], null),
+            new ChatCommandDefinition("roomstats", "Show actor, item, and chat counts for the current room.", ChatCommandScope.Player, true, ["rstats"], null),
+            new ChatCommandDefinition("chooser", "List the players currently present in the room.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("furni", "List the furni currently present in the room.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("userinfo", "Show the current actor runtime information.", ChatCommandScope.Player, true, ["whoami"], null),
+            new ChatCommandDefinition("sign", "Set the visible sign/status value.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("carry", "Set the carried hand item for testing.", ChatCommandScope.Player, true, ["handitem"], null),
+            new ChatCommandDefinition("lang", "Show or change the interface language.", ChatCommandScope.Player, false, ["language"], null),
+            new ChatCommandDefinition("wave", "Trigger the wave actor status.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("sit", "Set the actor posture to sitting.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("lay", "Set the actor posture to laying.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("stand", "Clear posture statuses and stand up.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("whisper", "Send a private-style room whisper to a specific user.", ChatCommandScope.Player, true, ["tell"], null),
+            new ChatCommandDefinition("shout", "Broadcast a louder room message.", ChatCommandScope.Player, true, ["speak"], null),
+            new ChatCommandDefinition("roommute", "Mute or unmute the current room chat.", ChatCommandScope.RoomModerator, true, [], StaffCapabilityKeys.RoomMute),
+            new ChatCommandDefinition("roomalert", "Broadcast a visible alert to the current room.", ChatCommandScope.RoomModerator, true, ["ra"], StaffCapabilityKeys.RoomAlert),
+            new ChatCommandDefinition("pickall", "Return every floor item in the current room to storage.", ChatCommandScope.RoomModerator, true, [], StaffCapabilityKeys.RoomPickAll),
+            new ChatCommandDefinition("ha", "Queue a hotel-wide alert.", ChatCommandScope.HotelModerator, false, ["hotelalert", "alert"], StaffCapabilityKeys.HotelAlert),
+            new ChatCommandDefinition("alert", "Send a moderation alert to a room-present user.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelModTool),
+            new ChatCommandDefinition("kick", "Kick a room-present user.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelModTool),
+            new ChatCommandDefinition("softkick", "Soft-kick a room-present user.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelModTool),
+            new ChatCommandDefinition("shutup", "Mute a room-present user.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelModTool),
+            new ChatCommandDefinition("unmute", "Unmute a room-present user.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelModTool),
+            new ChatCommandDefinition("ban", "Ban a room-present user for a number of seconds.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelBan),
+            new ChatCommandDefinition("superban", "Permanently ban a room-present user.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelBan),
+            new ChatCommandDefinition("transfer", "Transfer credits to a room-present user.", ChatCommandScope.HotelModerator, true, [], StaffCapabilityKeys.HotelTransfer),
+            new ChatCommandDefinition("rareweek", "Show, enable, disable, or change the rare of the week offer.", ChatCommandScope.Administrator, false, ["rotw"], StaffCapabilityKeys.CatalogManage),
+            new ChatCommandDefinition("gamesessions", "List or inspect active game sessions.", ChatCommandScope.Administrator, false, ["games"], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("bbprepare", "Prepare a BattleBall session for a new round.", ChatCommandScope.Administrator, false, ["bbprep"], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("bbstart", "Start a BattleBall round.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("bbscore", "Award points to a BattleBall team.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("bbfinish", "Finish a BattleBall match.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("ssprepare", "Prepare a SnowStorm session for a new battle.", ChatCommandScope.Administrator, false, ["ssprep"], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("ssstart", "Start a SnowStorm battle.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("ssscore", "Award points to a SnowStorm team.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("ssfinish", "Finish a SnowStorm match.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("wsprepare", "Prepare a Wobble Squabble duel session.", ChatCommandScope.Administrator, false, ["wsprep"], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("wsstart", "Start a Wobble Squabble duel.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("wsscore", "Award points to a Wobble Squabble team.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("wsfinish", "Finish a Wobble Squabble duel.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("kickall", "Evict all players from a room or all active rooms.", ChatCommandScope.Administrator, false, ["evictall"], StaffCapabilityKeys.EmergencyKickAll),
+            new ChatCommandDefinition("lockdown", "Toggle hotel-wide lockdown to block new room entries.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.EmergencyLockdown),
+            new ChatCommandDefinition("maintenance", "Activate maintenance mode: broadcast alert and lock the hotel.", ChatCommandScope.Administrator, false, ["maint"], StaffCapabilityKeys.EmergencyLockdown)
+        ]);
 
         store.AccessCapabilities.AddRange(
         [
-            new AccessCapability("hotel.alert", "Send a hotel-wide alert."),
-            new AccessCapability("hotel.modtool", "Access moderation tooling."),
-            new AccessCapability("room.mute", "Mute or unmute a room."),
-            new AccessCapability("room.pick_all", "Return all room items to storage."),
-            new AccessCapability("catalog.reload", "Reload catalog content."),
-            new AccessCapability("housekeeping.access", "Access housekeeping surfaces.")
+            new AccessCapability(StaffCapabilityKeys.HotelAlert, "Send a hotel-wide alert."),
+            new AccessCapability(StaffCapabilityKeys.HotelModTool, "Access moderation tooling."),
+            new AccessCapability(StaffCapabilityKeys.HotelBan, "Ban room-present users from hotel access."),
+            new AccessCapability(StaffCapabilityKeys.HotelTransfer, "Transfer credits to a room-present user."),
+            new AccessCapability(StaffCapabilityKeys.RoomMute, "Mute or unmute a room."),
+            new AccessCapability(StaffCapabilityKeys.RoomAlert, "Broadcast an alert inside the current room."),
+            new AccessCapability(StaffCapabilityKeys.RoomPickAll, "Return all room items to storage."),
+            new AccessCapability(StaffCapabilityKeys.CatalogManage, "Manage featured catalog states and highlighted offers."),
+            new AccessCapability(StaffCapabilityKeys.CatalogReload, "Reload catalog content."),
+            new AccessCapability(StaffCapabilityKeys.GamesManage, "Prepare, start, score, and finish managed game sessions."),
+            new AccessCapability(StaffCapabilityKeys.HousekeepingAccess, "Access housekeeping surfaces."),
+            new AccessCapability(StaffCapabilityKeys.EmergencyLockdown, "Activate or deactivate hotel-wide lockdown and maintenance mode."),
+            new AccessCapability(StaffCapabilityKeys.EmergencyKickAll, "Evict all players from one or all active rooms.")
         ]);
 
         store.StaffRoleDefinitions.AddRange(
         [
-            new StaffRoleDefinition("player", "Player", 0, []),
-            new StaffRoleDefinition("hobba", "Hobba", 20, ["room.mute"]),
-            new StaffRoleDefinition("lince", "Lince", 40, ["room.mute", "hotel.modtool"]),
-            new StaffRoleDefinition("moderator", "Moderator", 60, ["room.mute", "hotel.modtool", "hotel.alert"]),
-            new StaffRoleDefinition("administrator", "Administrator", 90, ["room.mute", "hotel.modtool", "hotel.alert", "catalog.reload", "housekeeping.access"]),
-            new StaffRoleDefinition("owner", "Owner", 100, ["room.mute", "hotel.modtool", "hotel.alert", "catalog.reload", "housekeeping.access", "room.pick_all"])
+            new StaffRoleDefinition("player", "Player", 0, ChatCommandScope.Player, []),
+            new StaffRoleDefinition("hobba", "Rank 1 Room Guardian", 1, ChatCommandScope.RoomModerator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert]),
+            new StaffRoleDefinition("lince", "Rank 2 Hotel Guardian", 2, ChatCommandScope.RoomModerator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.HotelModTool]),
+            new StaffRoleDefinition("moderator", "Rank 3 Moderator", 3, ChatCommandScope.HotelModerator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer]),
+            new StaffRoleDefinition("administrator", "Rank 4 Administrator", 4, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll]),
+            new StaffRoleDefinition("manager", "Rank 5 Manager", 5, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll]),
+            new StaffRoleDefinition("owner", "Rank 6 Owner", 6, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll])
         ]);
 
         store.StaffRoleAssignments[characterId] =
         [
             new StaffRoleAssignment(characterId, "owner", true, DateTime.UtcNow.AddMonths(-6)),
             new StaffRoleAssignment(characterId, "administrator", false, DateTime.UtcNow.AddMonths(-7))
+        ];
+
+        store.StaffRoleAssignments[roomGuardianCharacterId] =
+        [
+            new StaffRoleAssignment(roomGuardianCharacterId, "hobba", true, DateTime.UtcNow.AddMonths(-2))
+        ];
+
+        store.StaffRoleAssignments[linceCharacterId] =
+        [
+            new StaffRoleAssignment(linceCharacterId, "lince", true, DateTime.UtcNow.AddMonths(-2))
+        ];
+
+        store.StaffRoleAssignments[moderatorCharacterId] =
+        [
+            new StaffRoleAssignment(moderatorCharacterId, "moderator", true, DateTime.UtcNow.AddMonths(-2))
+        ];
+
+        store.StaffRoleAssignments[administratorCharacterId] =
+        [
+            new StaffRoleAssignment(administratorCharacterId, "administrator", true, DateTime.UtcNow.AddMonths(-2))
+        ];
+
+        store.StaffRoleAssignments[managerCharacterId] =
+        [
+            new StaffRoleAssignment(managerCharacterId, "manager", true, DateTime.UtcNow.AddMonths(-2))
         ];
 
         store.Layouts["newbie_lobby"] = new RoomLayoutDefinition(
@@ -156,13 +362,97 @@ internal static class InMemoryHotelSeedBuilder
             Settings: new RoomSettings(RoomAccessMode.Open, null, 50, true, false, false, false),
             Tags: ["welcome", "public"]);
 
-        store.PublicRoomAssetPackages["welcome_lobby_core"] = new PublicRoomAssetPackageDefinition(
+        store.Rooms[new RoomId(10)] = new RoomDefinition(
+            RoomId: new RoomId(10),
+            RoomKind: RoomKind.Public,
+            OwnerCharacterId: null,
+            Name: "Lido Deck",
+            Description: "Classic public pool with swim and dive behaviors.",
+            CategoryId: 1,
+            LayoutCode: "newbie_lobby",
+            Settings: new RoomSettings(RoomAccessMode.Open, null, 50, true, false, false, false),
+            Tags: ["lido", "public", "pool"]);
+
+        store.Rooms[new RoomId(11)] = new RoomDefinition(
+            RoomId: new RoomId(11),
+            RoomKind: RoomKind.Public,
+            OwnerCharacterId: null,
+            Name: "BattleBall Stadium",
+            Description: "Official team arena for BattleBall rounds.",
+            CategoryId: 2,
+            LayoutCode: "newbie_lobby",
+            Settings: new RoomSettings(RoomAccessMode.Open, null, 50, true, false, false, false),
+            Tags: ["battleball", "game", "public"]);
+
+        store.Rooms[new RoomId(12)] = new RoomDefinition(
+            RoomId: new RoomId(12),
+            RoomKind: RoomKind.Public,
+            OwnerCharacterId: null,
+            Name: "SnowStorm Arena",
+            Description: "Official SnowStorm combat arena.",
+            CategoryId: 2,
+            LayoutCode: "newbie_lobby",
+            Settings: new RoomSettings(RoomAccessMode.Open, null, 50, true, false, false, false),
+            Tags: ["snowstorm", "game", "public"]);
+
+        store.Rooms[new RoomId(13)] = new RoomDefinition(
+            RoomId: new RoomId(13),
+            RoomKind: RoomKind.Public,
+            OwnerCharacterId: null,
+            Name: "Wobble Squabble Hall",
+            Description: "Official duel venue for Wobble Squabble.",
+            CategoryId: 2,
+            LayoutCode: "newbie_lobby",
+            Settings: new RoomSettings(RoomAccessMode.Open, null, 50, true, false, false, false),
+            Tags: ["wobble", "gamehall", "public"]);
+
+        store.PublicRoomPackages["welcome_lobby_core"] = new PublicRoomPackageDefinition(
             AssetPackageKey: "welcome_lobby_core",
             AssetFamily: "public_room",
             VisualProfileKey: "default_public_room",
             BaseLayoutCode: "newbie_lobby",
             AssetLayerKeys: ["background", "props", "lighting", "entry"],
             Tags: ["welcome", "lobby"]);
+
+        store.PublicRoomPackages["lido_deck_core"] = new PublicRoomPackageDefinition(
+            AssetPackageKey: "lido_deck_core",
+            AssetFamily: "public_room",
+            VisualProfileKey: "classic_lido",
+            BaseLayoutCode: "newbie_lobby",
+            AssetLayerKeys: ["background", "water", "props", "lighting"],
+            Tags: ["lido", "pool", "public"]);
+
+        store.PublicRoomPackages["battleball_stadium_core"] = new PublicRoomPackageDefinition(
+            AssetPackageKey: "battleball_stadium_core",
+            AssetFamily: "public_room",
+            VisualProfileKey: "arena_battleball",
+            BaseLayoutCode: "newbie_lobby",
+            AssetLayerKeys: ["background", "arena", "lighting"],
+            Tags: ["battleball", "game"]);
+
+        store.PublicRoomPackages["snowstorm_arena_core"] = new PublicRoomPackageDefinition(
+            AssetPackageKey: "snowstorm_arena_core",
+            AssetFamily: "public_room",
+            VisualProfileKey: "arena_snowstorm",
+            BaseLayoutCode: "newbie_lobby",
+            AssetLayerKeys: ["background", "snow", "arena", "lighting"],
+            Tags: ["snowstorm", "game"]);
+
+        store.PublicRoomPackages["wobblesquabble_hall_core"] = new PublicRoomPackageDefinition(
+            AssetPackageKey: "wobblesquabble_hall_core",
+            AssetFamily: "public_room",
+            VisualProfileKey: "arcade_wobble",
+            BaseLayoutCode: "newbie_lobby",
+            AssetLayerKeys: ["background", "stage", "props", "lighting"],
+            Tags: ["wobblesquabble", "gamehall"]);
+
+        store.PublicRoomPackages["infobus_theatre_core"] = new PublicRoomPackageDefinition(
+            AssetPackageKey: "infobus_theatre_core",
+            AssetFamily: "public_room",
+            VisualProfileKey: "theatre_infobus",
+            BaseLayoutCode: "newbie_lobby",
+            AssetLayerKeys: ["background", "stage", "seating", "lighting"],
+            Tags: ["infobus", "public", "theatre"]);
 
         store.ClientPackages["flash_release63_baseline"] = new ClientPackageManifest(
             PackageKey: "flash_release63_baseline",
@@ -198,44 +488,331 @@ internal static class InMemoryHotelSeedBuilder
             ParentCategoryId: 0,
             AssetPackageKey: "welcome_lobby_core");
 
-        ItemDefinitionId sofaDefinitionId = new(1001);
-        ItemDefinitionId teleporterDefinitionId = new(1002);
+        store.NavigatorPublicRooms[2] = new NavigatorPublicRoomDefinition(
+            EntryId: 2,
+            OrderNumber: 2,
+            BannerTypeCode: "lido",
+            Caption: "Lido Deck",
+            ImagePath: "lido_banner",
+            ImageKind: "internal",
+            RoomId: new RoomId(10),
+            CategoryId: 1,
+            ParentCategoryId: 0,
+            AssetPackageKey: "lido_deck_core");
 
-        store.ItemDefinitions[sofaDefinitionId] = new ItemDefinition(
-            sofaDefinitionId,
-            PublicName: "Modern Sofa",
-            InternalName: "modern_sofa",
-            ItemTypeCode: "s",
-            SpriteId: 3001,
-            StackHeight: 1.0,
-            CanStack: true,
-            CanSit: true,
-            IsWalkable: false,
-            AllowRecycle: true,
-            AllowTrade: true,
-            AllowMarketplaceSell: true,
-            AllowGift: true,
-            AllowInventoryStack: false,
-            InteractionTypeCode: "default",
-            InteractionModesCount: 0);
+        store.NavigatorPublicRooms[3] = new NavigatorPublicRoomDefinition(
+            EntryId: 3,
+            OrderNumber: 3,
+            BannerTypeCode: "battleball",
+            Caption: "BattleBall Stadium",
+            ImagePath: "battleball_banner",
+            ImageKind: "internal",
+            RoomId: new RoomId(11),
+            CategoryId: 2,
+            ParentCategoryId: 0,
+            AssetPackageKey: "battleball_stadium_core");
 
-        store.ItemDefinitions[teleporterDefinitionId] = new ItemDefinition(
-            teleporterDefinitionId,
-            PublicName: "Teleporter",
-            InternalName: "teleporter",
-            ItemTypeCode: "s",
-            SpriteId: 3002,
-            StackHeight: 1.0,
-            CanStack: false,
-            CanSit: false,
-            IsWalkable: true,
-            AllowRecycle: false,
-            AllowTrade: true,
-            AllowMarketplaceSell: true,
-            AllowGift: true,
-            AllowInventoryStack: false,
-            InteractionTypeCode: "teleport",
-            InteractionModesCount: 2);
+        store.NavigatorPublicRooms[4] = new NavigatorPublicRoomDefinition(
+            EntryId: 4,
+            OrderNumber: 4,
+            BannerTypeCode: "snowstorm",
+            Caption: "SnowStorm Arena",
+            ImagePath: "snowstorm_banner",
+            ImageKind: "internal",
+            RoomId: new RoomId(12),
+            CategoryId: 2,
+            ParentCategoryId: 0,
+            AssetPackageKey: "snowstorm_arena_core");
+
+        store.NavigatorPublicRooms[5] = new NavigatorPublicRoomDefinition(
+            EntryId: 5,
+            OrderNumber: 5,
+            BannerTypeCode: "wobble",
+            Caption: "Wobble Squabble Hall",
+            ImagePath: "wobble_banner",
+            ImageKind: "internal",
+            RoomId: new RoomId(13),
+            CategoryId: 2,
+            ParentCategoryId: 0,
+            AssetPackageKey: "wobblesquabble_hall_core");
+
+        store.CatalogPages.AddRange(
+        [
+            new CatalogPageDefinition(
+                new CatalogPageId(1),
+                null,
+                "Featured",
+                0,
+                1,
+                true,
+                true,
+                0,
+                false,
+                1,
+                "default_3x3",
+                "Featured Picks",
+                "Popular essentials for the lobby.",
+                string.Empty,
+                "Fresh furniture for active hotel development.",
+                "Use credits and duckets to purchase items.",
+                string.Empty,
+                string.Empty),
+            new CatalogPageDefinition(
+                new CatalogPageId(2),
+                null,
+                "Mobis",
+                0,
+                2,
+                true,
+                true,
+                0,
+                false,
+                2,
+                "default_3x3",
+                "Furniture",
+                "Core room items.",
+                string.Empty,
+                "Sofas, plants, and utility room items.",
+                "Stock your inventory before furnishing rooms.",
+                string.Empty,
+                string.Empty),
+            new CatalogPageDefinition(
+                new CatalogPageId(3),
+                null,
+                "Ecotron",
+                0,
+                3,
+                true,
+                true,
+                0,
+                false,
+                3,
+                "frontpage4",
+                "Ecotron Recycling",
+                "Reward loops and random furniture returns.",
+                string.Empty,
+                "Trade unwanted furni into randomized reward boxes.",
+                "This category is prepared for recycler and eco-box flows.",
+                string.Empty,
+                string.Empty),
+            new CatalogPageDefinition(
+                new CatalogPageId(4),
+                null,
+                "Rares",
+                0,
+                4,
+                true,
+                true,
+                0,
+                false,
+                4,
+                "frontpage3",
+                "Rare Releases",
+                "Timed and collectible furni drops.",
+                string.Empty,
+                "Weekly rare drops and seasonal showcase items.",
+                "High-identity catalog lane for special content.",
+                string.Empty,
+                string.Empty),
+            new CatalogPageDefinition(
+                new CatalogPageId(5),
+                null,
+                "Effects",
+                0,
+                5,
+                true,
+                true,
+                0,
+                false,
+                5,
+                "frontpage3",
+                "Avatar Effects",
+                "Temporary visual boosts and room presence effects.",
+                string.Empty,
+                "Unique effect catalog lane for cosmetic runtime features.",
+                "Prepared for richer modern client previews.",
+                string.Empty,
+                string.Empty)
+        ]);
+
+        store.CatalogOffers.AddRange(
+        [
+            new CatalogOfferDefinition(
+                new CatalogOfferId(1),
+                new CatalogPageId(1),
+                "Starter Sofa",
+                CatalogOfferKind.Single,
+                150,
+                0,
+                0,
+                [new CatalogOfferProductDefinition(sofaDefinitionId, 1)]),
+            new CatalogOfferDefinition(
+                new CatalogOfferId(2),
+                new CatalogPageId(1),
+                "Lobby Plant Set",
+                CatalogOfferKind.Bundle,
+                75,
+                25,
+                0,
+                [new CatalogOfferProductDefinition(plantDefinitionId, 2)]),
+            new CatalogOfferDefinition(
+                new CatalogOfferId(3),
+                new CatalogPageId(2),
+                "Navigator Teleporter",
+                CatalogOfferKind.Single,
+                300,
+                0,
+                0,
+                [new CatalogOfferProductDefinition(teleporterDefinitionId, 1)]),
+            new CatalogOfferDefinition(
+                new CatalogOfferId(4),
+                new CatalogPageId(4),
+                "Rare Amber Podium",
+                CatalogOfferKind.Single,
+                500,
+                0,
+                0,
+                [new CatalogOfferProductDefinition(plantDefinitionId, 1)]),
+            new CatalogOfferDefinition(
+                new CatalogOfferId(5),
+                new CatalogPageId(3),
+                "Collector Starter Deal",
+                CatalogOfferKind.Bundle,
+                225,
+                50,
+                0,
+                [
+                    new CatalogOfferProductDefinition(sofaDefinitionId, 1),
+                    new CatalogOfferProductDefinition(plantDefinitionId, 3),
+                    new CatalogOfferProductDefinition(teleporterDefinitionId, 1)
+                ])
+        ]);
+
+        store.CatalogCampaigns.AddRange(EmbeddedSeedContentLoader.LoadCatalogCampaigns());
+        foreach (CatalogFeatureState featureState in EmbeddedSeedContentLoader.LoadCatalogFeatureStates())
+        {
+            store.CatalogFeatureStates[featureState.FeatureKey] = featureState;
+        }
+
+        store.GameDefinitions.AddRange(EmbeddedSeedContentLoader.LoadGameDefinitions());
+        store.GameVenues.AddRange(EmbeddedSeedContentLoader.LoadGameVenues());
+        store.GameSessions.AddRange(
+        [
+            new GameSessionState(
+                SessionKey: "battleball-public-1",
+                GameKey: "battleball",
+                VenueKey: "battleball_stadium",
+                RoomId: new RoomId(11),
+                Status: GameSessionStatus.Running,
+                PhaseCode: "round_live",
+                IsPrivateMatch: false,
+                MaximumPlayers: 8,
+                StartedAtUtc: DateTime.UtcNow.AddMinutes(-6),
+                Teams:
+                [
+                    new GameTeamDefinition("red", "Red Team", "red", 42),
+                    new GameTeamDefinition("blue", "Blue Team", "blue", 36)
+                ],
+                Players:
+                [
+                    new GamePlayerState(new CharacterId(1), "epsilon", "red", 18, true, DateTime.UtcNow.AddMinutes(-7)),
+                    new GamePlayerState(new CharacterId(2), "delta", "red", 24, true, DateTime.UtcNow.AddMinutes(-7)),
+                    new GamePlayerState(new CharacterId(3), "nova", "blue", 17, true, DateTime.UtcNow.AddMinutes(-7)),
+                    new GamePlayerState(new CharacterId(4), "atlas", "blue", 19, true, DateTime.UtcNow.AddMinutes(-7))
+                ]),
+            new GameSessionState(
+                SessionKey: "snowstorm-public-1",
+                GameKey: "snowstorm",
+                VenueKey: "snowstorm_arena",
+                RoomId: new RoomId(12),
+                Status: GameSessionStatus.Preparing,
+                PhaseCode: "matchmaking",
+                IsPrivateMatch: false,
+                MaximumPlayers: 8,
+                StartedAtUtc: DateTime.UtcNow.AddMinutes(-2),
+                Teams:
+                [
+                    new GameTeamDefinition("north", "North Team", "ice_blue", 0),
+                    new GameTeamDefinition("south", "South Team", "frost_white", 0)
+                ],
+                Players:
+                [
+                    new GamePlayerState(new CharacterId(5), "pixel", "north", 0, true, DateTime.UtcNow.AddMinutes(-2)),
+                    new GamePlayerState(new CharacterId(6), "ember", "south", 0, true, DateTime.UtcNow.AddMinutes(-2))
+                ]),
+            new GameSessionState(
+                SessionKey: "wobble-private-1",
+                GameKey: "wobblesquabble",
+                VenueKey: "wobble_squabble_hall",
+                RoomId: new RoomId(13),
+                Status: GameSessionStatus.Waiting,
+                PhaseCode: "waiting_for_duelists",
+                IsPrivateMatch: true,
+                MaximumPlayers: 2,
+                StartedAtUtc: DateTime.UtcNow.AddMinutes(-1),
+                Teams:
+                [
+                    new GameTeamDefinition("left", "Left", "gold", 0),
+                    new GameTeamDefinition("right", "Right", "silver", 0)
+                ],
+                Players:
+                [
+                    new GamePlayerState(new CharacterId(7), "vector", "left", 0, true, DateTime.UtcNow.AddMinutes(-1))
+                ])
+        ]);
+        store.VoucherDefinitions.AddRange(EmbeddedSeedContentLoader.LoadVoucherDefinitions());
+        store.CollectibleDefinitions.AddRange(EmbeddedSeedContentLoader.LoadCollectibleDefinitions());
+        store.EcotronRewards.AddRange(EmbeddedSeedContentLoader.LoadEcotronRewards());
+        store.PublicRoomBehaviors.AddRange(EmbeddedSeedContentLoader.LoadPublicRoomBehaviors());
+
+        store.EffectDefinitions.AddRange(
+        [
+            new EffectDefinition(
+                "gold_glow",
+                "Gold Glow",
+                "A soft golden aura for premium room presence.",
+                7001,
+                120,
+                0,
+                false,
+                3600,
+                "effect_glow_gold"),
+            new EffectDefinition(
+                "storm_spark",
+                "Storm Spark",
+                "Short electric burst trail for dramatic entries.",
+                7002,
+                0,
+                80,
+                false,
+                1800,
+                "effect_storm_spark"),
+            new EffectDefinition(
+                "vip_orbit",
+                "VIP Orbit",
+                "Premium orbiting particles around the avatar.",
+                7003,
+                250,
+                0,
+                true,
+                5400,
+                "effect_vip_orbit")
+        ]);
+
+        store.RoomVisualScenes.AddRange(
+        [
+            new RoomVisualSceneDefinition(
+                "welcome_lobby_gold_hour",
+                "newbie_lobby",
+                "golden_city",
+                "#E5A623",
+                "soft_isometric_long",
+                "warm_evening",
+                "slow_cloud_band",
+                true,
+                true,
+                ["cloud_drift", "window_glow", "city_haze"])
+        ]);
 
         store.RoomItems[homeRoomId] =
         [

@@ -7,5 +7,7 @@ public enum RoomEntryFailureCode
     MissingLayout = 2,
     AccessDenied = 3,
     InvalidPassword = 4,
-    LayoutRestricted = 5
+    LayoutRestricted = 5,
+    Banned = 6,
+    HotelLockdown = 7
 }
