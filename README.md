@@ -117,6 +117,37 @@ Recent runtime expansion now covered:
 - moderation commands now cover kick, mute, ban, transfer, and alert paths
 - room inspection and directed chat commands now exist in the runtime layer
 
+## Development Progress
+
+The percentages below are current engineering estimates of implemented, verified,
+and operable coverage. They are intended to show actual module maturity, not
+issue-count vanity metrics.
+
+| Scope | Progress | Notes |
+|---|---:|---|
+| Global emulator operativity | `97%` | Current alpha is structurally strong and functionally broad, but not yet fully distributed in runtime state. |
+| Architecture quality | `98%` | Module boundaries, data flow, and system ownership are clear and defensible. |
+| Repository hygiene | `98%` | Naming, staging discipline, and runtime separation are in good condition. |
+| `Epsilon.Gateway` | `90%` | Main runtime/API surface is broad and stable, but protocol parity is still incomplete. |
+| `Epsilon.Protocol` | `54%` | Packet and command manifests exist, but live gameplay still trails the HTTP/runtime path. |
+| `Epsilon.Auth` | `86%` | Session/auth boundaries and modern password hashing are in place; full production auth migration is pending. |
+| `Epsilon.CoreGame` | `91%` | Hotel flows, commands, moderation, commerce, room entry, and snapshots are heavily developed. |
+| `Epsilon.Rooms` | `82%` | Room definitions, runtime interaction, and presence handling are solid; deeper furni mutation is still incomplete. |
+| `Epsilon.Content` | `91%` | Catalog, badges, avatar content, campaign/content modeling, and import structures are advanced. |
+| `Epsilon.Persistence` | `58%` | Architecture is strong, but too much live behavior still depends on `InMemory`. |
+| `Epsilon.Games` | `75%` | Game definitions and BattleBall lifecycle exist, but full live loops are still missing. |
+| `Epsilon.Launcher` | `84%` | Client bootstrap and connection policy are well defined; shared runtime/session behavior still needs deepening. |
+| `Epsilon.AdminApi` | `74%` | Admin/runtime inspection works, but full moderation and operational tooling is not complete. |
+| Asset/content ingest pipeline | `94%` | Client roots, builds, avatar bundles, figures, badges, and related manifests are organized and reproducible. |
+| Multi-process runtime integrity | `84%` | Shared sessions improved, but shared room presence/state still needs stronger distributed handling. |
+
+Current weakest points, in order:
+
+1. `Epsilon.Protocol` still trails the HTTP/runtime path for real gameplay execution.
+2. `Epsilon.Persistence` still relies too heavily on `InMemory` for live state.
+3. `Epsilon.Games` still needs deeper live round loops beyond lifecycle control.
+4. `Epsilon.Rooms` still needs full furni placement, pickup, and trading-grade mutation paths.
+
 ## Architecture Shape
 
 ```text
