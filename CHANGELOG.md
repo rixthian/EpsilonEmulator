@@ -4,6 +4,30 @@ All notable changes to Epsilon Emulator should be documented in this file.
 
 The format is intentionally simple while the project is still in alpha.
 
+## [0.4.0-alpha.3] - 2026-04-22
+
+### Added
+
+- central `configuration/` surface with shared, gateway, launcher, admin, and feature templates
+- platform roadmap describing the multi-version adapter strategy and long-term roleplay/product direction
+- feature-level progress matrix in the `README`
+- service/domain-oriented source layout across gateway, auth, core game, protocol, games, rooms, persistence, launcher, and tests
+- client/build/content ingest schemas and manifests for launcher, avatar, figure, and client-root inventories
+
+### Changed
+
+- repository structure is now organized by service responsibility instead of large flat project roots
+- `README` now documents mission, compatibility strategy, repository structure, module coverage, and feature coverage
+- compatibility documentation now frames `RELEASE63` as the first strong baseline rather than the final scope
+- configuration documentation now explains layered overrides and long-term platform scaling
+
+### Hygiene
+
+- removed low-value legacy/source-history documentation from the runtime-facing repo surface
+- normalized staged file moves into tracked renames
+- repository documentation now matches the actual code structure
+- retained passing build and hygiene checks after the reorganization
+
 ## [0.4.0-alpha.2] - 2026-04-22
 
 ### Added

@@ -1,0 +1,101 @@
+{
+  "manifestVersion": 1,
+  "generatedAtUtc": "2026-04-22T00:48:35.749003+00:00",
+  "buildKey": "release63-201412101357-983561993",
+  "clientFamily": "flash-classic",
+  "eraKey": "release63",
+  "sourceFileName": "Habbo.swf",
+  "sourcePath": "/Users/yasminluengo/Downloads/RELEASE63-201412101357-983561993/Habbo.swf",
+  "container": {
+    "signature": "CWS",
+    "swfVersion": 14,
+    "declaredFileLength": 11230557,
+    "frameRate": 24.0,
+    "frameCount": 2,
+    "stageWidth": 1280.0,
+    "stageHeight": 800.0
+  },
+  "rendering": {
+    "spriteCount": 0,
+    "shapeTagCount": 0,
+    "bitmapTagCount": 1397,
+    "actionTagCount": 3
+  },
+  "runtimeSurface": {
+    "hasGuideSurface": true,
+    "hasCallForHelpSurface": true,
+    "hasMessengerSurface": true,
+    "hasInventoryEffectsSurface": true,
+    "hasCameraSurface": true,
+    "hasWiredSurface": true,
+    "hasGameSurface": false,
+    "hasFloorplanEditorSurface": true,
+    "hasAvatarRenderSurface": true
+  },
+  "tagInventory": {
+    "tagCount": 2453,
+    "topTags": [
+      {
+        "code": 36,
+        "name": "DefineBitsLossless2",
+        "count": 1397
+      },
+      {
+        "code": 87,
+        "name": "DefineBinaryData",
+        "count": 997
+      },
+      {
+        "code": 14,
+        "name": "Tag14",
+        "count": 13
+      },
+      {
+        "code": 88,
+        "name": "DefineFontName",
+        "count": 10
+      },
+      {
+        "code": 73,
+        "name": "Tag73",
+        "count": 10
+      },
+      {
+        "code": 75,
+        "name": "Tag75",
+        "count": 10
+      },
+      {
+        "code": 82,
+        "name": "DoABC",
+        "count": 3
+      },
+      {
+        "code": 43,
+        "name": "FrameLabel",
+        "count": 2
+      },
+      {
+        "code": 1,
+        "name": "ShowFrame",
+        "count": 2
+      },
+      {
+        "code": 76,
+        "name": "SymbolClass",
+        "count": 2
+      },
+      {
+        "code": 0,
+        "name": "End",
+        "count": 1
+      },
+      {
+        "code": 56,
+        "name": "ExportAssets",
+        "count": 1
+      }
+    ]
+  },
+  "warnings": []
+}

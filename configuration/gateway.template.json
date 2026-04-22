@@ -1,0 +1,7 @@
+{
+  "Gateway": {
+    "HotelName": "Epsilon Emulator",
+    "PublicHost": "localhost",
+    "TcpPort": 30000
+  }
+}

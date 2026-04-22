@@ -1,0 +1,6 @@
+[
+  { "languageCode": "en", "cultureCode": "en-US", "displayName": "English", "nativeDisplayName": "English", "iconAssetPath": "ui/languages/en.png", "isDefault": true, "sortOrder": 1 },
+  { "languageCode": "es", "cultureCode": "es-ES", "displayName": "Spanish", "nativeDisplayName": "Español", "iconAssetPath": "ui/languages/es.png", "isDefault": false, "sortOrder": 2 },
+  { "languageCode": "fr", "cultureCode": "fr-FR", "displayName": "French", "nativeDisplayName": "Français", "iconAssetPath": "ui/languages/fr.png", "isDefault": false, "sortOrder": 3 },
+  { "languageCode": "it", "cultureCode": "it-IT", "displayName": "Italian", "nativeDisplayName": "Italiano", "iconAssetPath": "ui/languages/it.png", "isDefault": false, "sortOrder": 4 }
+]

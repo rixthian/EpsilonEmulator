@@ -5,6 +5,6 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\Epsilon.Domain\Epsilon.Domain.csproj" />
+    <ProjectReference Include="..\Epsilon.Games\Epsilon.Games.csproj" />
   </ItemGroup>
 </Project>
-

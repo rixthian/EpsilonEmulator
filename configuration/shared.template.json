@@ -1,0 +1,25 @@
+{
+  "Auth": {
+    "SessionTtlMinutes": 120,
+    "TicketLength": 48,
+    "AllowInMemorySessions": true,
+    "RedisConnectionString": ""
+  },
+  "Cryptography": {
+    "Pbkdf2IterationCount": 600000,
+    "SaltSizeBytes": 32,
+    "SubkeySizeBytes": 32
+  },
+  "Infrastructure": {
+    "Provider": "InMemory",
+    "MongoConnectionString": "",
+    "MongoDatabaseName": "epsilon_emulator",
+    "PostgresConnectionString": "",
+    "RedisConnectionString": ""
+  },
+  "Protocol": {
+    "Family": "RELEASE63",
+    "ManifestPath": "packet-manifests/release63.json",
+    "CommandManifestPath": "command-manifests/release63.commands.json"
+  }
+}

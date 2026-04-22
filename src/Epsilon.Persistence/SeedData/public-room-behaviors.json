@@ -1,0 +1,6 @@
+[
+  { "behaviorKey": "welcome_concierge", "assetPackageKey": "welcome_lobby_core", "displayName": "Reception Concierge", "interactionType": "bot_greeter", "isAnimated": true, "isEnabled": true, "tags": ["bot", "welcome"] },
+  { "behaviorKey": "lido_swimming_pool", "assetPackageKey": "lido_deck_core", "displayName": "Lido Swimming Pool", "interactionType": "swimming_pool", "isAnimated": true, "isEnabled": true, "tags": ["lido", "swim", "classic"] },
+  { "behaviorKey": "lido_diving_deck", "assetPackageKey": "lido_deck_core", "displayName": "Lido Diving Deck", "interactionType": "diving_deck", "isAnimated": true, "isEnabled": true, "tags": ["lido", "dive", "classic"] },
+  { "behaviorKey": "infobus_stage", "assetPackageKey": "infobus_theatre_core", "displayName": "Infobus Theatre", "interactionType": "infobus_poll", "isAnimated": true, "isEnabled": true, "tags": ["infobus", "event", "public"] }
+]

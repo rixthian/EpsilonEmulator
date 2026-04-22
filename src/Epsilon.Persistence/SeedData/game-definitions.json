@@ -1,0 +1,5 @@
+[
+  { "gameKey": "battleball", "family": "BattleBall", "displayName": "BattleBall", "description": "Competitive tile control with teams, traps, and score pressure.", "iconAssetPath": "games/battleball/icon.png", "supportsPublicVenues": true, "supportsPrivateVenues": true, "isTeamBased": true, "isEnabled": true, "tags": ["arena", "team", "classic"] },
+  { "gameKey": "snowstorm", "family": "SnowStorm", "displayName": "SnowStorm", "description": "Snowball combat with maps, cover, and round-based scoring.", "iconAssetPath": "games/snowstorm/icon.png", "supportsPublicVenues": true, "supportsPrivateVenues": false, "isTeamBased": true, "isEnabled": true, "tags": ["snow", "team", "seasonal"] },
+  { "gameKey": "wobblesquabble", "family": "WobbleSquabble", "displayName": "Wobble Squabble", "description": "One-on-one pushing duels with simple inputs and fast rounds.", "iconAssetPath": "games/wobblesquabble/icon.png", "supportsPublicVenues": true, "supportsPrivateVenues": false, "isTeamBased": false, "isEnabled": true, "tags": ["duel", "arcade", "classic"] }
+]

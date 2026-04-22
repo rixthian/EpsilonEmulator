@@ -1,0 +1,113 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon.local/catalog/client-build-manifest.schema.json",
+  "title": "Client Build Manifest",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "generatedAtUtc",
+    "buildKey",
+    "clientFamily",
+    "eraKey",
+    "sourceFileName",
+    "sourcePath",
+    "container",
+    "rendering",
+    "runtimeSurface",
+    "tagInventory",
+    "warnings"
+  ],
+  "properties": {
+    "manifestVersion": { "type": "integer", "const": 1 },
+    "generatedAtUtc": { "type": "string" },
+    "buildKey": { "type": "string", "minLength": 1 },
+    "clientFamily": { "type": "string", "minLength": 1 },
+    "eraKey": { "type": "string", "minLength": 1 },
+    "sourceFileName": { "type": "string", "minLength": 1 },
+    "sourcePath": { "type": "string", "minLength": 1 },
+    "container": {
+      "type": "object",
+      "required": [
+        "signature",
+        "swfVersion",
+        "declaredFileLength",
+        "frameRate",
+        "frameCount",
+        "stageWidth",
+        "stageHeight"
+      ],
+      "properties": {
+        "signature": { "type": "string", "minLength": 3, "maxLength": 3 },
+        "swfVersion": { "type": "integer", "minimum": 1 },
+        "declaredFileLength": { "type": "integer", "minimum": 1 },
+        "frameRate": { "type": "number", "minimum": 0 },
+        "frameCount": { "type": "integer", "minimum": 0 },
+        "stageWidth": { "type": "number", "minimum": 0 },
+        "stageHeight": { "type": "number", "minimum": 0 }
+      }
+    },
+    "rendering": {
+      "type": "object",
+      "required": [
+        "spriteCount",
+        "shapeTagCount",
+        "bitmapTagCount",
+        "actionTagCount"
+      ],
+      "properties": {
+        "spriteCount": { "type": "integer", "minimum": 0 },
+        "shapeTagCount": { "type": "integer", "minimum": 0 },
+        "bitmapTagCount": { "type": "integer", "minimum": 0 },
+        "actionTagCount": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "runtimeSurface": {
+      "type": "object",
+      "required": [
+        "hasGuideSurface",
+        "hasCallForHelpSurface",
+        "hasMessengerSurface",
+        "hasInventoryEffectsSurface",
+        "hasCameraSurface",
+        "hasWiredSurface",
+        "hasGameSurface",
+        "hasFloorplanEditorSurface",
+        "hasAvatarRenderSurface"
+      ],
+      "properties": {
+        "hasGuideSurface": { "type": "boolean" },
+        "hasCallForHelpSurface": { "type": "boolean" },
+        "hasMessengerSurface": { "type": "boolean" },
+        "hasInventoryEffectsSurface": { "type": "boolean" },
+        "hasCameraSurface": { "type": "boolean" },
+        "hasWiredSurface": { "type": "boolean" },
+        "hasGameSurface": { "type": "boolean" },
+        "hasFloorplanEditorSurface": { "type": "boolean" },
+        "hasAvatarRenderSurface": { "type": "boolean" }
+      }
+    },
+    "tagInventory": {
+      "type": "object",
+      "required": ["tagCount", "topTags"],
+      "properties": {
+        "tagCount": { "type": "integer", "minimum": 0 },
+        "topTags": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["code", "name", "count"],
+            "properties": {
+              "code": { "type": "integer", "minimum": 0 },
+              "name": { "type": "string", "minLength": 1 },
+              "count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": { "type": "string" }
+    }
+  }
+}

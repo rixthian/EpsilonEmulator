@@ -1,0 +1,4 @@
+[
+  { "voucherCode": "WELCOME_CREDITS", "displayName": "Welcome Credit Voucher", "description": "Starter credit booster for first hotel sessions.", "rewardCurrencyCode": "credits", "rewardAmount": 250, "isEnabled": true, "tags": ["starter", "economy"] },
+  { "voucherCode": "DUCKET_DAILY", "displayName": "Daily Ducket Voucher", "description": "Recurring reward voucher for activity-driven progression.", "rewardCurrencyCode": "duckets", "rewardAmount": 50, "isEnabled": true, "tags": ["daily", "economy"] }
+]

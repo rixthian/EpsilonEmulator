@@ -1,0 +1,87 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon.local/schemas/asset-collection-manifest.schema.json",
+  "title": "Asset Collection Manifest",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "generatedAtUtc",
+    "profileKey",
+    "clientFamily",
+    "eraKey",
+    "sourceKind",
+    "totalFileCount",
+    "roots",
+    "artifacts"
+  ],
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generatedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "profileKey": {
+      "type": "string"
+    },
+    "clientFamily": {
+      "type": "string"
+    },
+    "eraKey": {
+      "type": "string"
+    },
+    "sourceKind": {
+      "type": "string",
+      "enum": ["local", "remote", "mixed"]
+    },
+    "domain": {
+      "type": ["string", "null"]
+    },
+    "revisionKey": {
+      "type": ["string", "null"]
+    },
+    "totalFileCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "roots": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["rootKey", "path", "fileCount", "counts"],
+        "properties": {
+          "rootKey": { "type": "string" },
+          "path": { "type": "string" },
+          "fileCount": { "type": "integer", "minimum": 0 },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0
+            }
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["artifactKey", "count", "samples"],
+        "properties": {
+          "artifactKey": { "type": "string" },
+          "count": { "type": "integer", "minimum": 0 },
+          "samples": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

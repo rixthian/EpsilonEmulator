@@ -1,0 +1,4 @@
+[
+  { "rewardKey": "ecotron_tier_1", "displayName": "Ecotron Green Sofa", "itemDefinitionId": 1001, "requiredRecycleCount": 5, "rewardTier": 1, "isVisibleInCatalog": true, "tags": ["ecotron", "tier1"] },
+  { "rewardKey": "ecotron_tier_2", "displayName": "Ecotron Amber Plant", "itemDefinitionId": 1003, "requiredRecycleCount": 10, "rewardTier": 2, "isVisibleInCatalog": true, "tags": ["ecotron", "tier2"] }
+]

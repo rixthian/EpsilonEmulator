@@ -1,0 +1,5 @@
+[
+  { "venueKey": "battleball_stadium", "gameKey": "battleball", "venueKind": "PublicRoom", "hostRoomKind": "Public", "roomId": 11, "displayName": "BattleBall Stadium", "assetPackageKey": "battleball_stadium_core", "isRecommended": true, "tags": ["arena", "official"] },
+  { "venueKey": "snowstorm_arena", "gameKey": "snowstorm", "venueKind": "PublicRoom", "hostRoomKind": "Public", "roomId": 12, "displayName": "SnowStorm Arena", "assetPackageKey": "snowstorm_arena_core", "isRecommended": true, "tags": ["snow", "official"] },
+  { "venueKey": "wobblesquabble_lobby", "gameKey": "wobblesquabble", "venueKind": "PublicRoom", "hostRoomKind": "Public", "roomId": 13, "displayName": "Wobble Squabble Hall", "assetPackageKey": "wobblesquabble_hall_core", "isRecommended": true, "tags": ["arcade", "official"] }
+]

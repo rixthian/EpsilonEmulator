@@ -1,0 +1,70 @@
+{
+  "Network": {
+    "TcpBindIp": "127.0.0.1",
+    "TcpPort": 30000,
+    "MaxConnections": 11000,
+    "MaxConnectionsPerIp": 10000,
+    "EnableNoDelay": true,
+    "ClientPingEnabled": true,
+    "ClientPingIntervalMs": 30000,
+    "RequestIntervalActiveMs": 2000,
+    "RequestIntervalIdleMs": 60000
+  },
+  "Console": {
+    "StructuredStartup": true,
+    "ShowPacketHandlerSummary": true,
+    "ShowTimePanel": true,
+    "ShowSecuritySignals": true,
+    "ShowWarningSignals": true,
+    "ShowBugSignals": true,
+    "ShowErrorSignals": true
+  },
+  "Welcome": {
+    "AlertEnabled": true,
+    "AlertMessage": "Welcome to Epsilon."
+  },
+  "Economy": {
+    "PeriodicCreditsEnabled": false,
+    "PeriodicCreditsAmount": 5,
+    "PeriodicCreditsIntervalSeconds": 900,
+    "PeriodicPixelsEnabled": false,
+    "PeriodicPixelsAmount": 25,
+    "PeriodicPixelsIntervalSeconds": 900,
+    "LoginCreditsAmount": 75,
+    "LoginPixelsAmount": 0
+  },
+  "Hotel": {
+    "GroupsEnabled": true,
+    "GiftsEnabled": true,
+    "TradingEnabledByDefault": true,
+    "FriendRequestsEnabledByDefault": true,
+    "SsoDisabled": false
+  },
+  "Bots": {
+    "Enabled": true,
+    "EnableGreeterBots": true,
+    "EnableServiceBots": true,
+    "EnableGameHostBots": true,
+    "EnableScriptedReplies": true,
+    "EnableWaypointStepping": false,
+    "EnableAiReplies": false
+  },
+  "Games": {
+    "BattleBallEnabled": true,
+    "SnowStormEnabled": true,
+    "WobbleSquabbleEnabled": true,
+    "AutoSeedPublicSessions": true
+  },
+  "Moderation": {
+    "EnableRoomModerationCommands": true,
+    "EnableHotelModerationCommands": true,
+    "EnableEmergencyCommands": true,
+    "PersistBanHistory": true
+  },
+  "Security": {
+    "EnableConnectionRateLimits": true,
+    "EnablePacketLogging": true,
+    "EnableSessionHeartbeat": true,
+    "EnableSharedSessions": false
+  }
+}

@@ -1,0 +1,5 @@
+[
+  { "campaignKey": "featured_furniture", "catalogPageId": 1, "campaignType": "featured", "title": "Lobby Essentials", "subtitle": "Fast-start furni for active rooms", "imagePath": "catalog/campaigns/lobby_essentials.png", "badgeLabel": "Featured", "isVisible": true, "orderNumber": 1 },
+  { "campaignKey": "ecotron_revival", "catalogPageId": 3, "campaignType": "ecotron", "title": "Ecotron Returns", "subtitle": "Recycler-ready reward loops", "imagePath": "catalog/campaigns/ecotron_revival.png", "badgeLabel": "Ecotron", "isVisible": true, "orderNumber": 2 },
+  { "campaignKey": "rare_of_week", "catalogPageId": 4, "campaignType": "rare_weekly", "title": "Rare Of The Week", "subtitle": "Timed collectible furni drop", "imagePath": "catalog/campaigns/rare_week.png", "badgeLabel": "Limited", "isVisible": true, "orderNumber": 3 }
+]

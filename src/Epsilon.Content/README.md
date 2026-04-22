@@ -9,3 +9,4 @@ This module owns imported compatibility data such as:
 - badges and effects
 - public-room asset packages
 - navigator public-room entries
+- badge asset catalogs and queryable badge metadata

@@ -1,5 +1,17 @@
 # Target Client
 
+## Platform Direction
+
+Epsilon is not meant to stop at one revision.
+
+The platform target is:
+
+- multi-version Habbo compatibility
+- stable core hotel services underneath
+- explicit adapter layers around protocol, launcher/bootstrap, content visibility, and rendering/runtime expectations
+
+That is how Epsilon can support older and newer hotel eras without turning the codebase into revision spaghetti.
+
 ## Initial Compatibility Baseline
 
 Epsilon Emulator v1 should target a single Flash-era compatibility family:
@@ -18,6 +30,11 @@ Legacy emulator history shows that trying to support multiple eras too early lea
 - hard-to-debug room logic
 
 The first implementation should be judged by fidelity, not by number of revisions claimed.
+
+So the rule is:
+
+- platform ambition: all major hotel eras
+- implementation order: one stable family at a time
 
 ## Evidence Sources
 
@@ -41,6 +58,13 @@ After `RELEASE63` reaches stability, later compatibility families should be adde
 - `Epsilon.Protocol.Release63`
 - `Epsilon.Protocol.Release64`
 - `Epsilon.Protocol.Shockwave`
+- future web or mobile-compatible families
+
+Expansion should also include:
+
+- content adaptation by client family
+- launcher/bootstrap profiles by client family
+- compatibility policies for room, catalog, avatar, and game surfaces
+- original Epsilon-only extensions that are not forced onto older clients
 
 The core domain should remain stable while protocol adapters evolve around it.
-

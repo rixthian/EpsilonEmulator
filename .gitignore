@@ -9,6 +9,8 @@ obj/
 .env
 catalog/cache/
 references/raw/
+assets/badges/library/*
+!assets/badges/library/.gitkeep
 
 # Python tooling caches (tools/importers, etc.)
 __pycache__/

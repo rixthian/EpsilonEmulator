@@ -1,0 +1,77 @@
+{
+  "Launcher": {
+    "ServiceName": "Epsilon.Launcher",
+    "GatewayBaseUrl": "http://localhost:5000",
+    "AssetsBaseUrl": "/assets",
+    "ClientProfiles": [
+      {
+        "ProfileKey": "release63",
+        "DisplayName": "Release 63 Compatibility",
+        "PackageKey": "flash_release63_baseline",
+        "RendererKind": "compatibility_web",
+        "TransportKind": "classic_hotel_protocol",
+        "SupportsSso": true,
+        "SupportsDirectLogin": true,
+        "IsDefault": false,
+        "SupportedDevices": [ "Desktop", "Tablet" ],
+        "Tags": [ "compatibility", "release63", "classic" ]
+      },
+      {
+        "ProfileKey": "web-alpha",
+        "DisplayName": "Modern Web Runtime Alpha",
+        "PackageKey": "modern_web_runtime_alpha",
+        "RendererKind": "modern_web_runtime",
+        "TransportKind": "epsilon_runtime_api",
+        "SupportsSso": true,
+        "SupportsDirectLogin": true,
+        "IsDefault": true,
+        "SupportedDevices": [ "Desktop", "Tablet", "Phone" ],
+        "Tags": [ "modern", "web", "adaptive" ]
+      }
+    ],
+    "ConnectionProfiles": [
+      {
+        "DeviceKind": "Desktop",
+        "TransportKind": "epsilon_runtime_api",
+        "ProtocolFamily": "epsilon-desktop",
+        "InputMode": "pointer_keyboard",
+        "SupportsTouchInput": false,
+        "SupportsSafeReconnect": true,
+        "RequiresCompactViewport": false,
+        "HeartbeatIntervalSeconds": 20,
+        "MaximumViewportWidth": 1600,
+        "MaximumViewportHeight": 1200,
+        "PreferredAssetDensity": 1.0,
+        "EnabledCapabilities": [ "session-resume", "full-room-ui", "pointer-navigation", "keyboard-shortcuts" ]
+      },
+      {
+        "DeviceKind": "Tablet",
+        "TransportKind": "epsilon_runtime_api",
+        "ProtocolFamily": "epsilon-touch",
+        "InputMode": "touch",
+        "SupportsTouchInput": true,
+        "SupportsSafeReconnect": true,
+        "RequiresCompactViewport": true,
+        "HeartbeatIntervalSeconds": 18,
+        "MaximumViewportWidth": 1180,
+        "MaximumViewportHeight": 1024,
+        "PreferredAssetDensity": 1.5,
+        "EnabledCapabilities": [ "session-resume", "touch-navigation", "gesture-room-controls", "compact-ui" ]
+      },
+      {
+        "DeviceKind": "Phone",
+        "TransportKind": "epsilon_runtime_api",
+        "ProtocolFamily": "epsilon-touch",
+        "InputMode": "touch",
+        "SupportsTouchInput": true,
+        "SupportsSafeReconnect": true,
+        "RequiresCompactViewport": true,
+        "HeartbeatIntervalSeconds": 15,
+        "MaximumViewportWidth": 540,
+        "MaximumViewportHeight": 960,
+        "PreferredAssetDensity": 2.0,
+        "EnabledCapabilities": [ "session-resume", "touch-navigation", "gesture-room-controls", "minimal-ui" ]
+      }
+    ]
+  }
+}

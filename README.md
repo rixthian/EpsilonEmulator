@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.4.0--alpha.2-F4B400?style=for-the-badge" alt="Version badge" />
+  <img src="https://img.shields.io/badge/version-0.4.0--alpha.3-F4B400?style=for-the-badge" alt="Version badge" />
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512BD4?style=for-the-badge" alt=".NET 10 badge" />
   <img src="https://img.shields.io/badge/compatibility-RELEASE63-111111?style=for-the-badge" alt="Compatibility badge" />
   <img src="https://img.shields.io/badge/status-active%20alpha-0F9D58?style=for-the-badge" alt="Alpha status badge" />
@@ -22,7 +22,7 @@
   ·
   <a href="CHANGELOG.md">Changelog</a>
   ·
-  <a href="docs/roadmap/phase-01.md">Roadmap</a>
+  <a href="docs/roadmap/platform-roadmap.md">Roadmap</a>
   ·
   <a href="docs/decisions/0001-modern-runtime.md">Decisions</a>
 </p>
@@ -57,6 +57,25 @@ repeated the same problems:
 
 Epsilon exists to fix those problems directly.
 
+## Mission
+
+Epsilon is being built as a multi-era hotel platform.
+
+Long term, the project should be able to:
+
+- run multiple Habbo compatibility families through explicit adapters
+- preserve classic hotel behavior without inheriting legacy emulator structure
+- add modern infrastructure, security, observability, and deployment discipline
+- support new original features such as roleplay systems, modern social features, and future client surfaces
+
+The mission is not “one retro clone per version.”
+The mission is one stable hotel platform with:
+
+- version-aware protocol adapters
+- version-aware content visibility
+- stable core hotel domains
+- room for original product evolution
+
 ## Design Pillars
 
 | Pillar | Meaning |
@@ -72,13 +91,27 @@ Epsilon exists to fix those problems directly.
 | Area | Choice |
 |---|---|
 | Runtime | `.NET 10` |
-| Version | `0.4.0-alpha.2` |
+| Version | `0.4.0-alpha.3` |
 | Architecture | Modular monolith |
 | Primary persistence | `PostgreSQL` |
 | Cache / transient infra | `Redis` |
 | Admin/API | `ASP.NET Core` |
 | Protocol model | External packet and command manifests |
 | Compatibility family | `RELEASE63` |
+
+## Compatibility Strategy
+
+Epsilon starts with one strong baseline and expands outward.
+
+- first stable adapter target: `RELEASE63`
+- long-term target: multi-version support across classic, Flash-era, and later compatible hotel surfaces
+- expansion rule: each client family gets its own adapter layer instead of leaking revision logic into hotel services
+
+That means:
+
+- `Epsilon.CoreGame`, `Epsilon.Rooms`, `Epsilon.Content`, and `Epsilon.Games` stay mostly stable
+- compatibility-specific behavior is isolated in protocol, launcher, content, and rendering adapters
+- new technology can be added without breaking old hotel contracts
 
 ## Current Status
 
@@ -92,7 +125,7 @@ Epsilon is already beyond scaffold stage. The repository currently includes:
 - package and asset import pipelines
 - security hardening for current gameplay endpoints
 
-Current release focus in `0.4.0-alpha.2`:
+Current release focus in `0.4.0-alpha.3`:
 
 - rank-derived in-game command catalog from regular user through owner
 - real room entry presence registration in runtime
@@ -141,6 +174,26 @@ issue-count vanity metrics.
 | Asset/content ingest pipeline | `94%` | Client roots, builds, avatar bundles, figures, badges, and related manifests are organized and reproducible. |
 | Multi-process runtime integrity | `84%` | Shared sessions improved, but shared room presence/state still needs stronger distributed handling. |
 
+### Feature Coverage
+
+| Feature area | Progress | Notes |
+|---|---:|---|
+| Authentication and session lifecycle | `87%` | Modern password hashing, ticket/session stores, heartbeats, and disconnect flow exist; production auth migration is still pending. |
+| Protocol-driven hotel execution | `54%` | Protocol manifests and command execution bridge exist, but too much live behavior still runs through HTTP-first paths. |
+| Room runtime and mobility | `82%` | Entry, presence, chat, directed commands, and adjacency movement are in place; full path queues and rich furni mutation are still incomplete. |
+| Chat and command system | `93%` | Rank-aware commands, moderation commands, whisper/shout, link handling, and normalization are working. |
+| Moderation and staff tooling | `78%` | Room-present moderation is real, but offline/account-wide workflows and case tooling are still missing. |
+| Bot runtime | `69%` | Deterministic runtime bots, scripted replies, and service actions exist; pathing, scheduling, and admin configuration still need expansion. |
+| Groups and social foundations | `72%` | Group creation, membership, and linked private rooms work; forums and richer role management remain incomplete. |
+| Catalog, economy, and inventory | `88%` | Catalog content, purchases, vouchers, and inventory slices are advanced; full trading-grade mutation is still not finished. |
+| Avatar, badges, and collectible content | `92%` | Badge catalog, avatar asset digestion, figure manifests, and collectible-ready content models are in strong shape. |
+| Public rooms and hotel world features | `85%` | Public-room definitions, behaviors, bots, and package inventories are strong; more interactive venue logic is still needed. |
+| Games | `75%` | BattleBall lifecycle and game session foundations are in place; deeper live loops for all game families are still pending. |
+| Launcher and connection policy | `84%` | Client profiles and device-aware connection policies exist; full shared runtime/session cohesion still needs work. |
+| Configuration platform | `90%` | Root configuration layering and service templates are in place; more feature sections need to be fully bound into runtime. |
+| Multi-version compatibility foundation | `63%` | The adapter strategy, client/build manifests, and launcher profiles are in place; only `RELEASE63` is currently the strong baseline. |
+| Roleplay and original Epsilon features | `22%` | The platform direction is defined, but dedicated roleplay systems are still future work. |
+
 Current weakest points, in order:
 
 1. `Epsilon.Protocol` still trails the HTTP/runtime path for real gameplay execution.
@@ -176,13 +229,14 @@ Each module has a narrow responsibility:
 
 - [`src/`](src/) — production code
 - [`tests/`](tests/) — automated tests
+- [`configuration/`](configuration/) — shared and per-service configuration templates
 - [`docs/architecture/`](docs/architecture/) — architecture and domain design
 - [`docs/compatibility/`](docs/compatibility/) — protocol and target-client material
 - [`docs/decisions/`](docs/decisions/) — architectural decisions
 - [`docs/roadmap/`](docs/roadmap/) — execution roadmap
 - [`catalog/`](catalog/) — schemas and generated manifests
 - [`tools/`](tools/) — importers and support tooling
-- [`research/`](research/) — analysis only, never runtime dependency
+- [`references/`](references/) — source handling rules and reference hygiene
 
 ## Key Documents
 
@@ -195,6 +249,25 @@ Each module has a narrow responsibility:
 - [Target Client](docs/compatibility/target-client.md)
 - [Modern Runtime Decision](docs/decisions/0001-modern-runtime.md)
 - [No Hardcoded Protocol And Content Rules](docs/decisions/0002-no-hardcoded-protocol-and-content-rules.md)
+
+## Code Structure
+
+The source tree is now organized by service and domain so each project is easier
+to scan and maintain.
+
+- [`src/Epsilon.Auth/`](src/Epsilon.Auth/) — `Abstractions`, `Configuration`, `Contracts`, `Services`, `Storage`, `Startup`
+- [`src/Epsilon.Content/`](src/Epsilon.Content/) — `Badges`, `Catalog`, `Client`, `Collectibles`, `Effects`, `Interfaces`, `Items`, `Localization`, `Navigator`, `Pets`, `PublicRooms`, `Vouchers`
+- [`src/Epsilon.CoreGame/`](src/Epsilon.CoreGame/) — `Access`, `Accounts`, `Badges`, `Bots`, `Chat`, `Commerce`, `Groups`, `Hotel`, `Interface`, `Inventory`, `Moderation`, `Navigator`, `Packets`, `Pets`, `Roles`, `Rooms`, `Subscriptions`, `Support`, `Wallet`
+- [`src/Epsilon.Games/`](src/Epsilon.Games/) — `BattleBall`, `SnowStorm`, `WobbleSquabble`, `Core`, `Runtime`, `Sessions`, `Startup`
+- [`src/Epsilon.Gateway/`](src/Epsilon.Gateway/) — `Configuration`, `Console`, `Contracts`, `Startup`
+- [`src/Epsilon.Launcher/`](src/Epsilon.Launcher/) — `Configuration`, `Models`, `Services`, `Startup`
+- [`src/Epsilon.Persistence/`](src/Epsilon.Persistence/) — `Configuration`, `InMemory`, `Postgres`, `Redis`, `Runtime`, `Seed`, `Startup`
+- [`src/Epsilon.Protocol/`](src/Epsilon.Protocol/) — `Configuration`, `Manifests`, `Registry`, `SelfCheck`, `Startup`
+- [`src/Epsilon.Rooms/`](src/Epsilon.Rooms/) — `Contracts`, `Models`
+
+The test tree follows the same approach:
+
+- [`tests/Epsilon.CoreGame.Tests/`](tests/Epsilon.CoreGame.Tests/) — grouped into `Auth`, `Badges`, `Chat`, `Commands`, `Commerce`, `Games`, `Groups`, `Hotel`, `Moderation`, `Rooms`, `Runtime`
 
 ## Ethics
 
@@ -265,6 +338,8 @@ The next major milestones are:
 3. implement inventory and furni mutation with anti-duplication guarantees
 4. expand persistence beyond the current read-heavy slices
 5. continue package, public-room, icon, and visual asset pipelines
+6. add compatibility adapters beyond `RELEASE63`
+7. add original hotel extensions, including roleplay-oriented systems, without polluting compatibility layers
 
 ## Non-Goals
 

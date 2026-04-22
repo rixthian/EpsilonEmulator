@@ -9,6 +9,7 @@
   <ItemGroup>
     <ProjectReference Include="..\Epsilon.Domain\Epsilon.Domain.csproj" />
     <ProjectReference Include="..\Epsilon.Content\Epsilon.Content.csproj" />
+    <ProjectReference Include="..\Epsilon.Games\Epsilon.Games.csproj" />
     <ProjectReference Include="..\Epsilon.Rooms\Epsilon.Rooms.csproj" />
   </ItemGroup>
 </Project>

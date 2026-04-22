@@ -19,6 +19,10 @@ Flash public rooms are distributed as `.swf` bundles such as `hh_room_lobby.swf`
 
 These bundles are Flash assets, not Shockwave/Director assets.
 
+Local canonical inventory output is generated in:
+
+- [release63-plus-public-rooms.manifest.json](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/catalog/public-rooms/release63-plus-public-rooms.manifest.json)
+
 ## Conversion Strategy
 
 The conversion pipeline should be split into stages:

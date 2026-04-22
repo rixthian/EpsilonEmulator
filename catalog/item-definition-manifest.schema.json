@@ -1,0 +1,130 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon.local/schemas/item-definition-manifest.schema.json",
+  "title": "Item Definition Manifest",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "generatedAtUtc",
+    "manifestKey",
+    "sourceFile",
+    "sourceVariant",
+    "itemCount",
+    "counts",
+    "items"
+  ],
+  "properties": {
+    "manifestVersion": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "generatedAtUtc": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "manifestKey": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceFile": {
+      "type": "string",
+      "minLength": 1
+    },
+    "sourceVariant": {
+      "type": "string",
+      "enum": ["text", "xml"]
+    },
+    "itemCount": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "counts": {
+      "type": "object",
+      "required": ["byItemType", "byInteraction"],
+      "properties": {
+        "byItemType": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "byInteraction": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "integer",
+            "minimum": 0
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "itemDefinitionId",
+          "publicName",
+          "internalName",
+          "itemTypeCode",
+          "spriteId",
+          "stackHeight",
+          "canStack",
+          "canSit",
+          "isWalkable",
+          "allowRecycle",
+          "allowTrade",
+          "allowMarketplaceSell",
+          "allowGift",
+          "allowInventoryStack",
+          "interactionTypeCode",
+          "interactionModesCount",
+          "revision",
+          "width",
+          "length",
+          "defaultDirection",
+          "colors",
+          "sourceClass",
+          "sourceVariant"
+        ],
+        "properties": {
+          "itemDefinitionId": { "type": "integer", "minimum": 1 },
+          "publicName": { "type": "string" },
+          "internalName": { "type": "string" },
+          "itemTypeCode": { "type": "string", "enum": ["s", "i"] },
+          "spriteId": { "type": "integer", "minimum": 1 },
+          "stackHeight": { "type": "number" },
+          "canStack": { "type": "boolean" },
+          "canSit": { "type": "boolean" },
+          "isWalkable": { "type": "boolean" },
+          "allowRecycle": { "type": "boolean" },
+          "allowTrade": { "type": "boolean" },
+          "allowMarketplaceSell": { "type": "boolean" },
+          "allowGift": { "type": "boolean" },
+          "allowInventoryStack": { "type": "boolean" },
+          "interactionTypeCode": { "type": "string" },
+          "interactionModesCount": { "type": "integer", "minimum": 0 },
+          "revision": { "type": "integer", "minimum": 0 },
+          "width": { "type": "integer", "minimum": 0 },
+          "length": { "type": "integer", "minimum": 0 },
+          "defaultDirection": { "type": "integer", "minimum": 0 },
+          "colors": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "offerId": {
+            "type": ["integer", "null"]
+          },
+          "adUrl": {
+            "type": ["string", "null"]
+          },
+          "sourceClass": { "type": "string" },
+          "sourceVariant": { "type": "string", "enum": ["text", "xml"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

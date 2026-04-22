@@ -1,0 +1,5 @@
+[
+  { "collectibleKey": "hc_gold_elephant", "displayName": "Gold Elephant", "categoryKey": "rare", "imagePath": "catalog/collectibles/gold_elephant.png", "isSeasonal": false, "isTradable": true, "isVisible": true, "tags": ["rare", "classic", "tradeable"] },
+  { "collectibleKey": "rotw_dragon_lamp", "displayName": "Dragon Lamp", "categoryKey": "rare_of_week", "imagePath": "catalog/collectibles/dragon_lamp.png", "isSeasonal": true, "isTradable": true, "isVisible": true, "tags": ["rotw", "weekly", "limited"] },
+  { "collectibleKey": "ecotron_cactus", "displayName": "Ecotron Cactus", "categoryKey": "ecotron", "imagePath": "catalog/collectibles/ecotron_cactus.png", "isSeasonal": false, "isTradable": false, "isVisible": true, "tags": ["ecotron", "recycle"] }
+]

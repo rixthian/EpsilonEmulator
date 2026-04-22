@@ -10,10 +10,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from dataclasses import asdict, dataclass
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
+
+SCRIPT_DIRECTORY = Path(__file__).resolve().parent
+if str(SCRIPT_DIRECTORY) not in sys.path:
+    sys.path.insert(0, str(SCRIPT_DIRECTORY))
 
 from swf_file_analyzer import analysis_to_json_dict, analyze_swf_file
 
@@ -99,7 +104,13 @@ def parse_args() -> argparse.Namespace:
 
 
 def iter_public_room_files(source_directory: Path) -> Iterable[Path]:
-    return sorted(path for path in source_directory.iterdir() if path.is_file() and path.suffix.lower() == ".swf")
+    return sorted(
+        path
+        for path in source_directory.iterdir()
+        if path.is_file()
+        and path.suffix.lower() == ".swf"
+        and path.name.lower().startswith("hh_room_")
+    )
 
 
 def build_entry(path: Path, include_swf_metadata: bool) -> PublicRoomAssetEntry:

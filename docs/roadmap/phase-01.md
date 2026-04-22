@@ -4,6 +4,10 @@
 
 Reach a trustworthy vertical slice for one Flash compatibility target.
 
+This is the first execution phase of the broader platform roadmap:
+
+- [Platform Roadmap](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/roadmap/platform-roadmap.md)
+
 ## Milestones
 
 1. Source Catalog Foundation
@@ -34,4 +38,4 @@ Reach a trustworthy vertical slice for one Flash compatibility target.
 - movement and chat are stable
 - protocol fixtures protect against regressions
 - behavior notes are source-backed for implemented features
-
+- the phase is strong enough to become the base for future compatibility adapters

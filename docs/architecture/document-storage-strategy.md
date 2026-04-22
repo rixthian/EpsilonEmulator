@@ -1,58 +1,58 @@
 # Document Storage Strategy
 
-Epsilon should treat document storage as the primary persistence direction for mutable hotel aggregates.
+Document storage is part of Epsilon's persistence topology, but it is not the primary store for the whole hotel.
 
-## Why MongoDB Fits
+## When Documents Fit
 
-MongoDB is a better fit than a heavily normalized relational schema for several Epsilon surfaces:
+Document storage is useful for hotel surfaces that are naturally aggregate-shaped and change often:
 
-- character session bootstrap
-- messenger rosters and request queues
-- badge and achievement projections
-- room runtime snapshots
 - client package manifests
-- housekeeping role definitions and capability catalogs
-- advertisement campaigns
+- advertisement campaigns and creative payloads
+- housekeeping role catalogs and policy bundles
+- localized content manifests
+- room visual scene manifests
+- analytics envelopes and import snapshots
 
-These are naturally document-shaped and evolve frequently.
+These surfaces benefit from schema versioning, flexible payloads, and denormalized reads.
 
-## What Should Stay Structured
+## What Should Not Move To Documents
 
-Using MongoDB does not mean abandoning structure.
+The following concerns need strong transactional guarantees and relational integrity:
 
-Epsilon should still preserve:
+- accounts and characters
+- wallet balances and ledgers
+- inventory ownership
+- room membership and item placement
+- trading and voucher redemption
+- permissions and moderation actions
+- game sessions and scoring
+
+Those belong in PostgreSQL.
+
+## Redis Remains Separate
+
+Redis is still the right place for hot ephemeral state:
+
+- live room presence
+- actor movement buffers
+- flood control
+- transient matchmaking queues
+- short-lived session lookups
+
+Redis should not become the source of truth for hotel ownership or economy.
+
+## Document Ground Rules
+
+When Epsilon uses document storage, it still requires:
 
 - explicit repository contracts
 - versioned document schemas
-- stable aggregate boundaries
 - deterministic identifiers
-- append-style ledger/event records for balances and progression
+- bounded aggregate ownership
+- import/export contracts
 
-## Aggregate Direction
+## Constraint
 
-Recommended primary document aggregates:
+Document storage is a complement, not an excuse to blur domain boundaries.
 
-- `character_profiles`
-- `character_sessions`
-- `character_wallets`
-- `character_social`
-- `character_progression`
-- `room_definitions`
-- `room_runtime`
-- `catalog_content`
-- `client_packages`
-- `housekeeping_roles`
-- `advertisement_campaigns`
-
-## Runtime Guidance
-
-- Gateway and protocol layers must remain storage-agnostic.
-- CoreGame and Rooms should depend only on repositories.
-- Persistence can provide Mongo-backed repositories without changing domain services.
-- Redis should remain available for hot ephemeral state, rate limiting, and fan-out coordination.
-
-## Important Constraint
-
-MongoDB is a good direction for document aggregates, but it is not an excuse for weak modeling.
-
-If the aggregate boundaries are poor, moving from SQL to MongoDB only hides the problem inside larger blobs.
+If a surface needs cross-aggregate consistency, ledger guarantees, or strict permissions, keep it relational.

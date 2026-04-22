@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon.local/schemas/launcher-profile-manifest.schema.json",
+  "title": "Launcher Profile Manifest",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "generatedAtUtc",
+    "profileKey",
+    "sourceFile",
+    "variableCount",
+    "capabilities",
+    "sections"
+  ],
+  "properties": {
+    "manifestVersion": { "type": "integer" },
+    "generatedAtUtc": { "type": "string" },
+    "profileKey": { "type": "string" },
+    "sourceFile": { "type": "string" },
+    "variableCount": { "type": "integer" },
+    "capabilities": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "sections": {
+      "type": "object",
+      "required": [
+        "content",
+        "downloads",
+        "room",
+        "catalog",
+        "games",
+        "community",
+        "campaigns",
+        "moderation",
+        "featureFlags",
+        "keyPrefixes"
+      ],
+      "properties": {
+        "content": { "type": "object" },
+        "downloads": { "type": "object" },
+        "room": { "type": "object" },
+        "catalog": { "type": "object" },
+        "games": { "type": "object" },
+        "community": { "type": "object" },
+        "campaigns": { "type": "object" },
+        "moderation": { "type": "object" },
+        "featureFlags": { "type": "object" },
+        "keyPrefixes": { "type": "array" }
+      }
+    }
+  }
+}

@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://epsilon.local/catalog/avatar-asset-manifest.schema.json",
+  "title": "Avatar Asset Manifest",
+  "type": "object",
+  "required": [
+    "manifestVersion",
+    "generatedAtUtc",
+    "bundleKey",
+    "eraKey",
+    "sourceRoot",
+    "swfCount",
+    "gamedataFiles",
+    "categoryCounts",
+    "swfVersionCounts",
+    "signatureCounts",
+    "assets"
+  ],
+  "properties": {
+    "manifestVersion": { "type": "integer", "const": 1 },
+    "generatedAtUtc": { "type": "string" },
+    "bundleKey": { "type": "string", "minLength": 1 },
+    "eraKey": { "type": "string", "minLength": 1 },
+    "sourceRoot": { "type": "string", "minLength": 1 },
+    "swfCount": { "type": "integer", "minimum": 0 },
+    "gamedataFiles": {
+      "type": "array",
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "categoryCounts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "swfVersionCounts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "signatureCounts": {
+      "type": "object",
+      "additionalProperties": { "type": "integer", "minimum": 0 }
+    },
+    "assets": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "assetKey",
+          "relativePath",
+          "category",
+          "signature",
+          "swfVersion",
+          "frameCount",
+          "stageWidth",
+          "stageHeight",
+          "tagCount",
+          "bitmapTagCount",
+          "actionTagCount",
+          "symbolClassCount",
+          "warnings"
+        ],
+        "properties": {
+          "assetKey": { "type": "string", "minLength": 1 },
+          "relativePath": { "type": "string", "minLength": 1 },
+          "category": { "type": "string", "minLength": 1 },
+          "signature": { "type": "string", "minLength": 3, "maxLength": 3 },
+          "swfVersion": { "type": "integer", "minimum": 1 },
+          "frameCount": { "type": "integer", "minimum": 0 },
+          "stageWidth": { "type": "number", "minimum": 0 },
+          "stageHeight": { "type": "number", "minimum": 0 },
+          "tagCount": { "type": "integer", "minimum": 0 },
+          "bitmapTagCount": { "type": "integer", "minimum": 0 },
+          "actionTagCount": { "type": "integer", "minimum": 0 },
+          "symbolClassCount": { "type": "integer", "minimum": 0 },
+          "warnings": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

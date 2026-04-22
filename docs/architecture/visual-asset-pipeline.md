@@ -8,19 +8,16 @@ Epsilon needs a modern visual pipeline for:
 
 ## Layers
 
-1. `legacy package manifest`
-   Inventories package containers such as `dcr`, `src`, `swf`, `zip`, `cct`, and `cst`.
-
-2. `visual asset manifest`
+1. `visual asset manifest`
    Inventories extracted or already-available images such as `png`, `gif`, `jpg`, `ico`, and `webp`.
 
-3. `client package manifest`
+2. `client package manifest`
    Connects runtime package identities to feature flags and asset families.
 
 ## Current Tools
 
 - [visual_asset_manifest_builder.py](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/tools/importers/visual_asset_manifest_builder.py)
-- [legacy_package_manifest_builder.py](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/tools/importers/legacy_package_manifest_builder.py)
+- [client_asset_root_manifest_builder.py](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/tools/importers/client_asset_root_manifest_builder.py)
 
 ## Runtime Rule
 
