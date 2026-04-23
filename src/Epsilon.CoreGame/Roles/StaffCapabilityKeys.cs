@@ -12,6 +12,8 @@ public static class StaffCapabilityKeys
     public const string CatalogManage = "catalog.manage";
     public const string CatalogReload = "catalog.reload";
     public const string GamesManage = "games.manage";
+    public const string BotsManage = "bots.manage";
+    public const string EventsManage = "events.manage";
     public const string HousekeepingAccess = "housekeeping.access";
 
     // Emergency capabilities — granted only to administrator, manager, and owner.

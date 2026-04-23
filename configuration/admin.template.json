@@ -1,6 +1,8 @@
 {
   "Admin": {
     "ServiceName": "Epsilon Admin API",
-    "AdminApiKey": ""
+    "AdminApiKey": "",
+    "GatewayBaseUrl": "http://127.0.0.1:5000",
+    "LauncherBaseUrl": "http://127.0.0.1:5001"
   }
 }

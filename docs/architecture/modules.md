@@ -91,6 +91,36 @@ Responsibilities:
 - replay/test tooling endpoints
 - content and compatibility inspection tools
 
+## `cms/system`
+
+Responsibilities:
+
+- serve the public-facing CMS platform
+- resolve web sessions against the hotel backend
+- provide CMS-facing APIs for home, account, launcher access, and support surfaces
+- hand users off to the launcher without pretending the CMS is the game
+
+Must not:
+
+- simulate rooms
+- claim hotel presence
+- replace launcher or client runtime logic
+
+## `apps/epsilon-launcher-native`
+
+Responsibilities:
+
+- redeem one-time launcher access codes
+- resolve desktop launcher config, channels, and launch profiles
+- start the selected client package
+- report launcher-side telemetry
+
+Must not:
+
+- simulate hotel state
+- confirm that the user is inside the hotel
+- replace the emulator as runtime authority
+
 ## `tools/importers`
 
 Responsibilities:
@@ -99,3 +129,18 @@ Responsibilities:
 - inventory public-room bundles and shared assets
 - normalize filenames and metadata
 - separate extraction concerns from runtime loading concerns
+
+## `tools/brain`
+
+Responsibilities:
+
+- watch public upstream artifacts
+- capture hashes and metadata
+- generate source snapshot diffs
+- recommend importer actions without mutating runtime directly
+
+Must not:
+
+- bypass encryption or DRM
+- act as gameplay runtime authority
+- write directly into live hotel state

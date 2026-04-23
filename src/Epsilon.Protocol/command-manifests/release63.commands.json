@@ -27,6 +27,12 @@
       "required": true
     },
     {
+      "name": "rooms.get_runtime",
+      "packetName": "room_runtime",
+      "flow": "room_sync",
+      "required": false
+    },
+    {
       "name": "rooms.move_avatar",
       "packetName": "move_avatar",
       "flow": "room_interaction",
@@ -37,6 +43,30 @@
       "packetName": "chat",
       "flow": "room_interaction",
       "required": true
+    },
+    {
+      "name": "inventory.get_self",
+      "packetName": "inventory",
+      "flow": "inventory",
+      "required": true
+    },
+    {
+      "name": "catalog.purchase",
+      "packetName": "catalog_purchase",
+      "flow": "commerce",
+      "required": false
+    },
+    {
+      "name": "games.list_sessions",
+      "packetName": "games_list",
+      "flow": "games",
+      "required": false
+    },
+    {
+      "name": "games.get_session",
+      "packetName": "game_session",
+      "flow": "games",
+      "required": false
     }
   ]
 }

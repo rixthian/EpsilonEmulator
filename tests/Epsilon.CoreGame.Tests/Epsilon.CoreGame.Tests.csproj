@@ -18,6 +18,8 @@
   <ItemGroup>
     <ProjectReference Include="..\..\src\Epsilon.Auth\Epsilon.Auth.csproj" />
     <ProjectReference Include="..\..\src\Epsilon.CoreGame\Epsilon.CoreGame.csproj" />
+    <ProjectReference Include="..\..\src\Epsilon.Gateway\Epsilon.Gateway.csproj" />
     <ProjectReference Include="..\..\src\Epsilon.Persistence\Epsilon.Persistence.csproj" />
+    <ProjectReference Include="..\..\src\Epsilon.Protocol\Epsilon.Protocol.csproj" />
   </ItemGroup>
 </Project>

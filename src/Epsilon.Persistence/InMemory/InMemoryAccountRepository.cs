@@ -32,6 +32,12 @@ internal sealed class InMemoryAccountRepository : IAccountRepository
 
         lock (_sync)
         {
+            if (_store.Accounts.Values.Any(candidate =>
+                    string.Equals(candidate.Email, email, StringComparison.OrdinalIgnoreCase)))
+            {
+                throw new InvalidOperationException("email_taken");
+            }
+
             newId = new AccountId(_store.NextAccountId++);
             record = new AccountRecord(newId, email, passwordHashJson, DateTime.UtcNow);
             _store.Accounts[newId] = record;

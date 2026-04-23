@@ -55,6 +55,11 @@ public static class DependencyInjection
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryCharacterPreferenceRepository>(),
                 postgres: sp => throw new NotSupportedException("Document-backed character-interface-preference repository is not wired yet.")));
+        services.AddSingleton<ICharacterChatFilterPreferenceRepository>(provider =>
+            ResolveProvider<ICharacterChatFilterPreferenceRepository>(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryCharacterChatFilterPreferenceRepository>(),
+                postgres: sp => sp.GetRequiredService<PostgresCharacterChatFilterPreferenceRepository>()));
         services.AddSingleton<IInventoryRepository>(provider =>
             ResolveProvider(
                 provider,
@@ -70,6 +75,11 @@ public static class DependencyInjection
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryGroupRepository>(),
                 postgres: sp => throw new NotSupportedException("Postgres-backed group repository is not wired yet.")));
+        services.AddSingleton<IHabbowoodRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryHabbowoodRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed Habbowood repository is not wired yet.")));
         services.AddSingleton<IBadgeRepository>(provider =>
             ResolveProvider(
                 provider,
@@ -215,6 +225,26 @@ public static class DependencyInjection
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryCollectibleRepository>(),
                 postgres: sp => throw new NotSupportedException("Document-backed collectible-definition repository is not wired yet.")));
+        services.AddSingleton<IWalletLinkRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryWalletLinkRepository>(),
+                postgres: sp => throw new NotSupportedException("Persistent wallet-link repository is not wired yet.")));
+        services.AddSingleton<ICollectorProgressRepo>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryCollectorProgressRepo>(),
+                postgres: sp => throw new NotSupportedException("Persistent collector-progress repository is not wired yet.")));
+        services.AddSingleton<ICollectStateRepo>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryCollectStateRepo>(),
+                postgres: sp => throw new NotSupportedException("Persistent collectibles-state repository is not wired yet.")));
+        services.AddSingleton<ICollectibleOwnershipRepository>(provider =>
+            ResolveProvider(
+                provider,
+                inMemory: sp => sp.GetRequiredService<InMemoryCollectibleOwnershipRepo>(),
+                postgres: sp => throw new NotSupportedException("Persistent collectible-ownership repository is not wired yet.")));
         services.AddSingleton<IEcotronRewardRepository>(provider =>
             ResolveProvider(
                 provider,
@@ -243,9 +273,11 @@ public static class DependencyInjection
         services.AddSingleton<InMemoryPetProfileRepository>();
         services.AddSingleton<InMemoryWalletRepository>();
         services.AddSingleton<InMemoryCharacterPreferenceRepository>();
+        services.AddSingleton<InMemoryCharacterChatFilterPreferenceRepository>();
         services.AddSingleton<InMemoryInventoryRepository>();
         services.AddSingleton<InMemoryMessengerRepository>();
         services.AddSingleton<InMemoryGroupRepository>();
+        services.AddSingleton<InMemoryHabbowoodRepository>();
         services.AddSingleton<InMemoryBadgeRepository>();
         services.AddSingleton<InMemoryBadgeDefinitionRepository>();
         services.AddSingleton<InMemoryAchievementRepository>();
@@ -275,6 +307,10 @@ public static class DependencyInjection
         services.AddSingleton<InMemoryVoucherRepository>();
         services.AddSingleton<InMemoryVoucherRedemptionRepository>();
         services.AddSingleton<InMemoryCollectibleRepository>();
+        services.AddSingleton<InMemoryWalletLinkRepository>();
+        services.AddSingleton<InMemoryCollectorProgressRepo>();
+        services.AddSingleton<InMemoryCollectStateRepo>();
+        services.AddSingleton<InMemoryCollectibleOwnershipRepo>();
         services.AddSingleton<InMemoryEcotronRewardRepository>();
         services.AddSingleton<InMemoryClientPackageRepository>();
         services.AddSingleton<InMemoryRoomRuntimeRepository>();
@@ -292,6 +328,7 @@ public static class DependencyInjection
             return provider.GetRequiredService<LocalRoomRuntimeCoordinator>();
         });
         services.AddSingleton<PostgresCharacterProfileRepository>();
+        services.AddSingleton<PostgresCharacterChatFilterPreferenceRepository>();
         services.AddSingleton<PostgresSubscriptionRepository>();
         services.AddSingleton<PostgresPetProfileRepository>();
         services.AddSingleton<PostgresRoomRepository>();

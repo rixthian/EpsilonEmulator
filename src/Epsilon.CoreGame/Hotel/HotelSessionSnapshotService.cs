@@ -4,6 +4,8 @@ public sealed class HotelSessionSnapshotService : IHotelSessionSnapshotService
 {
     private readonly IHotelBootstrapService _hotelBootstrapService;
     private readonly IWalletRepository _walletRepository;
+    private readonly ICollectorProfileService _collectorProfileService;
+    private readonly ILaunchEntitlementService _launchEntitlementService;
     private readonly IInterfacePreferenceService _interfacePreferenceService;
     private readonly IGroupService _groupService;
     private readonly IMessengerRepository _messengerRepository;
@@ -14,6 +16,8 @@ public sealed class HotelSessionSnapshotService : IHotelSessionSnapshotService
     public HotelSessionSnapshotService(
         IHotelBootstrapService hotelBootstrapService,
         IWalletRepository walletRepository,
+        ICollectorProfileService collectorProfileService,
+        ILaunchEntitlementService launchEntitlementService,
         IInterfacePreferenceService interfacePreferenceService,
         IGroupService groupService,
         IMessengerRepository messengerRepository,
@@ -23,6 +27,8 @@ public sealed class HotelSessionSnapshotService : IHotelSessionSnapshotService
     {
         _hotelBootstrapService = hotelBootstrapService;
         _walletRepository = walletRepository;
+        _collectorProfileService = collectorProfileService;
+        _launchEntitlementService = launchEntitlementService;
         _interfacePreferenceService = interfacePreferenceService;
         _groupService = groupService;
         _messengerRepository = messengerRepository;
@@ -45,6 +51,10 @@ public sealed class HotelSessionSnapshotService : IHotelSessionSnapshotService
         WalletSnapshot wallet =
             await _walletRepository.GetByCharacterIdAsync(characterId, cancellationToken)
             ?? new WalletSnapshot(characterId, [], []);
+        CollectorProfileSnapshot collector =
+            await _collectorProfileService.BuildAsync(characterId, cancellationToken);
+        LaunchEntitlementSnapshot launchEntitlement =
+            await _launchEntitlementService.EvaluateAsync(characterId, cancellationToken);
         InterfacePreferenceSnapshot interfacePreferences =
             await _interfacePreferenceService.GetSnapshotAsync(characterId, cancellationToken);
         IReadOnlyList<HotelGroupSummary> groups =
@@ -64,6 +74,8 @@ public sealed class HotelSessionSnapshotService : IHotelSessionSnapshotService
         return new HotelSessionSnapshot(
             bootstrap,
             wallet,
+            collector,
+            launchEntitlement,
             interfacePreferences,
             groups,
             contacts,

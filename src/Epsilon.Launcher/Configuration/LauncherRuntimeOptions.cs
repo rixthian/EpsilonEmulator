@@ -7,8 +7,11 @@ public sealed class LauncherRuntimeOptions
     public string ServiceName { get; set; } = "Epsilon.Launcher";
 
     public string GatewayBaseUrl { get; set; } = "http://localhost:5000";
+    public string GatewayRealtimePath { get; set; } = "/realtime";
 
     public string AssetsBaseUrl { get; set; } = "/assets";
+
+    public LauncherDesktopOptions DesktopLauncher { get; set; } = new();
 
     public List<LauncherClientProfile> ClientProfiles { get; set; } = [];
 

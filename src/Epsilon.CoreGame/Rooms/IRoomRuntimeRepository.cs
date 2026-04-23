@@ -71,4 +71,11 @@ public interface IRoomRuntimeRepository
     /// Non-player actors (pets, NPCs) are left in place.
     /// </summary>
     ValueTask<int> EvictAllPlayersFromRoomAsync(RoomId roomId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Returns the room that currently contains the given actor, or null if the
+    /// actor is not present in any active room. Scans all rooms in a single pass
+    /// rather than issuing one lookup per room.
+    /// </summary>
+    ValueTask<RoomId?> FindRoomForActorAsync(long actorId, CancellationToken cancellationToken = default);
 }

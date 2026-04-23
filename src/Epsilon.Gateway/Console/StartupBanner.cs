@@ -41,6 +41,8 @@ internal static class StartupBanner
                     $"Hotel        : {gatewayOptions.HotelName}",
                     $"Environment  : {environmentName}",
                     $"Endpoint     : {gatewayOptions.PublicHost}:{gatewayOptions.TcpPort}",
+                    $"Realtime     : {gatewayOptions.RealtimePath}",
+                    $"TLS Realtime : {DescribeRealtimeTls(gatewayOptions)}",
                     $"Protocol     : {packetRegistry.Family}",
                     $"Packet In    : {packetRegistry.Incoming.Count}",
                     $"Packet Out   : {packetRegistry.Outgoing.Count}",
@@ -105,5 +107,15 @@ internal static class StartupBanner
         }
 
         return authOptions.AllowInMemorySessions ? "in_memory" : "custom";
+    }
+
+    private static string DescribeRealtimeTls(GatewayRuntimeOptions gatewayOptions)
+    {
+        if (!gatewayOptions.RequireTlsForRealtime)
+        {
+            return "optional";
+        }
+
+        return gatewayOptions.AllowInsecureLoopbackRealtime ? "required (loopback exempt)" : "required";
     }
 }

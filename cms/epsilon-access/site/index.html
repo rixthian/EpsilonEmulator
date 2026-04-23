@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Epsilon Hotel</title>
+  <link rel="stylesheet" href="./assets/portal.css?v=7">
+</head>
+<body data-page="home">
+  <header class="masthead">
+    <div class="masthead-overlay">
+      <div class="masthead-inner">
+        <a class="brand" href="/sites/epsilon-access/">
+          <span class="brand-mark">EPSILON</span>
+          <span class="brand-copy">Hotel</span>
+        </a>
+        <div class="masthead-status">
+          <span id="hotel-status-copy">Cargando hotel...</span>
+        </div>
+        <div class="masthead-actions guest-only">
+          <a class="button-link primary" href="/sites/epsilon-access/register.html">Regístrate</a>
+        </div>
+        <div class="masthead-actions authed-only hidden">
+          <a id="launcher-cta-top" class="button-link primary" href="#access">Jugar</a>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <nav class="nav-bar">
+    <div class="site-shell nav-row">
+      <div class="topnav">
+        <a href="/">Inicio</a>
+        <a href="#community">Comunidad</a>
+        <a href="#photos">Fotos</a>
+        <a href="#news">Noticias</a>
+        <a href="#access">Jugar</a>
+      </div>
+      <div class="topbar-actions guest-only">
+        <a class="button-link soft" href="/sites/epsilon-access/login.html">Login</a>
+      </div>
+      <div class="topbar-actions authed-only hidden">
+        <span id="session-pill" class="session-pill neutral">Sesión</span>
+        <form method="post" action="/portal/logout">
+          <button type="submit" class="button-link soft button-reset">Salir</button>
+        </form>
+      </div>
+    </div>
+  </nav>
+
+  <main class="site-shell portal-shell">
+    <section class="home-grid">
+      <article id="news" class="card article-card">
+        <div class="card-title">
+          <h2>Última noticia</h2>
+        </div>
+        <div id="featured-news" class="featured-card">
+          <div class="featured-art"></div>
+          <div class="featured-copy">
+            <strong>Preparando portada...</strong>
+            <p>La CMS está cargando la última noticia del hotel.</p>
+          </div>
+        </div>
+        <div id="news-list" class="news-list compact-news"></div>
+      </article>
+
+      <article class="card login-card guest-only">
+        <div class="card-title">
+          <h2>Login</h2>
+        </div>
+        <form class="stack" method="post" action="/portal/login">
+          <label>Username<input id="login-name" name="loginName" required autocomplete="username" placeholder="Nombre Habbo"></label>
+          <label>Password<input name="password" type="password" required autocomplete="current-password" placeholder="Contraseña"></label>
+          <div id="status-banner" class="notice hidden"></div>
+          <div class="actions stacked-actions">
+            <button type="submit">Entrar</button>
+            <a class="button-link soft" href="/sites/epsilon-access/register.html">Crear cuenta</a>
+          </div>
+        </form>
+      </article>
+
+      <article id="account-guest" class="card side-card guest-only">
+        <div class="card-title">
+          <h2>Comunidad</h2>
+        </div>
+        <div id="leaderboard-list" class="leaderboard-list compact-list"></div>
+      </article>
+
+      <article id="account-authed" class="card login-card authed-only hidden">
+        <div class="card-title">
+          <h2>Bienvenido</h2>
+        </div>
+        <div class="account-card">
+          <div class="avatar-preview">
+            <span id="account-initials">EH</span>
+          </div>
+          <div>
+            <strong id="account-username">Cargando...</strong>
+            <p id="account-public-id" class="muted-line"></p>
+            <p id="account-motto" class="muted-line"></p>
+          </div>
+        </div>
+        <dl class="stat-list">
+          <div><dt>Última sala</dt><dd id="account-room">-</dd></div>
+          <div><dt>Cuenta</dt><dd id="account-launch">-</dd></div>
+          <div><dt>Perfil</dt><dd id="account-collector">-</dd></div>
+        </dl>
+        <div class="actions stacked-actions">
+          <a id="account-launcher-link" class="button-link primary" href="#access">Jugar</a>
+          <form method="post" action="/portal/logout">
+            <button type="submit" class="button-link soft button-reset">Cerrar sesión</button>
+          </form>
+        </div>
+      </article>
+
+      <article class="card side-card">
+        <div class="card-title">
+          <h2>Ayuda</h2>
+        </div>
+        <div id="support-list" class="support-list compact-list"></div>
+      </article>
+    </section>
+
+    <section id="access" class="section-card">
+      <div class="section-head">
+        <h2>Juega con la app de Epsilon</h2>
+        <p>La web autentica tu cuenta. El juego se abre desde el launcher o la app.</p>
+      </div>
+
+      <div id="access-guest" class="access-empty">
+        <p>Primero entra con tu cuenta para generar tu acceso al launcher.</p>
+        <div class="actions">
+          <a class="button-link primary" href="/sites/epsilon-access/login.html">Entrar</a>
+          <a class="button-link soft" href="/sites/epsilon-access/register.html">Registrarme</a>
+        </div>
+      </div>
+
+      <div id="access-authed" class="hidden access-stack">
+        <article class="access-box hero-launch">
+          <a id="launcher-cta-access" class="launcher-open" href="http://127.0.0.1:5001/launcher/loader">Lanzar e iniciar sesión</a>
+        </article>
+
+        <article class="access-box">
+          <p class="access-copy">
+            Si tu app pide un código de inicio, puedes generarlo aquí y copiarlo para entrar.
+          </p>
+          <div class="code-box">
+            <div>
+              <span class="code-label">Código de inicio</span>
+              <strong id="launcher-code-value">Sin generar</strong>
+              <p id="launcher-code-meta" class="muted-line">Código temporal para la app.</p>
+            </div>
+            <div class="actions">
+              <button id="launcher-code-button" type="button">Generar código</button>
+              <button id="launcher-code-copy" type="button" class="button-link soft button-reset" disabled>Copiar</button>
+            </div>
+          </div>
+        </article>
+
+        <article class="access-box downloads-box">
+          <p class="access-copy">Descarga el launcher según tu plataforma.</p>
+          <div id="launcher-packages" class="support-list downloads-list"></div>
+        </article>
+      </div>
+    </section>
+
+    <section id="photos" class="section-card">
+      <div class="section-head">
+        <h2>Fotos del hotel</h2>
+        <p>Escenas, rooms y momentos de la comunidad.</p>
+      </div>
+      <div id="photo-grid" class="photo-grid"></div>
+    </section>
+
+    <section id="community" class="section-card">
+      <div class="section-head">
+        <h2>Comunidad</h2>
+        <p>Actividad del hotel y estado general del servidor.</p>
+      </div>
+      <div class="bottom-grid">
+        <div class="community-column">
+          <div class="subcard">
+            <h3>Ranking</h3>
+            <div id="leaderboard-repeat" class="leaderboard-list compact-list"></div>
+          </div>
+        </div>
+        <div class="community-column">
+          <div class="subcard">
+            <h3>Estado del hotel</h3>
+            <div id="hotel-core" class="support-list compact-list"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+  <script src="./assets/site.js?v=3" defer></script>
+</body>
+</html>

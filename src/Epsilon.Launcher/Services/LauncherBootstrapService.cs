@@ -1,6 +1,7 @@
 using Epsilon.Auth;
 using Epsilon.Content;
 using Epsilon.CoreGame;
+using System.Net.Http.Json;
 using Microsoft.Extensions.Options;
 
 namespace Epsilon.Launcher;
@@ -11,17 +12,26 @@ public sealed class LauncherBootstrapService : ILauncherBootstrapService
     private readonly IClientPackageRepository _clientPackageRepository;
     private readonly IInterfacePreferenceService _interfacePreferenceService;
     private readonly ISessionStore _sessionStore;
+    private readonly ICollectorProfileService _collectorProfileService;
+    private readonly ILaunchEntitlementService _launchEntitlementService;
+    private readonly IHttpClientFactory _httpClientFactory;
 
     public LauncherBootstrapService(
         IOptions<LauncherRuntimeOptions> options,
         IClientPackageRepository clientPackageRepository,
         IInterfacePreferenceService interfacePreferenceService,
-        ISessionStore sessionStore)
+        ISessionStore sessionStore,
+        ICollectorProfileService collectorProfileService,
+        ILaunchEntitlementService launchEntitlementService,
+        IHttpClientFactory httpClientFactory)
     {
         _options = options.Value;
         _clientPackageRepository = clientPackageRepository;
         _interfacePreferenceService = interfacePreferenceService;
         _sessionStore = sessionStore;
+        _collectorProfileService = collectorProfileService;
+        _launchEntitlementService = launchEntitlementService;
+        _httpClientFactory = httpClientFactory;
     }
 
     public ValueTask<IReadOnlyList<LauncherClientProfileSnapshot>> GetProfilesAsync(
@@ -65,9 +75,20 @@ public sealed class LauncherBootstrapService : ILauncherBootstrapService
 
         SessionTicket? session = await ResolveSessionAsync(sessionTicket, cancellationToken);
         InterfacePreferenceSnapshot? preferences = null;
+        CollectorProfileSnapshot? collector = null;
+        LaunchEntitlementSnapshot? launchEntitlement = null;
         if (session is not null)
         {
-            preferences = await _interfacePreferenceService.GetSnapshotAsync(new CharacterId(session.CharacterId), cancellationToken);
+            CharacterId characterId = new(session.CharacterId);
+            preferences = await _interfacePreferenceService.GetSnapshotAsync(characterId, cancellationToken);
+            collector = await _collectorProfileService.BuildAsync(characterId, cancellationToken);
+            launchEntitlement = await _launchEntitlementService.EvaluateAsync(characterId, cancellationToken);
+
+            if (!string.IsNullOrWhiteSpace(sessionTicket))
+            {
+                collector = await ResolveGatewayCollectorAsync(sessionTicket.Trim(), cancellationToken) ?? collector;
+                launchEntitlement = await ResolveGatewayLaunchEntitlementAsync(sessionTicket.Trim(), cancellationToken) ?? launchEntitlement;
+            }
         }
 
         return new LauncherBootstrapSnapshot(
@@ -78,10 +99,18 @@ public sealed class LauncherBootstrapService : ILauncherBootstrapService
             EntryAssetUrl: BuildAssetUrl(package.EntryAssetPath),
             AssetBaseUrl: BuildAssetUrl(package.AssetBasePath),
             InterfacePreferences: preferences,
+            Collector: collector,
+            LaunchEntitlement: launchEntitlement,
             SupportedLanguages: preferences?.SupportedLanguages ?? [],
             Session: session is null
                 ? null
-                : new LauncherSessionSnapshot(session.AccountId, session.CharacterId, session.Ticket, session.ExpiresAtUtc),
+                : new LauncherSessionSnapshot(
+                    session.AccountId,
+                    session.CharacterId,
+                    session.Ticket,
+                    session.ExpiresAtUtc,
+                    collector,
+                    launchEntitlement),
             EndpointMap: BuildEndpointMap());
     }
 
@@ -106,12 +135,94 @@ public sealed class LauncherBootstrapService : ILauncherBootstrapService
         }
 
         SessionTicket? session = await _sessionStore.FindByTicketAsync(sessionTicket.Trim(), cancellationToken);
+        session ??= await ResolveGatewaySessionAsync(sessionTicket.Trim(), cancellationToken);
         if (session is null || session.ExpiresAtUtc <= DateTime.UtcNow)
         {
             return null;
         }
 
         return session;
+    }
+
+    private async ValueTask<SessionTicket?> ResolveGatewaySessionAsync(
+        string sessionTicket,
+        CancellationToken cancellationToken)
+    {
+        using HttpClient httpClient = CreateGatewayHttpClient();
+        if (httpClient.BaseAddress is null)
+        {
+            return null;
+        }
+
+        try
+        {
+            return await httpClient.GetFromJsonAsync<SessionTicket>(
+                $"/auth/development/sessions/{Uri.EscapeDataString(sessionTicket)}",
+                cancellationToken);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async ValueTask<CollectorProfileSnapshot?> ResolveGatewayCollectorAsync(
+        string sessionTicket,
+        CancellationToken cancellationToken)
+    {
+        using HttpClient httpClient = CreateGatewayHttpClient();
+        if (httpClient.BaseAddress is null)
+        {
+            return null;
+        }
+
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Epsilon-Session-Ticket", sessionTicket);
+
+        try
+        {
+            return await httpClient.GetFromJsonAsync<CollectorProfileSnapshot>(
+                "/hotel/collectibles/profile",
+                cancellationToken);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private async ValueTask<LaunchEntitlementSnapshot?> ResolveGatewayLaunchEntitlementAsync(
+        string sessionTicket,
+        CancellationToken cancellationToken)
+    {
+        using HttpClient httpClient = CreateGatewayHttpClient();
+        if (httpClient.BaseAddress is null)
+        {
+            return null;
+        }
+
+        httpClient.DefaultRequestHeaders.TryAddWithoutValidation("X-Epsilon-Session-Ticket", sessionTicket);
+
+        try
+        {
+            return await httpClient.GetFromJsonAsync<LaunchEntitlementSnapshot>(
+                "/hotel/collectibles/launch-access",
+                cancellationToken);
+        }
+        catch
+        {
+            return null;
+        }
+    }
+
+    private HttpClient CreateGatewayHttpClient()
+    {
+        HttpClient httpClient = _httpClientFactory.CreateClient();
+        if (!string.IsNullOrWhiteSpace(_options.GatewayBaseUrl))
+        {
+            httpClient.BaseAddress = new Uri(_options.GatewayBaseUrl, UriKind.Absolute);
+        }
+
+        return httpClient;
     }
 
     private string BuildAssetUrl(string relativePath)
@@ -127,6 +238,18 @@ public sealed class LauncherBootstrapService : ILauncherBootstrapService
         return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
             ["health"] = $"{gatewayBase}/health",
+            ["realtime"] = BuildRealtimeUrl(gatewayBase),
+            ["collectorProfile"] = $"{gatewayBase}/hotel/collectibles/profile",
+            ["collectorProgression"] = $"{gatewayBase}/hotel/collectibles/progression",
+            ["launchAccess"] = $"{gatewayBase}/hotel/collectibles/launch-access",
+            ["walletChallenge"] = $"{gatewayBase}/hotel/collectibles/wallet/challenges",
+            ["walletVerify"] = $"{gatewayBase}/hotel/collectibles/wallet/verify",
+            ["emeraldAccrual"] = $"{gatewayBase}/hotel/collectibles/emeralds/accrue",
+            ["giftBoxes"] = $"{gatewayBase}/hotel/collectibles/gift-boxes",
+            ["factories"] = $"{gatewayBase}/hotel/collectibles/factories",
+            ["collectimaticRecipes"] = $"{gatewayBase}/hotel/collectibles/collectimatic/recipes",
+            ["marketplaceListings"] = $"{gatewayBase}/hotel/collectibles/marketplace/listings",
+            ["publicCollectibles"] = $"{gatewayBase}/api/public/collectibles",
             ["catalogPages"] = $"{gatewayBase}/hotel/catalog/pages",
             ["catalogLanding"] = $"{gatewayBase}/hotel/catalog/landing",
             ["inventory"] = $"{gatewayBase}/hotel/inventory",
@@ -136,6 +259,17 @@ public sealed class LauncherBootstrapService : ILauncherBootstrapService
             ["games"] = $"{gatewayBase}/hotel/games",
             ["preferences"] = $"{gatewayBase}/hotel/preferences/interface"
         };
+    }
+
+    private string BuildRealtimeUrl(string gatewayBase)
+    {
+        string realtimeBase = gatewayBase.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            ? $"wss://{gatewayBase["https://".Length..]}"
+            : gatewayBase.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+                ? $"ws://{gatewayBase["http://".Length..]}"
+                : gatewayBase;
+
+        return $"{realtimeBase.TrimEnd('/')}/{_options.GatewayRealtimePath.TrimStart('/')}";
     }
 
     private static LauncherClientProfileSnapshot MapProfile(LauncherClientProfile profile)

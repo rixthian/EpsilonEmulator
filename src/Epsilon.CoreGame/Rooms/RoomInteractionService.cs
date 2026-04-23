@@ -19,7 +19,10 @@ public sealed class RoomInteractionService : IRoomInteractionService
     private readonly IInventoryRepository _inventoryRepository;
     private readonly IRoomItemRepository _roomItemRepository;
     private readonly IRoomBotRuntimeService _roomBotRuntimeService;
+    private readonly IRoomBotDefinitionRepository _roomBotDefinitionRepository;
+    private readonly INavigatorPublicRoomRepository _navigatorPublicRoomRepository;
     private readonly IInterfacePreferenceService _interfacePreferenceService;
+    private readonly ICharacterChatFilterPreferenceRepository _characterChatFilterPreferenceRepository;
     private readonly IGameRuntimeService _gameRuntimeService;
     private readonly IBattleBallLifecycleService _battleBallLifecycleService;
     private readonly ISnowStormLifecycleService _snowStormLifecycleService;
@@ -28,6 +31,7 @@ public sealed class RoomInteractionService : IRoomInteractionService
     private readonly IWalletRepository _walletRepository;
     private readonly IModerationRepository _moderationRepository;
     private readonly IHotelOperationalState _hotelOperationalState;
+    private readonly IHotelEventBus _hotelEventBus;
     // Flood control is tracked per room and character so the room runtime can
     // reject bursts before they become packet spam or command spam.
     private readonly ConcurrentDictionary<string, Queue<DateTime>> _chatWindows = new(StringComparer.Ordinal);
@@ -48,7 +52,10 @@ public sealed class RoomInteractionService : IRoomInteractionService
         IInventoryRepository inventoryRepository,
         IRoomItemRepository roomItemRepository,
         IRoomBotRuntimeService roomBotRuntimeService,
+        IRoomBotDefinitionRepository roomBotDefinitionRepository,
+        INavigatorPublicRoomRepository navigatorPublicRoomRepository,
         IInterfacePreferenceService interfacePreferenceService,
+        ICharacterChatFilterPreferenceRepository characterChatFilterPreferenceRepository,
         IGameRuntimeService gameRuntimeService,
         IBattleBallLifecycleService battleBallLifecycleService,
         ISnowStormLifecycleService snowStormLifecycleService,
@@ -56,7 +63,8 @@ public sealed class RoomInteractionService : IRoomInteractionService
         ICharacterProfileRepository characterProfileRepository,
         IWalletRepository walletRepository,
         IModerationRepository moderationRepository,
-        IHotelOperationalState hotelOperationalState)
+        IHotelOperationalState hotelOperationalState,
+        IHotelEventBus hotelEventBus)
     {
         _hotelReadService = hotelReadService;
         _roomRuntimeRepository = roomRuntimeRepository;
@@ -68,7 +76,10 @@ public sealed class RoomInteractionService : IRoomInteractionService
         _inventoryRepository = inventoryRepository;
         _roomItemRepository = roomItemRepository;
         _roomBotRuntimeService = roomBotRuntimeService;
+        _roomBotDefinitionRepository = roomBotDefinitionRepository;
+        _navigatorPublicRoomRepository = navigatorPublicRoomRepository;
         _interfacePreferenceService = interfacePreferenceService;
+        _characterChatFilterPreferenceRepository = characterChatFilterPreferenceRepository;
         _gameRuntimeService = gameRuntimeService;
         _battleBallLifecycleService = battleBallLifecycleService;
         _snowStormLifecycleService = snowStormLifecycleService;
@@ -77,6 +88,7 @@ public sealed class RoomInteractionService : IRoomInteractionService
         _walletRepository = walletRepository;
         _moderationRepository = moderationRepository;
         _hotelOperationalState = hotelOperationalState;
+        _hotelEventBus = hotelEventBus;
 
         // Sweep expired flood-control windows and mutes every 60 seconds to
         // prevent unbounded memory growth under heavy concurrent load.
@@ -107,30 +119,53 @@ public sealed class RoomInteractionService : IRoomInteractionService
             return new RoomActorMovementResult(false, "Actor is not present in the room runtime.", null);
         }
 
-        if (!IsAdjacentStep(actor.Position, request.DestinationX, request.DestinationY))
-        {
-            return new RoomActorMovementResult(
-                false,
-                "Destination tile is out of step range for the current runtime.",
-                actor);
-        }
+        RoomCoordinate previousPosition = actor.Position;
 
-        if (!IsWalkable(room.Layout, request.DestinationX, request.DestinationY, out double targetHeight))
+        if (!RoomNavigationLogic.IsWalkable(room.Layout, request.DestinationX, request.DestinationY, out _))
         {
             return new RoomActorMovementResult(false, "Destination tile is not walkable.", actor);
         }
 
-        if (await IsTileBlockedAsync(room, actor, request.DestinationX, request.DestinationY, cancellationToken))
+        IReadOnlyList<RoomActorState> actors = await _roomRuntimeRepository.GetActorsByRoomIdAsync(
+            request.RoomId,
+            cancellationToken);
+
+        if (RoomNavigationLogic.IsTileBlocked(
+                actors,
+                room.Items
+                    .GroupBy(snapshot => snapshot.Item.ItemId)
+                    .ToDictionary(group => group.Key, group => group.Last()),
+                actor.ActorKind,
+                actor.ActorId,
+                request.DestinationX,
+                request.DestinationY))
         {
             return new RoomActorMovementResult(false, "Destination tile is blocked by another actor or furniture.", actor);
         }
 
+        IReadOnlyList<RoomCoordinate>? path = RoomNavigationLogic.FindPath(room, actors, actor, request.DestinationX, request.DestinationY);
+        if (path is null)
+        {
+            return new RoomActorMovementResult(
+                false,
+                "Destination tile is unreachable from the current runtime position.",
+                actor);
+        }
+
+        RoomCoordinate finalStep = path[^1];
+        int movementRotation = RoomNavigationLogic.ResolveMovementRotation(actor.Position, finalStep);
+        IReadOnlyList<ActorStatusEntry> statusEntries = actor.StatusEntries
+            .Where(entry => !string.Equals(entry.Key, "mv", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
         RoomActorState updatedActor = actor with
         {
-            Position = new RoomCoordinate(request.DestinationX, request.DestinationY, targetHeight),
-            Goal = new MovementGoal(request.DestinationX, request.DestinationY),
-            IsWalking = true,
-            StatusEntries = BuildMovementStatusEntries(request.DestinationX, request.DestinationY, targetHeight)
+            Position = finalStep,
+            Goal = null,
+            IsWalking = false,
+            BodyRotation = movementRotation,
+            HeadRotation = movementRotation,
+            StatusEntries = statusEntries
         };
 
         await _roomRuntimeRepository.StoreActorStateAsync(request.RoomId, updatedActor, cancellationToken);
@@ -138,10 +173,21 @@ public sealed class RoomInteractionService : IRoomInteractionService
             request.RoomId,
             RoomRuntimeMutationKind.ActorStateChanged,
             cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.RoomActorMoved,
+            new RoomActorMovedEvent(
+                request.CharacterId,
+                actor.DisplayName,
+                request.RoomId,
+                previousPosition,
+                finalStep),
+            request.CharacterId,
+            request.RoomId,
+            cancellationToken);
 
         return new RoomActorMovementResult(
             true,
-            $"Actor moved to {request.DestinationX},{request.DestinationY}.",
+            $"Actor moved to {finalStep.X},{finalStep.Y} via {path.Count - 1} step(s).",
             updatedActor);
     }
 
@@ -190,6 +236,22 @@ public sealed class RoomInteractionService : IRoomInteractionService
             return new RoomChatResult(false, floodFailure ?? "Flood control is active.", false, null, null);
         }
 
+        if (string.Equals(trimmedMessage, "o/", StringComparison.Ordinal))
+        {
+            return await ExecuteShortcutAsync(request, actor, "wave", cancellationToken);
+        }
+
+        if (string.Equals(trimmedMessage, ":D", StringComparison.Ordinal))
+        {
+            return await ExecuteShortcutAsync(request, actor, "smile", cancellationToken);
+        }
+
+        if (string.Equals(trimmedMessage, "_b", StringComparison.Ordinal) ||
+            string.Equals(trimmedMessage, ":x", StringComparison.OrdinalIgnoreCase))
+        {
+            return await ExecuteShortcutAsync(request, actor, "kiss", cancellationToken);
+        }
+
         if (trimmedMessage.StartsWith(':'))
         {
             return await ExecuteCommandAsync(request, actor, trimmedMessage, cancellationToken);
@@ -211,12 +273,28 @@ public sealed class RoomInteractionService : IRoomInteractionService
             request.RoomId,
             RoomRuntimeMutationKind.ChatMessageAppended,
             cancellationToken);
-
-        await _roomBotRuntimeService.TryHandlePlayerChatAsync(
-            request.RoomId,
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ChatMessagePublished,
+            new ChatMessagePublishedEvent(
+                request.RoomId,
+                actor.ActorId,
+                actor.DisplayName,
+                RoomChatMessageKind.User,
+                trimmedMessage),
             request.CharacterId,
-            trimmedMessage,
+            request.RoomId,
             cancellationToken);
+
+        CharacterChatFilterPreference? chatFilterPreference =
+            await _characterChatFilterPreferenceRepository.GetByCharacterIdAsync(request.CharacterId, cancellationToken);
+        if (chatFilterPreference is null || !chatFilterPreference.MuteBots)
+        {
+            await _roomBotRuntimeService.TryHandlePlayerChatAsync(
+                request.RoomId,
+                request.CharacterId,
+                trimmedMessage,
+                cancellationToken);
+        }
 
         return new RoomChatResult(true, "Chat message sent.", false, null, chatMessage);
     }
@@ -274,12 +352,19 @@ public sealed class RoomInteractionService : IRoomInteractionService
             "userinfo" => $"Actor {actor.DisplayName} at {actor.Position.X},{actor.Position.Y},{actor.Position.Z:0.##} walking={actor.IsWalking} typing={actor.IsTyping}.",
             "sign" => await SetSignAsync(request.RoomId, actor, parts.Skip(1).FirstOrDefault(), cancellationToken),
             "carry" => await SetCarryItemAsync(request.RoomId, actor, parts.Skip(1).FirstOrDefault(), cancellationToken),
+            "drop" => await SetCarryItemAsync(request.RoomId, actor, "0", cancellationToken),
             "lang" => await SetLanguageAsync(request.CharacterId, parts.Skip(1).FirstOrDefault(), cancellationToken),
             "link" => await SendLinkAsync(request.RoomId, actor, parts.Skip(1).ToArray(), cancellationToken),
             "wave" => await SetActorGestureAsync(request.RoomId, actor, "wav", "1", false, false, cancellationToken, "Wave status triggered."),
             "sit" => await SetActorGestureAsync(request.RoomId, actor, "sit", actor.Position.Z.ToString("0.##", CultureInfo.InvariantCulture), true, false, cancellationToken, "Actor posture set to sit."),
             "lay" => await SetActorGestureAsync(request.RoomId, actor, "lay", actor.Position.Z.ToString("0.##", CultureInfo.InvariantCulture), false, true, cancellationToken, "Actor posture set to lay."),
             "stand" => await ClearActorGestureAsync(request.RoomId, actor, cancellationToken),
+            "idle" => await ToggleIdleAsync(request.RoomId, actor, cancellationToken),
+            "kiss" => await SetActorEmoteAsync(request.RoomId, actor, "kiss", cancellationToken),
+            "smile" => await SetActorEmoteAsync(request.RoomId, actor, "smile", cancellationToken),
+            "dance" => await SetDanceAsync(request.RoomId, actor, parts.Skip(1).FirstOrDefault(), cancellationToken),
+            "mutebots" => await ToggleMuteBotsAsync(request.CharacterId, cancellationToken),
+            "respect" => await GiveRespectAsync(request.CharacterId, request.RoomId, parts.Skip(1).ToArray(), cancellationToken),
             "whisper" => await SendDirectedChatAsync(request.RoomId, actor, parts.Skip(1).ToArray(), RoomChatMessageKind.Whisper, cancellationToken),
             "shout" => await SendDirectedChatAsync(request.RoomId, actor, parts.Skip(1).ToArray(), RoomChatMessageKind.Shout, cancellationToken),
             "roommute" => await ToggleRoomMuteAsync(request.RoomId, cancellationToken),
@@ -308,6 +393,12 @@ public sealed class RoomInteractionService : IRoomInteractionService
             "wsstart" => await StartWobbleSquabbleAsync(parts.Skip(1).ToArray(), cancellationToken),
             "wsscore" => await ScoreWobbleSquabbleAsync(parts.Skip(1).ToArray(), cancellationToken),
             "wsfinish" => await FinishWobbleSquabbleAsync(parts.Skip(1).ToArray(), cancellationToken),
+            "bots" => await DescribeRoomBotsAsync(request.RoomId, cancellationToken),
+            "botcreate" => await CreateRoomBotAsync(request.RoomId, actor, parts.Skip(1).ToArray(), cancellationToken),
+            "botmove" => await MoveRoomBotAsync(request.RoomId, parts.Skip(1).ToArray(), cancellationToken),
+            "botpatrol" => await SetRoomBotPatrolAsync(request.RoomId, parts.Skip(1).ToArray(), cancellationToken),
+            "botreply" => await SetRoomBotReplyAsync(request.RoomId, parts.Skip(1).ToArray(), cancellationToken),
+            "botspeech" => await SetRoomBotSpeechAsync(request.RoomId, parts.Skip(1).ToArray(), cancellationToken),
             "kickall" => await KickAllAsync(request.CharacterId, request.RoomId, parts.Skip(1).ToArray(), cancellationToken),
             "lockdown" => ToggleLockdown(request.CharacterId, parts.Skip(1).ToArray()),
             "maintenance" => await ActivateMaintenanceAsync(request.CharacterId, parts.Skip(1).ToArray(), cancellationToken),
@@ -335,6 +426,35 @@ public sealed class RoomInteractionService : IRoomInteractionService
         }
 
         return new RoomChatResult(true, response, true, command.CommandKey, responseMessage);
+    }
+
+    private async ValueTask<RoomChatResult> ExecuteShortcutAsync(
+        RoomChatRequest request,
+        RoomActorState actor,
+        string shortcutKey,
+        CancellationToken cancellationToken)
+    {
+        string response = shortcutKey switch
+        {
+            "wave" => await SetActorGestureAsync(request.RoomId, actor, "wav", "1", false, false, cancellationToken, "Wave status triggered."),
+            "kiss" => await SetActorEmoteAsync(request.RoomId, actor, "kiss", cancellationToken),
+            "smile" => await SetActorEmoteAsync(request.RoomId, actor, "smile", cancellationToken),
+            _ => "Unsupported shortcut."
+        };
+
+        RoomChatMessage responseMessage = await _roomRuntimeRepository.AppendChatMessageAsync(
+            request.RoomId,
+            actor.ActorId,
+            actor.DisplayName,
+            response,
+            RoomChatMessageKind.CommandResponse,
+            cancellationToken);
+        await _roomRuntimeCoordinator.SignalMutationAsync(
+            request.RoomId,
+            RoomRuntimeMutationKind.ChatMessageAppended,
+            cancellationToken);
+
+        return new RoomChatResult(true, response, true, shortcutKey, responseMessage);
     }
 
     private async ValueTask<string> ToggleRoomMuteAsync(
@@ -467,6 +587,17 @@ public sealed class RoomInteractionService : IRoomInteractionService
             roomId,
             RoomRuntimeMutationKind.ChatMessageAppended,
             cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ChatMessagePublished,
+            new ChatMessagePublishedEvent(
+                roomId,
+                actor.ActorId,
+                actor.DisplayName,
+                RoomChatMessageKind.Link,
+                normalizedLink!),
+            new CharacterId(actor.ActorId),
+            roomId,
+            cancellationToken);
 
         return $"Link sent: {normalizedLink}";
     }
@@ -514,7 +645,10 @@ public sealed class RoomInteractionService : IRoomInteractionService
             .Where(entry =>
                 !string.Equals(entry.Key, "wav", StringComparison.OrdinalIgnoreCase) &&
                 !string.Equals(entry.Key, "sit", StringComparison.OrdinalIgnoreCase) &&
-                !string.Equals(entry.Key, "lay", StringComparison.OrdinalIgnoreCase))
+                !string.Equals(entry.Key, "lay", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(entry.Key, "idle", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(entry.Key, "gest", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(entry.Key, "dance", StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
         RoomActorState updatedActor = actor with
@@ -531,6 +665,163 @@ public sealed class RoomInteractionService : IRoomInteractionService
             cancellationToken);
 
         return "Actor posture reset to stand.";
+    }
+
+    private async ValueTask<string> ToggleIdleAsync(
+        RoomId roomId,
+        RoomActorState actor,
+        CancellationToken cancellationToken)
+    {
+        bool isIdle = actor.StatusEntries.Any(entry => string.Equals(entry.Key, "idle", StringComparison.OrdinalIgnoreCase));
+        IReadOnlyList<ActorStatusEntry> statusEntries = actor.StatusEntries
+            .Where(entry => !string.Equals(entry.Key, "idle", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (!isIdle)
+        {
+            statusEntries = statusEntries.Concat([new ActorStatusEntry("idle", "1")]).ToArray();
+        }
+
+        RoomActorState updatedActor = actor with
+        {
+            IsWalking = false,
+            Goal = null,
+            StatusEntries = statusEntries
+        };
+
+        await _roomRuntimeRepository.StoreActorStateAsync(roomId, updatedActor, cancellationToken);
+        await _roomRuntimeCoordinator.SignalMutationAsync(
+            roomId,
+            RoomRuntimeMutationKind.ActorStateChanged,
+            cancellationToken);
+
+        return isIdle ? "Idle status cleared." : "Idle status enabled.";
+    }
+
+    private async ValueTask<string> SetActorEmoteAsync(
+        RoomId roomId,
+        RoomActorState actor,
+        string emoteKey,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<ActorStatusEntry> statusEntries = actor.StatusEntries
+            .Where(entry => !string.Equals(entry.Key, "gest", StringComparison.OrdinalIgnoreCase))
+            .Concat([new ActorStatusEntry("gest", emoteKey)])
+            .ToArray();
+
+        RoomActorState updatedActor = actor with
+        {
+            StatusEntries = statusEntries
+        };
+
+        await _roomRuntimeRepository.StoreActorStateAsync(roomId, updatedActor, cancellationToken);
+        await _roomRuntimeCoordinator.SignalMutationAsync(
+            roomId,
+            RoomRuntimeMutationKind.ActorStateChanged,
+            cancellationToken);
+
+        return $"Actor emote set to {emoteKey}.";
+    }
+
+    private async ValueTask<string> SetDanceAsync(
+        RoomId roomId,
+        RoomActorState actor,
+        string? danceStyle,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(danceStyle))
+        {
+            danceStyle = "1";
+        }
+
+        if (!int.TryParse(danceStyle, NumberStyles.None, CultureInfo.InvariantCulture, out int style) ||
+            style < 0 ||
+            style > 4)
+        {
+            return "Usage: :dance <0-4>";
+        }
+
+        IReadOnlyList<ActorStatusEntry> statusEntries = actor.StatusEntries
+            .Where(entry => !string.Equals(entry.Key, "dance", StringComparison.OrdinalIgnoreCase))
+            .ToArray();
+
+        if (style > 0)
+        {
+            statusEntries = statusEntries.Concat([new ActorStatusEntry("dance", style.ToString(CultureInfo.InvariantCulture))]).ToArray();
+        }
+
+        RoomActorState updatedActor = actor with
+        {
+            StatusEntries = statusEntries
+        };
+
+        await _roomRuntimeRepository.StoreActorStateAsync(roomId, updatedActor, cancellationToken);
+        await _roomRuntimeCoordinator.SignalMutationAsync(
+            roomId,
+            RoomRuntimeMutationKind.ActorStateChanged,
+            cancellationToken);
+
+        return style == 0 ? "Dance stopped." : $"Dance style set to {style}.";
+    }
+
+    private async ValueTask<string> ToggleMuteBotsAsync(
+        CharacterId characterId,
+        CancellationToken cancellationToken)
+    {
+        CharacterChatFilterPreference current =
+            await _characterChatFilterPreferenceRepository.GetByCharacterIdAsync(characterId, cancellationToken)
+            ?? new CharacterChatFilterPreference(characterId, false, false, DateTimeOffset.UtcNow, "runtime");
+
+        CharacterChatFilterPreference updated = current with
+        {
+            MuteBots = !current.MuteBots,
+            UpdatedAt = DateTimeOffset.UtcNow,
+            UpdatedBy = "chat_command"
+        };
+
+        await _characterChatFilterPreferenceRepository.StoreAsync(updated, cancellationToken);
+        return updated.MuteBots ? "Bot chat muted for this character." : "Bot chat unmuted for this character.";
+    }
+
+    private async ValueTask<string> GiveRespectAsync(
+        CharacterId senderCharacterId,
+        RoomId roomId,
+        string[] arguments,
+        CancellationToken cancellationToken)
+    {
+        if (arguments.Length == 0)
+        {
+            return "Usage: :respect <username>";
+        }
+
+        RoomActorState? targetActor = await ResolvePlayerActorByNameAsync(roomId, arguments[0], cancellationToken);
+        if (targetActor is null)
+        {
+            return $"User '{arguments[0]}' is not present in this room.";
+        }
+
+        if (targetActor.ActorId == senderCharacterId.Value)
+        {
+            return "You cannot respect yourself.";
+        }
+
+        CharacterProfile? target = await _characterProfileRepository.GetByIdAsync(new CharacterId(targetActor.ActorId), cancellationToken);
+        if (target is null)
+        {
+            return "Respect target could not be resolved.";
+        }
+
+        // Atomically spend one daily respect point — prevents double-spending under concurrent requests.
+        CharacterProfile? updatedSender = await _characterProfileRepository.TrySpendDailyRespectAsync(senderCharacterId, cancellationToken);
+        if (updatedSender is null)
+        {
+            return "You have no daily respect points left.";
+        }
+
+        CharacterProfile updatedTarget = target with { RespectPoints = target.RespectPoints + 1 };
+        await _characterProfileRepository.StoreAsync(updatedTarget, cancellationToken);
+
+        return $"Respect sent to {updatedTarget.Username}. Remaining daily respect: {updatedSender.DailyRespectPoints}.";
     }
 
     private async ValueTask<string> SendRoomAlertAsync(
@@ -554,6 +845,17 @@ public sealed class RoomInteractionService : IRoomInteractionService
         await _roomRuntimeCoordinator.SignalMutationAsync(
             roomId,
             RoomRuntimeMutationKind.ChatMessageAppended,
+            cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ChatMessagePublished,
+            new ChatMessagePublishedEvent(
+                roomId,
+                0,
+                "Room Alert",
+                RoomChatMessageKind.System,
+                alertText),
+            null,
+            roomId,
             cancellationToken);
 
         return $"Room alert sent: {alertText}";
@@ -615,6 +917,19 @@ public sealed class RoomInteractionService : IRoomInteractionService
             roomId,
             RoomRuntimeMutationKind.ChatMessageAppended,
             cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ChatMessagePublished,
+            new ChatMessagePublishedEvent(
+                roomId,
+                actor.ActorId,
+                actor.DisplayName,
+                messageKind,
+                renderedMessage,
+                targetActor.ActorId,
+                targetActor.DisplayName),
+            new CharacterId(actor.ActorId),
+            roomId,
+            cancellationToken);
 
         return messageKind == RoomChatMessageKind.Whisper
             ? $"Whisper sent to {targetActor.DisplayName}."
@@ -632,16 +947,20 @@ public sealed class RoomInteractionService : IRoomInteractionService
             return "No room items were available to return to storage.";
         }
 
+        // Items must be returned to the room owner, not the moderator executing the command.
+        RoomHotelSnapshot? roomSnapshot = await _hotelReadService.GetRoomSnapshotAsync(roomId, cancellationToken);
+        CharacterId targetCharacterId = roomSnapshot?.Room.OwnerCharacterId ?? characterId;
+
         InventoryItemState[] inventoryItems = removedItems
             .Select(item => new InventoryItemState(
                 item.ItemId,
-                characterId,
+                targetCharacterId,
                 item.ItemDefinitionId,
                 item.StateData,
                 DateTime.UtcNow))
             .ToArray();
 
-        await _inventoryRepository.AddExistingItemsAsync(characterId, inventoryItems, cancellationToken);
+        await _inventoryRepository.AddExistingItemsAsync(targetCharacterId, inventoryItems, cancellationToken);
         await _roomRuntimeCoordinator.SignalMutationAsync(
             roomId,
             RoomRuntimeMutationKind.RoomContentChanged,
@@ -665,7 +984,7 @@ public sealed class RoomInteractionService : IRoomInteractionService
         string senderName = sender?.Username ?? "Hotel";
 
         IReadOnlyList<RoomId> activeRooms = await _roomRuntimeRepository.GetAllActiveRoomIdsAsync(cancellationToken);
-        foreach (RoomId targetRoomId in activeRooms)
+        await Task.WhenAll(activeRooms.Select(async targetRoomId =>
         {
             await _roomRuntimeRepository.AppendChatMessageAsync(
                 targetRoomId,
@@ -678,7 +997,19 @@ public sealed class RoomInteractionService : IRoomInteractionService
                 targetRoomId,
                 RoomRuntimeMutationKind.ChatMessageAppended,
                 cancellationToken);
-        }
+        }));
+
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.HotelAlertBroadcast,
+            new ChatMessagePublishedEvent(
+                new RoomId(0),
+                senderCharacterId.Value,
+                senderName,
+                RoomChatMessageKind.System,
+                alertText),
+            senderCharacterId,
+            null,
+            cancellationToken);
 
         return activeRooms.Count == 0
             ? $"Hotel alert sent: {alertText} (no active rooms)"
@@ -707,15 +1038,16 @@ public sealed class RoomInteractionService : IRoomInteractionService
         }
 
         IReadOnlyList<RoomId> activeRooms = await _roomRuntimeRepository.GetAllActiveRoomIdsAsync(cancellationToken);
-        int totalEvicted = 0;
-        foreach (RoomId roomId in activeRooms)
+        int[] evictedCounts = await Task.WhenAll(activeRooms.Select(async roomId =>
         {
-            totalEvicted += await _roomRuntimeRepository.EvictAllPlayersFromRoomAsync(roomId, cancellationToken);
+            int count = await _roomRuntimeRepository.EvictAllPlayersFromRoomAsync(roomId, cancellationToken);
             await _roomRuntimeCoordinator.SignalMutationAsync(
                 roomId,
                 RoomRuntimeMutationKind.ActorPresenceChanged,
                 cancellationToken);
-        }
+            return count;
+        }));
+        int totalEvicted = evictedCounts.Sum();
 
         return $"Evicted {totalEvicted} player(s) from {activeRooms.Count} room(s).";
     }
@@ -771,7 +1103,7 @@ public sealed class RoomInteractionService : IRoomInteractionService
         string senderName = sender?.Username ?? "Hotel";
 
         IReadOnlyList<RoomId> activeRooms = await _roomRuntimeRepository.GetAllActiveRoomIdsAsync(cancellationToken);
-        foreach (RoomId roomId in activeRooms)
+        await Task.WhenAll(activeRooms.Select(async roomId =>
         {
             await _roomRuntimeRepository.AppendChatMessageAsync(
                 roomId,
@@ -784,7 +1116,7 @@ public sealed class RoomInteractionService : IRoomInteractionService
                 roomId,
                 RoomRuntimeMutationKind.ChatMessageAppended,
                 cancellationToken);
-        }
+        }));
 
         return $"Maintenance mode activated. {activeRooms.Count} room(s) notified. New entries are blocked.";
     }
@@ -859,6 +1191,18 @@ public sealed class RoomInteractionService : IRoomInteractionService
             roomId,
             RoomRuntimeMutationKind.ChatMessageAppended,
             cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ModerationActionExecuted,
+            new ModerationActionExecutedEvent(
+                moderatorCharacterId,
+                "alert",
+                new CharacterId(targetActor.ActorId),
+                targetActor.DisplayName,
+                roomId,
+                message),
+            moderatorCharacterId,
+            roomId,
+            cancellationToken);
 
         return $"Alert sent to {targetActor.DisplayName}.";
     }
@@ -893,6 +1237,18 @@ public sealed class RoomInteractionService : IRoomInteractionService
             roomId,
             RoomRuntimeMutationKind.ActorPresenceChanged,
             cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ModerationActionExecuted,
+            new ModerationActionExecutedEvent(
+                moderatorCharacterId,
+                isSoftKick ? "softkick" : "kick",
+                new CharacterId(targetActor.ActorId),
+                targetActor.DisplayName,
+                roomId,
+                isSoftKick ? "Actor soft-kicked from room." : "Actor kicked from room."),
+            moderatorCharacterId,
+            roomId,
+            cancellationToken);
 
         return isSoftKick
             ? $"{targetActor.DisplayName} was soft-kicked from the room."
@@ -923,6 +1279,18 @@ public sealed class RoomInteractionService : IRoomInteractionService
 
         DateTime mutedUntilUtc = DateTime.UtcNow.AddMinutes(2);
         _actorMutes[BuildActorMuteKey(roomId, new CharacterId(targetActor.ActorId))] = mutedUntilUtc;
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ModerationActionExecuted,
+            new ModerationActionExecutedEvent(
+                moderatorCharacterId,
+                "shutup",
+                new CharacterId(targetActor.ActorId),
+                targetActor.DisplayName,
+                roomId,
+                $"Muted until {mutedUntilUtc:O}."),
+            moderatorCharacterId,
+            roomId,
+            cancellationToken);
         return $"{targetActor.DisplayName} was muted until {mutedUntilUtc:O}.";
     }
 
@@ -999,6 +1367,18 @@ public sealed class RoomInteractionService : IRoomInteractionService
             roomId,
             RoomRuntimeMutationKind.ActorPresenceChanged,
             cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.ModerationActionExecuted,
+            new ModerationActionExecutedEvent(
+                moderatorCharacterId,
+                permanent ? "superban" : "ban",
+                new CharacterId(targetActor.ActorId),
+                targetActor.DisplayName,
+                roomId,
+                reason),
+            moderatorCharacterId,
+            roomId,
+            cancellationToken);
 
         return permanent
             ? $"{targetActor.DisplayName} was permanently banned."
@@ -1053,6 +1433,17 @@ public sealed class RoomInteractionService : IRoomInteractionService
 
         await _walletRepository.StoreAsync(
             new WalletSnapshot(wallet.CharacterId, balances, ledger.Take(10).ToArray()),
+            cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.WalletAdjusted,
+            new WalletAdjustedEvent(
+                moderatorCharacterId,
+                new CharacterId(targetActor.ActorId),
+                "credits",
+                credits,
+                "moderation_transfer"),
+            moderatorCharacterId,
+            roomId,
             cancellationToken);
 
         return $"{credits} credit(s) were transferred to {targetActor.DisplayName}.";
@@ -1306,6 +1697,338 @@ public sealed class RoomInteractionService : IRoomInteractionService
             : $"Carry item set to {carryItem.ItemTypeId}.";
     }
 
+    private async ValueTask<string> DescribeRoomBotsAsync(
+        RoomId roomId,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<HotelBotDefinition> bots =
+            await _roomBotDefinitionRepository.GetByRoomIdAsync(roomId, cancellationToken);
+
+        if (bots.Count == 0)
+        {
+            return "No custom bots are configured for this room.";
+        }
+
+        return string.Join(
+            " | ",
+            bots.Select(bot =>
+                $"{bot.DisplayName} patrol={bot.Waypoints.Count} replies={bot.Replies.Count} enabled={bot.IsEnabled.ToString(CultureInfo.InvariantCulture).ToLowerInvariant()}"));
+    }
+
+    private async ValueTask<string> CreateRoomBotAsync(
+        RoomId roomId,
+        RoomActorState actor,
+        string[] arguments,
+        CancellationToken cancellationToken)
+    {
+        if (arguments.Length == 0)
+        {
+            return "Usage: :botcreate <name>";
+        }
+
+        RoomHotelSnapshot? room = await _hotelReadService.GetRoomSnapshotAsync(roomId, cancellationToken);
+        if (room?.Layout is null)
+        {
+            return "Room layout could not be resolved for bot creation.";
+        }
+
+        string displayName = string.Join(' ', arguments).Trim();
+        if (string.IsNullOrWhiteSpace(displayName))
+        {
+            return "Bot name cannot be empty.";
+        }
+
+        IReadOnlyList<HotelBotDefinition> existingBots =
+            await _roomBotDefinitionRepository.GetByRoomIdAsync(roomId, cancellationToken);
+        if (existingBots.Any(candidate => string.Equals(candidate.DisplayName, displayName, StringComparison.OrdinalIgnoreCase)))
+        {
+            return $"Bot '{displayName}' already exists in this room.";
+        }
+
+        HotelBotDefinition definition = new(
+            BotKey: BuildCustomBotKey(roomId, displayName),
+            AssetPackageKey: string.Empty,
+            RoomId: roomId,
+            DisplayName: displayName,
+            LanguageCode: "en",
+            DialogueMode: BotDialogueMode.Scripted,
+            GreetingMessage: $"Hello, I am {displayName}.",
+            IdleMessage: $"Ask {displayName} something.",
+            SpawnOffsetX: actor.Position.X - room.Layout.DoorPosition.X,
+            SpawnOffsetY: actor.Position.Y - room.Layout.DoorPosition.Y,
+            BodyRotation: actor.BodyRotation,
+            IsEnabled: true,
+            AllowedTopics: [],
+            Waypoints: [],
+            Replies: []);
+
+        await _roomBotDefinitionRepository.StoreAsync(definition, cancellationToken);
+        await EnsureRoomBotsAsync(room, cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.BotConfigurationChanged,
+            new BotConfigurationChangedEvent(
+                new CharacterId(actor.ActorId),
+                roomId,
+                definition.BotKey,
+                definition.DisplayName,
+                "create",
+                $"Spawned at {actor.Position.X},{actor.Position.Y}."),
+            new CharacterId(actor.ActorId),
+            roomId,
+            cancellationToken);
+        return $"Bot '{displayName}' created in room {roomId.Value}.";
+    }
+
+    private async ValueTask<string> MoveRoomBotAsync(
+        RoomId roomId,
+        string[] arguments,
+        CancellationToken cancellationToken)
+    {
+        if (arguments.Length < 3 ||
+            !int.TryParse(arguments[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int x) ||
+            !int.TryParse(arguments[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y))
+        {
+            return "Usage: :botmove <name> <x> <y>";
+        }
+
+        RoomHotelSnapshot? room = await _hotelReadService.GetRoomSnapshotAsync(roomId, cancellationToken);
+        if (room?.Layout is null)
+        {
+            return "Room layout could not be resolved for bot movement.";
+        }
+
+        if (!RoomNavigationLogic.IsWalkable(room.Layout, x, y, out _))
+        {
+            return "Bot destination tile is not walkable.";
+        }
+
+        HotelBotDefinition? definition = await ResolveRoomBotByNameAsync(roomId, arguments[0], cancellationToken);
+        if (definition is null)
+        {
+            return $"Bot '{arguments[0]}' was not found in this room.";
+        }
+
+        HotelBotDefinition updated = definition with
+        {
+            SpawnOffsetX = x - room.Layout.DoorPosition.X,
+            SpawnOffsetY = y - room.Layout.DoorPosition.Y
+        };
+
+        await _roomBotDefinitionRepository.StoreAsync(updated, cancellationToken);
+        await EnsureRoomBotsAsync(room, cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.BotConfigurationChanged,
+            new BotConfigurationChangedEvent(
+                null,
+                roomId,
+                updated.BotKey,
+                updated.DisplayName,
+                "move",
+                $"Moved to {x},{y}."),
+            null,
+            roomId,
+            cancellationToken);
+        return $"Bot '{updated.DisplayName}' moved to {x},{y}.";
+    }
+
+    private async ValueTask<string> SetRoomBotPatrolAsync(
+        RoomId roomId,
+        string[] arguments,
+        CancellationToken cancellationToken)
+    {
+        if (arguments.Length < 7 ||
+            !int.TryParse(arguments[1], NumberStyles.Integer, CultureInfo.InvariantCulture, out int x1) ||
+            !int.TryParse(arguments[2], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y1) ||
+            !int.TryParse(arguments[3], NumberStyles.Integer, CultureInfo.InvariantCulture, out int pause1) ||
+            !int.TryParse(arguments[4], NumberStyles.Integer, CultureInfo.InvariantCulture, out int x2) ||
+            !int.TryParse(arguments[5], NumberStyles.Integer, CultureInfo.InvariantCulture, out int y2) ||
+            !int.TryParse(arguments[6], NumberStyles.Integer, CultureInfo.InvariantCulture, out int pause2))
+        {
+            return "Usage: :botpatrol <name> <x1> <y1> <pause1> <x2> <y2> <pause2>";
+        }
+
+        RoomHotelSnapshot? room = await _hotelReadService.GetRoomSnapshotAsync(roomId, cancellationToken);
+        if (room?.Layout is null)
+        {
+            return "Room layout could not be resolved for bot patrol.";
+        }
+
+        if (!RoomNavigationLogic.IsWalkable(room.Layout, x1, y1, out _) ||
+            !RoomNavigationLogic.IsWalkable(room.Layout, x2, y2, out _))
+        {
+            return "One or more patrol tiles are not walkable.";
+        }
+
+        HotelBotDefinition? definition = await ResolveRoomBotByNameAsync(roomId, arguments[0], cancellationToken);
+        if (definition is null)
+        {
+            return $"Bot '{arguments[0]}' was not found in this room.";
+        }
+
+        HotelBotDefinition updated = definition with
+        {
+            Waypoints =
+            [
+                new BotWaypoint(x1, y1, Math.Max(0, pause1)),
+                new BotWaypoint(x2, y2, Math.Max(0, pause2))
+            ]
+        };
+
+        await _roomBotDefinitionRepository.StoreAsync(updated, cancellationToken);
+        await EnsureRoomBotsAsync(room, cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.BotConfigurationChanged,
+            new BotConfigurationChangedEvent(
+                null,
+                roomId,
+                updated.BotKey,
+                updated.DisplayName,
+                "patrol",
+                $"Waypoints set to {x1},{y1} and {x2},{y2}."),
+            null,
+            roomId,
+            cancellationToken);
+        return $"Bot '{updated.DisplayName}' patrol updated to {x1},{y1} and {x2},{y2}.";
+    }
+
+    private async ValueTask<string> SetRoomBotReplyAsync(
+        RoomId roomId,
+        string[] arguments,
+        CancellationToken cancellationToken)
+    {
+        if (arguments.Length < 3)
+        {
+            return "Usage: :botreply <name> <trigger> <response...>";
+        }
+
+        HotelBotDefinition? definition = await ResolveRoomBotByNameAsync(roomId, arguments[0], cancellationToken);
+        if (definition is null)
+        {
+            return $"Bot '{arguments[0]}' was not found in this room.";
+        }
+
+        string trigger = arguments[1].Trim().ToLowerInvariant();
+        string response = string.Join(' ', arguments.Skip(2)).Trim();
+        if (string.IsNullOrWhiteSpace(trigger) || string.IsNullOrWhiteSpace(response))
+        {
+            return "Bot trigger and response cannot be empty.";
+        }
+
+        List<BotReplyDefinition> replies = definition.Replies
+            .Where(candidate => !string.Equals(candidate.ReplyKey, trigger, StringComparison.OrdinalIgnoreCase))
+            .ToList();
+        replies.Add(new BotReplyDefinition(trigger, [trigger], response, null, null));
+
+        HotelBotDefinition updated = definition with
+        {
+            Replies = replies
+        };
+
+        await _roomBotDefinitionRepository.StoreAsync(updated, cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.BotConfigurationChanged,
+            new BotConfigurationChangedEvent(
+                null,
+                roomId,
+                updated.BotKey,
+                updated.DisplayName,
+                "reply",
+                $"Reply '{trigger}' updated."),
+            null,
+            roomId,
+            cancellationToken);
+        return $"Bot '{updated.DisplayName}' reply '{trigger}' updated.";
+    }
+
+    private async ValueTask<string> SetRoomBotSpeechAsync(
+        RoomId roomId,
+        string[] arguments,
+        CancellationToken cancellationToken)
+    {
+        if (arguments.Length < 3)
+        {
+            return "Usage: :botspeech <name> <greet|idle> <message...>";
+        }
+
+        HotelBotDefinition? definition = await ResolveRoomBotByNameAsync(roomId, arguments[0], cancellationToken);
+        if (definition is null)
+        {
+            return $"Bot '{arguments[0]}' was not found in this room.";
+        }
+
+        string mode = arguments[1].Trim();
+        string message = string.Join(' ', arguments.Skip(2)).Trim();
+        if (string.IsNullOrWhiteSpace(message))
+        {
+            return "Bot speech cannot be empty.";
+        }
+
+        HotelBotDefinition? updated = mode.ToLowerInvariant() switch
+        {
+            "greet" => definition with { GreetingMessage = message },
+            "idle" => definition with { IdleMessage = message },
+            _ => null
+        };
+
+        if (updated is null)
+        {
+            return "Usage: :botspeech <name> <greet|idle> <message...>";
+        }
+
+        await _roomBotDefinitionRepository.StoreAsync(updated, cancellationToken);
+        await _hotelEventBus.PublishAsync(
+            HotelEventKind.BotConfigurationChanged,
+            new BotConfigurationChangedEvent(
+                null,
+                roomId,
+                updated.BotKey,
+                updated.DisplayName,
+                $"speech:{mode.ToLowerInvariant()}",
+                message),
+            null,
+            roomId,
+            cancellationToken);
+        return $"Bot '{updated.DisplayName}' {mode.ToLowerInvariant()} message updated.";
+    }
+
+    private async ValueTask<HotelBotDefinition?> ResolveRoomBotByNameAsync(
+        RoomId roomId,
+        string displayName,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<HotelBotDefinition> definitions =
+            await _roomBotDefinitionRepository.GetByRoomIdAsync(roomId, cancellationToken);
+
+        return definitions.FirstOrDefault(candidate =>
+            string.Equals(candidate.DisplayName, displayName, StringComparison.OrdinalIgnoreCase));
+    }
+
+    private async ValueTask EnsureRoomBotsAsync(
+        RoomHotelSnapshot room,
+        CancellationToken cancellationToken)
+    {
+        NavigatorPublicRoomDefinition? publicRoomEntry =
+            await _navigatorPublicRoomRepository.GetByRoomIdAsync(room.Room.RoomId, cancellationToken);
+        await _roomBotRuntimeService.EnsureRoomBotsAsync(room, publicRoomEntry, cancellationToken);
+    }
+
+    private static string BuildCustomBotKey(RoomId roomId, string displayName)
+    {
+        StringBuilder builder = new();
+        foreach (char character in displayName.Trim().ToLowerInvariant())
+        {
+            builder.Append(char.IsLetterOrDigit(character) ? character : '_');
+        }
+
+        string normalized = builder.ToString().Trim('_');
+        if (string.IsNullOrWhiteSpace(normalized))
+        {
+            normalized = "bot";
+        }
+
+        return $"room_{roomId.Value}_{normalized}";
+    }
+
     private async ValueTask<string> ManageRareOfTheWeekAsync(
         CharacterId characterId,
         IReadOnlyList<string> arguments,
@@ -1388,107 +2111,12 @@ public sealed class RoomInteractionService : IRoomInteractionService
         return "Usage: :rareweek [show|on|off|set <offerId>]";
     }
 
-    private static IReadOnlyList<ActorStatusEntry> BuildMovementStatusEntries(
-        int x,
-        int y,
-        double z)
-    {
-        return
-        [
-            new ActorStatusEntry("mv", $"{x},{y},{z:0.##}")
-        ];
-    }
-
-    private static bool IsWalkable(
-        Rooms.RoomLayoutDefinition layout,
-        int x,
-        int y,
-        out double height)
-    {
-        string[] rows = layout.Heightmap.Split('\n', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
-        height = 0;
-
-        if (y < 0 || y >= rows.Length)
-        {
-            return false;
-        }
-
-        string row = rows[y];
-        if (x < 0 || x >= row.Length)
-        {
-            return false;
-        }
-
-        char tile = row[x];
-        if (tile == 'x' || tile == 'X')
-        {
-            return false;
-        }
-
-        if (char.IsDigit(tile))
-        {
-            height = tile - '0';
-            return true;
-        }
-
-        if (tile is 'a' or 'b' or 'c' or 'd' or 'e' or 'f')
-        {
-            height = 10 + (tile - 'a');
-            return true;
-        }
-
-        if (tile is 'A' or 'B' or 'C' or 'D' or 'E' or 'F')
-        {
-            height = 10 + (tile - 'A');
-            return true;
-        }
-
-        if (tile == '-')
-        {
-            height = 0;
-            return true;
-        }
-
-        return false;
-    }
-
     private static bool IsAdjacentStep(RoomCoordinate currentPosition, int destinationX, int destinationY)
     {
         int deltaX = Math.Abs(currentPosition.X - destinationX);
         int deltaY = Math.Abs(currentPosition.Y - destinationY);
 
         return (deltaX != 0 || deltaY != 0) && deltaX <= 1 && deltaY <= 1;
-    }
-
-    private async ValueTask<bool> IsTileBlockedAsync(
-        RoomHotelSnapshot room,
-        RoomActorState actor,
-        int x,
-        int y,
-        CancellationToken cancellationToken)
-    {
-        // The current runtime slice only performs basic blocking checks.
-        // This prevents obvious clipping through actors and non-walkable furni
-        // until a fuller pathing and occupancy model is introduced.
-        IReadOnlyList<RoomActorState> actors = await _roomRuntimeRepository.GetActorsByRoomIdAsync(
-            room.Room.RoomId,
-            cancellationToken);
-
-        bool occupiedByOtherActor = actors.Any(other =>
-            other.ActorId != actor.ActorId &&
-            other.Position.X == x &&
-            other.Position.Y == y);
-
-        if (occupiedByOtherActor)
-        {
-            return true;
-        }
-
-        return room.Items.Any(item =>
-            item.Item.Placement.FloorPosition is { } floorPosition &&
-            floorPosition.X == x &&
-            floorPosition.Y == y &&
-            !(item.Definition?.IsWalkable ?? false));
     }
 
     private bool TryRegisterChatWindow(

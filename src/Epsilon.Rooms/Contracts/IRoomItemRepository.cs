@@ -6,5 +6,10 @@ public interface IRoomItemRepository
 {
     ValueTask<IReadOnlyList<RoomItemState>> GetByRoomIdAsync(RoomId roomId, CancellationToken cancellationToken = default);
 
+    ValueTask StoreByRoomIdAsync(
+        RoomId roomId,
+        IReadOnlyList<RoomItemState> items,
+        CancellationToken cancellationToken = default);
+
     ValueTask<IReadOnlyList<RoomItemState>> RemoveByRoomIdAsync(RoomId roomId, CancellationToken cancellationToken = default);
 }

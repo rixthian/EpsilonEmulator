@@ -1,0 +1,12 @@
+{
+  "siteKey": "goldfish-classic",
+  "displayName": "Hotel Goldfish",
+  "era": "1999-2000",
+  "launcherUrl": "/",
+  "gatewayHealthUrl": "/health",
+  "gatewayReadinessUrl": "/readiness",
+  "gatewayDiagnosticsUrl": "/diagnostics/summary",
+  "adminUrl": "/diagnostics/summary",
+  "publicPlayerLookupPattern": "/hotel/characters/public/{publicId}",
+  "habbowoodSnapshotUrl": "/hotel/events/habbowood"
+}

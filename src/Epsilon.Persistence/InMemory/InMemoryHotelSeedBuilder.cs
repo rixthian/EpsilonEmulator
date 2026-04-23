@@ -33,7 +33,8 @@ internal static class InMemoryHotelSeedBuilder
             ActivityPointsBalance: 750,
             RespectPoints: 25,
             DailyRespectPoints: 3,
-            DailyPetRespectPoints: 3);
+            DailyPetRespectPoints: 3,
+            PublicId: "usr_epsilon");
 
         store.Characters[roomGuardianCharacterId] = new CharacterProfile(
             roomGuardianCharacterId,
@@ -47,7 +48,8 @@ internal static class InMemoryHotelSeedBuilder
             250,
             5,
             3,
-            3);
+            3,
+            "usr_delta");
 
         store.Characters[linceCharacterId] = new CharacterProfile(
             linceCharacterId,
@@ -61,7 +63,8 @@ internal static class InMemoryHotelSeedBuilder
             400,
             8,
             3,
-            3);
+            3,
+            "usr_nova");
 
         store.Characters[moderatorCharacterId] = new CharacterProfile(
             moderatorCharacterId,
@@ -75,7 +78,8 @@ internal static class InMemoryHotelSeedBuilder
             500,
             12,
             3,
-            3);
+            3,
+            "usr_atlas");
 
         store.Characters[administratorCharacterId] = new CharacterProfile(
             administratorCharacterId,
@@ -89,7 +93,8 @@ internal static class InMemoryHotelSeedBuilder
             600,
             15,
             3,
-            3);
+            3,
+            "usr_pixel");
 
         store.Characters[managerCharacterId] = new CharacterProfile(
             managerCharacterId,
@@ -103,7 +108,8 @@ internal static class InMemoryHotelSeedBuilder
             650,
             18,
             3,
-            3);
+            3,
+            "usr_ember");
 
         store.Characters[playerCharacterId] = new CharacterProfile(
             playerCharacterId,
@@ -117,7 +123,8 @@ internal static class InMemoryHotelSeedBuilder
             100,
             2,
             3,
-            3);
+            3,
+            "usr_vector");
 
         store.Subscriptions[characterId] =
         [
@@ -130,12 +137,14 @@ internal static class InMemoryHotelSeedBuilder
             [
                 new WalletBalance("credits", 5000),
                 new WalletBalance("duckets", 750),
-                new WalletBalance("diamonds", 120)
+                new WalletBalance("diamonds", 120),
+                new WalletBalance("emeralds", 1800)
             ],
             [
                 new WalletLedgerEntry("credits", 2500, "starter_grant", DateTime.UtcNow.AddDays(-7)),
                 new WalletLedgerEntry("duckets", 250, "daily_reward", DateTime.UtcNow.AddDays(-1)),
-                new WalletLedgerEntry("diamonds", 20, "seasonal_reward", DateTime.UtcNow.AddHours(-8))
+                new WalletLedgerEntry("diamonds", 20, "seasonal_reward", DateTime.UtcNow.AddHours(-8)),
+                new WalletLedgerEntry("emeralds", 800, "collector_reward", DateTime.UtcNow.AddHours(-6))
             ]);
 
         store.Wallets[roomGuardianCharacterId] = new WalletSnapshot(
@@ -152,7 +161,7 @@ internal static class InMemoryHotelSeedBuilder
             []);
         store.Wallets[administratorCharacterId] = new WalletSnapshot(
             administratorCharacterId,
-            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
+            [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100), new WalletBalance("emeralds", 500)],
             []);
         store.Wallets[managerCharacterId] = new WalletSnapshot(
             managerCharacterId,
@@ -162,6 +171,71 @@ internal static class InMemoryHotelSeedBuilder
             playerCharacterId,
             [new WalletBalance("credits", 1000), new WalletBalance("duckets", 100)],
             []);
+
+        store.WalletLinks[characterId] =
+        [
+            new WalletLinkSnapshot(
+                characterId,
+                "0xEps1100000000000000000000000000000000001",
+                "metamask",
+                "development_seed",
+                true,
+                DateTime.UtcNow.AddDays(-10),
+                DateTime.UtcNow.AddHours(-4))
+        ];
+        store.CollectibleOwnerships[characterId] = new CollectibleOwnershipSnapshot(
+            characterId,
+            "0xEps1100000000000000000000000000000000001",
+            ["habbo_avatar_genesis", "habbo_x_room_regular", "hc_gold_elephant", "rotw_dragon_lamp"],
+            ["avatar", "habbo_x_room", "rare", "rare_of_week"],
+            "development_seed",
+            DateTime.UtcNow.AddHours(-4));
+        store.CollectorProgress[characterId] = new CollectorProgressSnapshot(
+            characterId,
+            540,
+            4,
+            500,
+            900,
+            "gold",
+            DateTime.UtcNow.AddDays(-1));
+        store.PendingGiftBoxes[characterId] = ["monthly_crate"];
+
+        store.WalletLinks[administratorCharacterId] =
+        [
+            new WalletLinkSnapshot(
+                administratorCharacterId,
+                "0xAdm1n0000000000000000000000000000000005",
+                "metamask",
+                "development_seed",
+                true,
+                DateTime.UtcNow.AddDays(-3),
+                DateTime.UtcNow.AddHours(-2))
+        ];
+        store.CollectibleOwnerships[administratorCharacterId] = new CollectibleOwnershipSnapshot(
+            administratorCharacterId,
+            "0xAdm1n0000000000000000000000000000000005",
+            ["habbo_portrait_founders"],
+            ["portrait"],
+            "development_seed",
+            DateTime.UtcNow.AddHours(-2));
+        store.CollectorProgress[administratorCharacterId] = new CollectorProgressSnapshot(
+            administratorCharacterId,
+            180,
+            2,
+            100,
+            250,
+            "silver",
+            DateTime.UtcNow.AddHours(-22));
+        store.PendingGiftBoxes[administratorCharacterId] = ["starter_crate"];
+        store.PendingGiftBoxes[playerCharacterId] = ["starter_crate"];
+        store.CollectorProgress[playerCharacterId] = new CollectorProgressSnapshot(
+            playerCharacterId,
+            90,
+            1,
+            0,
+            100,
+            "bronze",
+            null);
 
         store.InterfacePreferences[characterId] = new CharacterInterfacePreference(
             CharacterId: characterId,
@@ -173,6 +247,29 @@ internal static class InMemoryHotelSeedBuilder
         foreach (ItemDefinition itemDefinition in EmbeddedSeedContentLoader.LoadItemDefinitions())
         {
             store.ItemDefinitions[itemDefinition.ItemDefinitionId] = itemDefinition;
+        }
+
+        ItemDefinitionId rollerDefinitionId = new(1099);
+        if (!store.ItemDefinitions.Values.Any(definition =>
+                string.Equals(definition.InteractionTypeCode, "roller", StringComparison.OrdinalIgnoreCase)))
+        {
+            store.ItemDefinitions[rollerDefinitionId] = new ItemDefinition(
+                rollerDefinitionId,
+                "Roller",
+                "roller_basic",
+                "s",
+                1099,
+                0.0,
+                true,
+                false,
+                true,
+                true,
+                true,
+                false,
+                true,
+                false,
+                "roller",
+                8);
         }
 
         ItemDefinitionId sofaDefinitionId = new(1001);
@@ -263,6 +360,90 @@ internal static class InMemoryHotelSeedBuilder
             new SupportTopicEntry(3, "How to report harassment", "Use the support button and select the abuse category.", 2, false, true)
         ]);
 
+        store.HabbowoodDefinition = new HabbowoodEventDefinition(
+            EventKey: "habbowood",
+            DisplayName: "Habbowood Revival",
+            Slug: "habbowood",
+            Description: "Classic movie-making event rebuilt inside the Epsilon hotel platform.",
+            LobbyRoomId: new RoomId(10),
+            IsActive: true,
+            MaxVotesPerHour: 3,
+            MaxSubmissionsPerCharacter: 3,
+            CreatedAtUtc: DateTime.UtcNow.AddDays(-14),
+            ActivatedAtUtc: DateTime.UtcNow.AddDays(-7),
+            ActivatedByCharacterId: managerCharacterId);
+
+        store.HabbowoodAssetPackages.AddRange(
+        [
+            new HabbowoodAssetPackage("habbowood-studio-classic", "Studio Runtime", "studio", 3, "Main, intro, and studio animation runtime packages."),
+            new HabbowoodAssetPackage("habbowood-actors-classic", "Actor Pack", "actors", 13, "Classic actor packages preserved from the event runtime."),
+            new HabbowoodAssetPackage("habbowood-ambient-classic", "Ambient Pack", "ambient", 5, "Ambient scene layers and event atmosphere assets."),
+            new HabbowoodAssetPackage("habbowood-sound-classic", "Sound Pack", "sound", 13, "Intro soundtrack and event sound-effect package inventory."),
+            new HabbowoodAssetPackage("habbowood-localization-classic", "Localization Pack", "localization", 2, "Localized text surfaces from the preserved event package.")
+        ]);
+
+        store.HabbowoodSubmissions.AddRange(
+        [
+            new HabbowoodMovieSubmission(
+                new HabbowoodSubmissionId(store.NextHabbowoodSubmissionId++),
+                "habbowood",
+                characterId,
+                "epsilon",
+                "Pixels of Justice",
+                "pixels-of-justice",
+                "A retro detective short filmed in the hotel studio with dramatic lighting and classic props.",
+                "<movie><scene set=\"studio\"><actor id=\"lead\" action=\"inspect\" /></scene></movie>",
+                "@epsilonhotel",
+                "en",
+                HabbowoodSubmissionStatus.Published,
+                14,
+                DateTime.UtcNow.AddDays(-6),
+                DateTime.UtcNow.AddDays(-6),
+                null,
+                null),
+            new HabbowoodMovieSubmission(
+                new HabbowoodSubmissionId(store.NextHabbowoodSubmissionId++),
+                "habbowood",
+                playerCharacterId,
+                "vector",
+                "Ducks on the Boulevard",
+                "ducks-on-the-boulevard",
+                "A comedy short about a duck mob taking over the boulevard and the chaos that follows.",
+                "<movie><scene set=\"boulevard\"><actor id=\"duckboss\" action=\"dance\" /></scene></movie>",
+                "@vectorfilms",
+                "en",
+                HabbowoodSubmissionStatus.Published,
+                9,
+                DateTime.UtcNow.AddDays(-4),
+                DateTime.UtcNow.AddDays(-3),
+                null,
+                null),
+            new HabbowoodMovieSubmission(
+                new HabbowoodSubmissionId(store.NextHabbowoodSubmissionId++),
+                "habbowood",
+                roomGuardianCharacterId,
+                "delta",
+                "Studio Ghost Shift",
+                "studio-ghost-shift",
+                "A backstage supernatural short waiting for moderation review.",
+                "<movie><scene set=\"stage\"><ambient id=\"fog\" /></scene></movie>",
+                "@deltapictures",
+                "en",
+                HabbowoodSubmissionStatus.Pending,
+                0,
+                DateTime.UtcNow.AddHours(-18),
+                null,
+                null,
+                null)
+        ]);
+
+        store.HabbowoodVotes.AddRange(
+        [
+            new HabbowoodVoteLedgerEntry(new HabbowoodSubmissionId(1000), playerCharacterId, 1, null, DateTime.UtcNow.AddDays(-2)),
+            new HabbowoodVoteLedgerEntry(new HabbowoodSubmissionId(1000), moderatorCharacterId, 1, null, DateTime.UtcNow.AddDays(-2)),
+            new HabbowoodVoteLedgerEntry(new HabbowoodSubmissionId(1001), characterId, 1, null, DateTime.UtcNow.AddDays(-1))
+        ]);
+
         store.ChatCommandCatalog.AddRange(
         [
             new ChatCommandDefinition("help", "Show the available command list.", ChatCommandScope.Player, false, ["commands"], null),
@@ -274,12 +455,19 @@ internal static class InMemoryHotelSeedBuilder
             new ChatCommandDefinition("userinfo", "Show the current actor runtime information.", ChatCommandScope.Player, true, ["whoami"], null),
             new ChatCommandDefinition("sign", "Set the visible sign/status value.", ChatCommandScope.Player, true, [], null),
             new ChatCommandDefinition("carry", "Set the carried hand item for testing.", ChatCommandScope.Player, true, ["handitem"], null),
+            new ChatCommandDefinition("drop", "Clear the current carried hand item.", ChatCommandScope.Player, true, [], null),
             new ChatCommandDefinition("lang", "Show or change the interface language.", ChatCommandScope.Player, false, ["language"], null),
             new ChatCommandDefinition("link", "Send a normalized room link safely without HTML injection.", ChatCommandScope.Player, true, ["url"], null),
             new ChatCommandDefinition("wave", "Trigger the wave actor status.", ChatCommandScope.Player, true, [], null),
             new ChatCommandDefinition("sit", "Set the actor posture to sitting.", ChatCommandScope.Player, true, ["sitdown"], null),
             new ChatCommandDefinition("lay", "Set the actor posture to laying.", ChatCommandScope.Player, true, ["lie", "laydown"], null),
             new ChatCommandDefinition("stand", "Clear posture statuses and stand up.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("idle", "Toggle idle status for the current actor.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("kiss", "Trigger the kiss emote.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("smile", "Trigger the smile emote.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("dance", "Start or stop a dance style from 0 to 4.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("mutebots", "Toggle scripted bot replies for this character.", ChatCommandScope.Player, true, [], null),
+            new ChatCommandDefinition("respect", "Give one daily respect point to a user in the current room.", ChatCommandScope.Player, true, [], null),
             new ChatCommandDefinition("whisper", "Send a private-style room whisper to a specific user.", ChatCommandScope.Player, true, ["tell"], null),
             new ChatCommandDefinition("shout", "Broadcast a louder room message.", ChatCommandScope.Player, true, ["speak"], null),
             new ChatCommandDefinition("roommute", "Mute or unmute the current room chat.", ChatCommandScope.RoomModerator, true, [], StaffCapabilityKeys.RoomMute),
@@ -308,6 +496,12 @@ internal static class InMemoryHotelSeedBuilder
             new ChatCommandDefinition("wsstart", "Start a Wobble Squabble duel.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
             new ChatCommandDefinition("wsscore", "Award points to a Wobble Squabble team.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
             new ChatCommandDefinition("wsfinish", "Finish a Wobble Squabble duel.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.GamesManage),
+            new ChatCommandDefinition("bots", "List custom bots configured for the current room.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.BotsManage),
+            new ChatCommandDefinition("botcreate", "Create a new custom bot in the current room.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.BotsManage),
+            new ChatCommandDefinition("botmove", "Move a custom bot to a target tile.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.BotsManage),
+            new ChatCommandDefinition("botpatrol", "Set a two-point back-and-forth patrol for a bot.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.BotsManage),
+            new ChatCommandDefinition("botreply", "Configure a trigger keyword and reply for a bot.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.BotsManage),
+            new ChatCommandDefinition("botspeech", "Set the greeting or idle message for a bot.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.BotsManage),
             new ChatCommandDefinition("kickall", "Evict all players from a room or all active rooms.", ChatCommandScope.Administrator, false, ["evictall", "ejectall"], StaffCapabilityKeys.EmergencyKickAll),
             new ChatCommandDefinition("lockdown", "Toggle hotel-wide lockdown to block new room entries.", ChatCommandScope.Administrator, false, [], StaffCapabilityKeys.EmergencyLockdown),
             new ChatCommandDefinition("maintenance", "Activate maintenance mode: broadcast alert and lock the hotel.", ChatCommandScope.Administrator, false, ["maint"], StaffCapabilityKeys.EmergencyLockdown)
@@ -325,6 +519,8 @@ internal static class InMemoryHotelSeedBuilder
             new AccessCapability(StaffCapabilityKeys.CatalogManage, "Manage featured catalog states and highlighted offers."),
             new AccessCapability(StaffCapabilityKeys.CatalogReload, "Reload catalog content."),
             new AccessCapability(StaffCapabilityKeys.GamesManage, "Prepare, start, score, and finish managed game sessions."),
+            new AccessCapability(StaffCapabilityKeys.BotsManage, "Create and configure room bots."),
+            new AccessCapability(StaffCapabilityKeys.EventsManage, "Activate and moderate seasonal hotel events."),
             new AccessCapability(StaffCapabilityKeys.HousekeepingAccess, "Access housekeeping surfaces."),
             new AccessCapability(StaffCapabilityKeys.EmergencyLockdown, "Activate or deactivate hotel-wide lockdown and maintenance mode."),
             new AccessCapability(StaffCapabilityKeys.EmergencyKickAll, "Evict all players from one or all active rooms.")
@@ -336,9 +532,9 @@ internal static class InMemoryHotelSeedBuilder
             new StaffRoleDefinition("hobba", "Rank 1 Room Guardian", 1, ChatCommandScope.RoomModerator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert]),
             new StaffRoleDefinition("lince", "Rank 2 Hotel Guardian", 2, ChatCommandScope.RoomModerator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.HotelModTool]),
             new StaffRoleDefinition("moderator", "Rank 3 Moderator", 3, ChatCommandScope.HotelModerator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer]),
-            new StaffRoleDefinition("administrator", "Rank 4 Administrator", 4, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll]),
-            new StaffRoleDefinition("manager", "Rank 5 Manager", 5, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll]),
-            new StaffRoleDefinition("owner", "Rank 6 Owner", 6, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll])
+            new StaffRoleDefinition("administrator", "Rank 4 Administrator", 4, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.BotsManage, StaffCapabilityKeys.EventsManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll]),
+            new StaffRoleDefinition("manager", "Rank 5 Manager", 5, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.BotsManage, StaffCapabilityKeys.EventsManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll]),
+            new StaffRoleDefinition("owner", "Rank 6 Owner", 6, ChatCommandScope.Administrator, [StaffCapabilityKeys.RoomMute, StaffCapabilityKeys.RoomAlert, StaffCapabilityKeys.RoomPickAll, StaffCapabilityKeys.HotelModTool, StaffCapabilityKeys.HotelAlert, StaffCapabilityKeys.HotelBan, StaffCapabilityKeys.HotelTransfer, StaffCapabilityKeys.CatalogManage, StaffCapabilityKeys.CatalogReload, StaffCapabilityKeys.GamesManage, StaffCapabilityKeys.BotsManage, StaffCapabilityKeys.EventsManage, StaffCapabilityKeys.HousekeepingAccess, StaffCapabilityKeys.EmergencyLockdown, StaffCapabilityKeys.EmergencyKickAll])
         ]);
 
         store.StaffRoleAssignments[characterId] =
@@ -507,6 +703,7 @@ internal static class InMemoryHotelSeedBuilder
             new HotelBotDefinition(
                 BotKey: "welcome_concierge_primary",
                 AssetPackageKey: "welcome_lobby_core",
+                RoomId: null,
                 DisplayName: "Concierge",
                 LanguageCode: "en",
                 DialogueMode: BotDialogueMode.Scripted,
@@ -540,6 +737,7 @@ internal static class InMemoryHotelSeedBuilder
             new HotelBotDefinition(
                 BotKey: "lido_bar_attendant",
                 AssetPackageKey: "lido_deck_core",
+                RoomId: null,
                 DisplayName: "Lido Bar",
                 LanguageCode: "en",
                 DialogueMode: BotDialogueMode.Scripted,
@@ -578,6 +776,7 @@ internal static class InMemoryHotelSeedBuilder
             new HotelBotDefinition(
                 BotKey: "battleball_referee",
                 AssetPackageKey: "battleball_stadium_core",
+                RoomId: null,
                 DisplayName: "BattleBall Referee",
                 LanguageCode: "en",
                 DialogueMode: BotDialogueMode.Scripted,
@@ -610,6 +809,7 @@ internal static class InMemoryHotelSeedBuilder
             new HotelBotDefinition(
                 BotKey: "wobble_host_primary",
                 AssetPackageKey: "wobblesquabble_hall_core",
+                RoomId: null,
                 DisplayName: "Wobble Host",
                 LanguageCode: "en",
                 DialogueMode: BotDialogueMode.Scripted,
@@ -642,6 +842,7 @@ internal static class InMemoryHotelSeedBuilder
             new HotelBotDefinition(
                 BotKey: "infobus_host_primary",
                 AssetPackageKey: "infobus_theatre_core",
+                RoomId: null,
                 DisplayName: "Infobus Host",
                 LanguageCode: "en",
                 DialogueMode: BotDialogueMode.Scripted,
@@ -975,6 +1176,14 @@ internal static class InMemoryHotelSeedBuilder
         ]);
         store.VoucherDefinitions.AddRange(EmbeddedSeedContentLoader.LoadVoucherDefinitions());
         store.CollectibleDefinitions.AddRange(EmbeddedSeedContentLoader.LoadCollectibleDefinitions());
+        EnsureCollectibleDefinition(store, "habbo_avatar_genesis", "Habbo Avatar Genesis", "avatar", true);
+        EnsureCollectibleDefinition(store, "habbo_x_room_regular", "Habbo X Room Regular", "habbo_x_room", true);
+        EnsureCollectibleDefinition(store, "habbo_portrait_founders", "Habbo Portrait Founders", "portrait", true);
+        EnsureCollectibleDefinition(store, "collector_gift_lamp", "Collector Gift Lamp", "gift_box", true);
+        EnsureCollectibleDefinition(store, "collector_dragon_statue", "Collector Dragon Statue", "gift_box", true);
+        EnsureCollectibleDefinition(store, "factory_furni_crate", "Factory Furni Crate", "rare", true);
+        EnsureCollectibleDefinition(store, "factory_clothing_box", "Factory Clothing Box", "avatar", true);
+        EnsureCollectibleDefinition(store, "collectimatic_prize_lamp", "Collecti-Matic Prize Lamp", "collectimatic", true);
         store.EcotronRewards.AddRange(EmbeddedSeedContentLoader.LoadEcotronRewards());
         store.PublicRoomBehaviors.AddRange(EmbeddedSeedContentLoader.LoadPublicRoomBehaviors());
 
@@ -1122,5 +1331,29 @@ internal static class InMemoryHotelSeedBuilder
         ]);
 
         return store;
+    }
+
+    private static void EnsureCollectibleDefinition(
+        InMemoryHotelStore store,
+        string key,
+        string displayName,
+        string categoryKey,
+        bool isTradable)
+    {
+        if (store.CollectibleDefinitions.Any(candidate =>
+                string.Equals(candidate.CollectibleKey, key, StringComparison.OrdinalIgnoreCase)))
+        {
+            return;
+        }
+
+        store.CollectibleDefinitions.Add(new CollectibleDefinition(
+            key,
+            displayName,
+            categoryKey,
+            $"catalog/collectibles/{key}.png",
+            false,
+            isTradable,
+            true,
+            [categoryKey]));
     }
 }

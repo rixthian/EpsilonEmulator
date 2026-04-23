@@ -2,14 +2,98 @@
   "Launcher": {
     "ServiceName": "Epsilon.Launcher",
     "GatewayBaseUrl": "http://localhost:5000",
+    "GatewayRealtimePath": "/realtime",
     "AssetsBaseUrl": "/assets",
+    "DesktopLauncher": {
+      "HotelBaseUrl": "http://localhost:4100",
+      "LauncherApiBaseUrl": "http://localhost:5001",
+      "DefaultChannel": "stable",
+      "DefaultProfileKey": "web-alpha",
+      "LocalConfigDefaults": {
+        "AutoLaunchOnRedeem": true,
+        "CloseCmsOnLaunch": false,
+        "HardwareAcceleration": true,
+        "TelemetryEnabled": true,
+        "RememberLastProfile": true
+      },
+      "UpdateChannels": [
+        {
+          "ChannelKey": "stable",
+          "DisplayName": "Stable",
+          "LauncherManifestUrl": "https://launcher.example.com/stable/launcher.json",
+          "PackageManifestUrl": "https://launcher.example.com/stable/packages.json",
+          "AllowDowngrade": false,
+          "RequiresSignedPackages": true
+        },
+        {
+          "ChannelKey": "beta",
+          "DisplayName": "Beta",
+          "LauncherManifestUrl": "https://launcher.example.com/beta/launcher.json",
+          "PackageManifestUrl": "https://launcher.example.com/beta/packages.json",
+          "AllowDowngrade": false,
+          "RequiresSignedPackages": true
+        },
+        {
+          "ChannelKey": "internal",
+          "DisplayName": "Internal",
+          "LauncherManifestUrl": "https://launcher.example.com/internal/launcher.json",
+          "PackageManifestUrl": "https://launcher.example.com/internal/packages.json",
+          "AllowDowngrade": true,
+          "RequiresSignedPackages": false
+        }
+      ],
+      "LaunchProfiles": [
+        {
+          "ProfileKey": "web-alpha",
+          "DisplayName": "Web Alpha",
+          "Channel": "stable",
+          "Platforms": [ "Windows", "macOS", "Linux", "iPhone", "Android" ],
+          "ClientKind": "web",
+          "PackageKey": "modern_web_runtime_alpha",
+          "EntryExecutable": "browser",
+          "Arguments": [ "{entryAssetUrl}" ],
+          "RequiresRedeemCode": false,
+          "SupportsSafeReconnect": true,
+          "SupportsOverlayTelemetry": false,
+          "IsDefault": true
+        },
+        {
+          "ProfileKey": "unity-desktop",
+          "DisplayName": "Unity Desktop",
+          "Channel": "beta",
+          "Platforms": [ "Windows", "macOS", "Linux" ],
+          "ClientKind": "unity",
+          "PackageKey": "unity_desktop_main",
+          "EntryExecutable": "EpsilonHotel",
+          "Arguments": [ "--redeem-ticket={ticket}" ],
+          "RequiresRedeemCode": true,
+          "SupportsSafeReconnect": true,
+          "SupportsOverlayTelemetry": true,
+          "IsDefault": false
+        },
+        {
+          "ProfileKey": "nitro-desktop",
+          "DisplayName": "Nitro Desktop",
+          "Channel": "beta",
+          "Platforms": [ "Windows", "macOS", "Linux" ],
+          "ClientKind": "nitro",
+          "PackageKey": "nitro_desktop_main",
+          "EntryExecutable": "NitroClient",
+          "Arguments": [ "--redeem-ticket={ticket}" ],
+          "RequiresRedeemCode": true,
+          "SupportsSafeReconnect": true,
+          "SupportsOverlayTelemetry": true,
+          "IsDefault": false
+        }
+      ]
+    },
     "ClientProfiles": [
       {
         "ProfileKey": "release63",
         "DisplayName": "Release 63 Compatibility",
         "PackageKey": "flash_release63_baseline",
         "RendererKind": "compatibility_web",
-        "TransportKind": "classic_hotel_protocol",
+        "TransportKind": "epsilon_realtime_wss",
         "SupportsSso": true,
         "SupportsDirectLogin": true,
         "IsDefault": false,
@@ -21,7 +105,7 @@
         "DisplayName": "Modern Web Runtime Alpha",
         "PackageKey": "modern_web_runtime_alpha",
         "RendererKind": "modern_web_runtime",
-        "TransportKind": "epsilon_runtime_api",
+        "TransportKind": "epsilon_realtime_wss",
         "SupportsSso": true,
         "SupportsDirectLogin": true,
         "IsDefault": true,
@@ -32,7 +116,7 @@
     "ConnectionProfiles": [
       {
         "DeviceKind": "Desktop",
-        "TransportKind": "epsilon_runtime_api",
+        "TransportKind": "epsilon_realtime_wss",
         "ProtocolFamily": "epsilon-desktop",
         "InputMode": "pointer_keyboard",
         "SupportsTouchInput": false,
@@ -46,7 +130,7 @@
       },
       {
         "DeviceKind": "Tablet",
-        "TransportKind": "epsilon_runtime_api",
+        "TransportKind": "epsilon_realtime_wss",
         "ProtocolFamily": "epsilon-touch",
         "InputMode": "touch",
         "SupportsTouchInput": true,
@@ -60,7 +144,7 @@
       },
       {
         "DeviceKind": "Phone",
-        "TransportKind": "epsilon_runtime_api",
+        "TransportKind": "epsilon_realtime_wss",
         "ProtocolFamily": "epsilon-touch",
         "InputMode": "touch",
         "SupportsTouchInput": true,

@@ -11,6 +11,7 @@ public sealed class RoomEntryService : IRoomEntryService
     private readonly IRoomRuntimeCoordinator _roomRuntimeCoordinator;
     private readonly IModerationRepository _moderationRepository;
     private readonly IHotelOperationalState _hotelOperationalState;
+    private readonly IHotelEventBus _hotelEventBus;
 
     public RoomEntryService(
         IHotelReadService hotelReadService,
@@ -19,7 +20,8 @@ public sealed class RoomEntryService : IRoomEntryService
         IRoomRuntimeRepository roomRuntimeRepository,
         IRoomRuntimeCoordinator roomRuntimeCoordinator,
         IModerationRepository moderationRepository,
-        IHotelOperationalState hotelOperationalState)
+        IHotelOperationalState hotelOperationalState,
+        IHotelEventBus hotelEventBus)
     {
         _hotelReadService = hotelReadService;
         _navigatorPublicRoomRepository = navigatorPublicRoomRepository;
@@ -28,6 +30,7 @@ public sealed class RoomEntryService : IRoomEntryService
         _roomRuntimeCoordinator = roomRuntimeCoordinator;
         _moderationRepository = moderationRepository;
         _hotelOperationalState = hotelOperationalState;
+        _hotelEventBus = hotelEventBus;
     }
 
     public async ValueTask<RoomEntryResult> EnterAsync(
@@ -173,18 +176,19 @@ public sealed class RoomEntryService : IRoomEntryService
 
             if (publicRoomEntry is not null)
             {
-                IReadOnlyList<RoomActorState> spawnedBots = await _roomBotRuntimeService.EnsurePublicRoomBotsAsync(
-                    publicRoomEntry,
-                    room.Layout,
-                    cancellationToken);
+            }
 
-                if (spawnedBots.Count > 0)
-                {
-                    stages.Add(new RoomEntryStageSnapshot(
-                        RoomEntryStage.ContextPrepared,
-                        true,
-                        $"{spawnedBots.Count} public-room bot actor(s) are active."));
-                }
+            IReadOnlyList<RoomActorState> spawnedBots = await _roomBotRuntimeService.EnsureRoomBotsAsync(
+                room,
+                publicRoomEntry,
+                cancellationToken);
+
+            if (spawnedBots.Count > 0)
+            {
+                stages.Add(new RoomEntryStageSnapshot(
+                    RoomEntryStage.ContextPrepared,
+                    true,
+                    $"{spawnedBots.Count} room bot actor(s) are active."));
             }
 
             stages.Add(new RoomEntryStageSnapshot(
@@ -193,6 +197,18 @@ public sealed class RoomEntryService : IRoomEntryService
                 removedRoomIds.Count == 0
                     ? "Room runtime presence was registered."
                     : $"Room runtime presence was registered and actor state was migrated from {removedRoomIds.Count} room slot(s)."));
+
+            await _hotelEventBus.PublishAsync(
+                HotelEventKind.RoomEntryCompleted,
+                new RoomEntryCompletedEvent(
+                    request.CharacterId,
+                    character.Profile.Username,
+                    request.RoomId,
+                    room.Room.RoomKind,
+                    request.SpectatorMode),
+                request.CharacterId,
+                request.RoomId,
+                cancellationToken);
         }
 
         RoomEntrySnapshot snapshot = new(

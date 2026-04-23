@@ -55,18 +55,44 @@ public sealed class RoomRuntimeCoordinatorTests
     }
 
     [Fact]
-    public async Task MoveActor_RejectsLongRangeTeleportStep()
+    public async Task MoveActor_AllowsReachableLongRangeDestination()
     {
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         ServiceProvider services = BuildServices();
         IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
 
         RoomActorMovementResult result = await roomInteractionService.MoveActorAsync(
-            new RoomActorMovementRequest(new CharacterId(1), new RoomId(1), 9, 9),
+            new RoomActorMovementRequest(new CharacterId(1), new RoomId(1), 10, 6),
             cancellationToken);
 
-        Assert.False(result.Succeeded);
-        Assert.Contains("out of step range", result.Detail, StringComparison.OrdinalIgnoreCase);
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Equal(10, actor!.Position.X);
+        Assert.Equal(6, actor.Position.Y);
+    }
+
+    [Fact]
+    public async Task MoveActor_CompletesImmediatelyAndClearsTransientWalkingState()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomActorMovementResult result = await roomInteractionService.MoveActorAsync(
+            new RoomActorMovementRequest(new CharacterId(1), new RoomId(1), 10, 6),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.False(actor!.IsWalking);
+        Assert.Null(actor.Goal);
+        Assert.DoesNotContain(actor.StatusEntries, entry => entry.Key == "mv");
     }
 
     [Fact]

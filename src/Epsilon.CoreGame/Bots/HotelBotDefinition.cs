@@ -3,6 +3,7 @@ namespace Epsilon.CoreGame;
 public sealed record HotelBotDefinition(
     string BotKey,
     string AssetPackageKey,
+    RoomId? RoomId,
     string DisplayName,
     string LanguageCode,
     BotDialogueMode DialogueMode,

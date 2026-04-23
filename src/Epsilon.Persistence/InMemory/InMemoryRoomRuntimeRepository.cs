@@ -9,6 +9,9 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
     // Room-local shards keep hot rooms from serializing the whole hotel behind
     // one lock. This is the minimum viable shape for a fast single-node runtime.
     private readonly ConcurrentDictionary<RoomId, RoomRuntimeShardState> _shards = new();
+    // Used only when iterating _store.RoomActors.Keys across all rooms, which
+    // cannot be done safely with the per-shard locks alone.
+    private readonly object _storeKeysLock = new();
 
     public InMemoryRoomRuntimeRepository(InMemoryHotelStore store)
     {
@@ -84,7 +87,10 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
             if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
             {
                 actors = [];
-                _store.RoomActors[roomId] = actors;
+                lock (_storeKeysLock)
+                {
+                    _store.RoomActors[roomId] = actors;
+                }
             }
 
             int index = actors.FindIndex(candidate => candidate.ActorId == actorState.ActorId);
@@ -106,9 +112,13 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         CancellationToken cancellationToken = default)
     {
         List<RoomId> removedRoomIds = [];
-        RoomId[] roomIds = _store.RoomActors.Keys
-            .OrderBy(static roomId => roomId.Value)
-            .ToArray();
+        RoomId[] roomIds;
+        lock (_storeKeysLock)
+        {
+            roomIds = _store.RoomActors.Keys
+                .OrderBy(static roomId => roomId.Value)
+                .ToArray();
+        }
 
         foreach (RoomId roomId in roomIds)
         {
@@ -128,7 +138,10 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
 
                 if (actors.Count == 0)
                 {
-                    _store.RoomActors.Remove(roomId);
+                    lock (_storeKeysLock)
+                    {
+                        _store.RoomActors.Remove(roomId);
+                    }
                 }
 
                 removedRoomIds.Add(roomId);
@@ -257,13 +270,14 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
 
     public ValueTask<IReadOnlyList<RoomId>> GetAllActiveRoomIdsAsync(CancellationToken cancellationToken = default)
     {
-        // Snapshot the keys under a brief iteration — no per-shard lock needed
-        // because we only need approximate membership, not a consistent count.
-        IReadOnlyList<RoomId> roomIds = _store.RoomActors
-            .Where(pair => pair.Value.Count > 0)
-            .Select(pair => pair.Key)
-            .ToArray();
-        return ValueTask.FromResult(roomIds);
+        lock (_storeKeysLock)
+        {
+            IReadOnlyList<RoomId> roomIds = _store.RoomActors
+                .Where(pair => pair.Value.Count > 0)
+                .Select(pair => pair.Key)
+                .ToArray();
+            return ValueTask.FromResult(roomIds);
+        }
     }
 
     public ValueTask<int> EvictAllPlayersFromRoomAsync(RoomId roomId, CancellationToken cancellationToken = default)
@@ -279,11 +293,40 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
             int removed = actors.RemoveAll(static actor => actor.ActorKind == RoomActorKind.Player);
             if (actors.Count == 0)
             {
-                _store.RoomActors.Remove(roomId);
+                lock (_storeKeysLock)
+                {
+                    _store.RoomActors.Remove(roomId);
+                }
             }
 
             return ValueTask.FromResult(removed);
         }
+    }
+
+    public ValueTask<RoomId?> FindRoomForActorAsync(long actorId, CancellationToken cancellationToken = default)
+    {
+        RoomId[] roomIds;
+        lock (_storeKeysLock)
+        {
+            roomIds = _store.RoomActors.Keys
+                .OrderBy(static roomId => roomId.Value)
+                .ToArray();
+        }
+
+        foreach (RoomId roomId in roomIds)
+        {
+            RoomRuntimeShardState shard = GetShard(roomId);
+            lock (shard.SyncRoot)
+            {
+                if (_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors) &&
+                    actors.Any(actor => actor.ActorId == actorId))
+                {
+                    return ValueTask.FromResult<RoomId?>(roomId);
+                }
+            }
+        }
+
+        return ValueTask.FromResult<RoomId?>(null);
     }
 
     private RoomRuntimeShardState GetShard(RoomId roomId)

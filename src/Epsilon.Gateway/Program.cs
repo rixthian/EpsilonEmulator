@@ -1,4 +1,5 @@
 using Epsilon.Auth;
+using Epsilon.Content;
 using Epsilon.CoreGame;
 using Epsilon.Games;
 using Epsilon.Gateway;
@@ -41,8 +42,12 @@ builder.Services.AddEndpointsApiExplorer();
 
 var app = builder.Build();
 
+GatewayRuntimeOptions gatewayRuntimeOptions = app.Services
+    .GetRequiredService<Microsoft.Extensions.Options.IOptions<GatewayRuntimeOptions>>()
+    .Value;
+
 StartupBanner.Print(
-    app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<GatewayRuntimeOptions>>().Value,
+    gatewayRuntimeOptions,
     app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<PersistenceOptions>>().Value,
     app.Services.GetRequiredService<Microsoft.Extensions.Options.IOptions<AuthOptions>>().Value,
     app.Services.GetRequiredService<PacketRegistry>(),
@@ -65,6 +70,11 @@ app.Lifetime.ApplicationStarted.Register(() =>
 app.Lifetime.ApplicationStopping.Register(() =>
 {
     GatewayConsole.WriteEvent(GatewayConsoleEventKind.Alert, "gateway shutdown requested");
+});
+
+app.UseWebSockets(new WebSocketOptions
+{
+    KeepAliveInterval = TimeSpan.FromSeconds(gatewayRuntimeOptions.RealtimeKeepAliveSeconds)
 });
 
 // Packet logging middleware — runs on every request and records a lightweight
@@ -264,64 +274,31 @@ app.MapPost("/hotel/connection/disconnect", async (
 });
 
 app.MapPost("/protocol/execute/{commandName}", async (
-    HttpContext httpContext,
     string commandName,
     ProtocolExecuteInput input,
-    ProtocolCommandRegistry protocolCommandRegistry,
+    HttpContext httpContext,
+    ProtocolCommandExecutionService protocolCommandExecutionService,
     ISessionStore sessionStore,
-    IHotelReadService hotelReadService,
-    IRoomEntryService roomEntryService,
-    IRoomInteractionService roomInteractionService,
     CancellationToken cancellationToken) =>
 {
-    if (!protocolCommandRegistry.TryGet(commandName, out ProtocolCommandDefinition? command) || command is null)
-    {
-        return Results.BadRequest(new { error = "unknown_protocol_command", commandName });
-    }
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    ProtocolCommandExecutionResult result = await protocolCommandExecutionService.ExecuteAsync(
+        commandName,
+        input.Arguments,
+        session,
+        httpContext.Connection.RemoteIpAddress?.ToString(),
+        session?.Ticket,
+        cancellationToken);
 
-    Dictionary<string, System.Text.Json.JsonElement> arguments =
-        input.Arguments ?? new Dictionary<string, System.Text.Json.JsonElement>(StringComparer.OrdinalIgnoreCase);
+    return ToHttpResult(result);
+});
 
-    return command.Name switch
-    {
-        "session.initialize_crypto" => Results.Ok(new
-        {
-            command = command.Name,
-            packetName = command.PacketName,
-            flow = command.Flow,
-            protocolFamily = protocolCommandRegistry.Family,
-            protocolRevision = protocolCommandRegistry.Revision,
-            crypto = "session-bootstrap"
-        }),
-        "session.authenticate_with_ticket" => await ExecuteTicketAuthenticationAsync(
-            httpContext,
-            sessionStore,
-            cancellationToken),
-        "identity.get_self" => await ExecuteGetSelfAsync(
-            httpContext,
-            sessionStore,
-            hotelReadService,
-            cancellationToken),
-        "rooms.enter_room" => await ExecuteProtocolRoomEntryAsync(
-            httpContext,
-            sessionStore,
-            roomEntryService,
-            arguments,
-            cancellationToken),
-        "rooms.move_avatar" => await ExecuteProtocolMoveAsync(
-            httpContext,
-            sessionStore,
-            roomInteractionService,
-            arguments,
-            cancellationToken),
-        "rooms.chat" => await ExecuteProtocolChatAsync(
-            httpContext,
-            sessionStore,
-            roomInteractionService,
-            arguments,
-            cancellationToken),
-        _ => Results.BadRequest(new { error = "unsupported_protocol_command", commandName = command.Name })
-    };
+app.Map(gatewayRuntimeOptions.RealtimePath, async (
+    HttpContext httpContext,
+    HotelRealtimeSocketHandler realtimeSocketHandler,
+    CancellationToken cancellationToken) =>
+{
+    await realtimeSocketHandler.HandleAsync(httpContext, cancellationToken);
 });
 
 app.MapGet("/readiness", (IPersistenceReadinessChecker persistenceChecker) =>
@@ -342,6 +319,22 @@ app.MapGet("/hotel/characters/{characterId:long}", async (
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
+app.MapGet("/hotel/characters/public/{publicId}", async (
+    string publicId,
+    ICharacterProfileRepository characterProfileRepository,
+    IHotelReadService hotelReadService,
+    CancellationToken cancellationToken) =>
+{
+    CharacterProfile? profile = await characterProfileRepository.GetByPublicIdAsync(publicId, cancellationToken);
+    if (profile is null)
+    {
+        return Results.NotFound();
+    }
+
+    CharacterHotelSnapshot? snapshot = await hotelReadService.GetCharacterSnapshotAsync(profile.CharacterId, cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
 app.MapGet("/hotel/rooms/{roomId:long}", async (
     long roomId,
     IHotelReadService hotelReadService,
@@ -353,9 +346,17 @@ app.MapGet("/hotel/rooms/{roomId:long}", async (
 
 app.MapGet("/hotel/bootstrap/{characterId:long}", async (
     long characterId,
+    HttpContext httpContext,
+    ISessionStore sessionStore,
     IHotelBootstrapService bootstrapService,
     CancellationToken cancellationToken) =>
 {
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null || session.CharacterId != characterId)
+    {
+        return Results.Unauthorized();
+    }
+
     HotelBootstrapSnapshot? snapshot = await bootstrapService.BuildAsync(new CharacterId(characterId), cancellationToken);
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
@@ -371,11 +372,386 @@ app.MapGet("/hotel/public-rooms/{entryId:int}", async (
 
 app.MapGet("/hotel/sessions/{characterId:long}", async (
     long characterId,
+    HttpContext httpContext,
+    ISessionStore sessionStore,
     IHotelSessionSnapshotService hotelSessionSnapshotService,
     CancellationToken cancellationToken) =>
 {
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null || session.CharacterId != characterId)
+    {
+        return Results.Unauthorized();
+    }
+
     HotelSessionSnapshot? snapshot = await hotelSessionSnapshotService.BuildAsync(new CharacterId(characterId), cancellationToken);
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapGet("/hotel/collectibles/profile", async (
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    ICollectorProfileService collectorProfileService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    CollectorProfileSnapshot snapshot =
+        await collectorProfileService.BuildAsync(new CharacterId(session.CharacterId), cancellationToken);
+    return Results.Ok(snapshot);
+});
+
+app.MapGet("/hotel/collectibles/progression", async (
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(await collectFeatService.GetProgressAsync(new CharacterId(session.CharacterId), cancellationToken));
+});
+
+app.MapGet("/hotel/collectibles/launch-access", async (
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    ILaunchEntitlementService launchEntitlementService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    LaunchEntitlementSnapshot snapshot =
+        await launchEntitlementService.EvaluateAsync(new CharacterId(session.CharacterId), cancellationToken);
+    return Results.Ok(snapshot);
+});
+
+app.MapPost("/hotel/collectibles/wallet/challenges", async (
+    HttpContext httpContext,
+    CreateWalletChallengeInput input,
+    ISessionStore sessionStore,
+    IWalletChallengeService walletChallengeService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (string.IsNullOrWhiteSpace(input.WalletAddress))
+    {
+        return Results.BadRequest(new { error = "wallet_address_required" });
+    }
+
+    WalletChallengeSnapshot challenge = await walletChallengeService.IssueAsync(
+        new CharacterId(session.CharacterId),
+        input.WalletAddress,
+        input.WalletProvider ?? "metamask",
+        cancellationToken);
+    return Results.Ok(challenge);
+});
+
+app.MapPost("/hotel/collectibles/wallet/verify", async (
+    HttpContext httpContext,
+    VerifyWalletChallengeInput input,
+    ISessionStore sessionStore,
+    IWalletChallengeService walletChallengeService,
+    ICollectorProfileService collectorProfileService,
+    ILaunchEntitlementService launchEntitlementService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    WalletLinkSnapshot? link = await walletChallengeService.VerifyAndLinkAsync(
+        new CharacterId(session.CharacterId),
+        input.ChallengeId,
+        input.Signature,
+        cancellationToken);
+    if (link is null)
+    {
+        return Results.BadRequest(new { error = "wallet_verification_failed" });
+    }
+
+    CollectorProfileSnapshot collector =
+        await collectorProfileService.BuildAsync(new CharacterId(session.CharacterId), cancellationToken);
+    LaunchEntitlementSnapshot access =
+        await launchEntitlementService.EvaluateAsync(new CharacterId(session.CharacterId), cancellationToken);
+
+    return Results.Ok(new
+    {
+        link,
+        collector,
+        launchAccess = access
+    });
+});
+
+if (app.Environment.IsDevelopment())
+app.MapPost("/hotel/collectibles/dev/ownership", async (
+    HttpContext httpContext,
+    DevCollectibleOwnershipInput input,
+    ISessionStore sessionStore,
+    ICollectibleOwnershipRepository collectibleOwnershipRepository,
+    IWalletLinkRepository walletLinkRepository,
+    ICollectibleRepository collectibleRepository,
+    ICollectorProfileService collectorProfileService,
+    ILaunchEntitlementService launchEntitlementService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    CharacterId characterId = new(session.CharacterId);
+    IReadOnlyList<WalletLinkSnapshot> links = await walletLinkRepository.GetByCharacterIdAsync(characterId, cancellationToken);
+    string? walletAddress = links.FirstOrDefault(link => link.IsPrimary)?.WalletAddress ?? links.FirstOrDefault()?.WalletAddress;
+
+    IReadOnlyList<string> collectibleKeys = input.CollectibleKeys?
+        .Where(value => !string.IsNullOrWhiteSpace(value))
+        .Select(value => value.Trim())
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray() ?? [];
+    HashSet<string> categoryKeys = new(
+        input.CategoryKeys?
+            .Where(value => !string.IsNullOrWhiteSpace(value))
+            .Select(value => value.Trim()) ?? [],
+        StringComparer.OrdinalIgnoreCase);
+
+    if (collectibleKeys.Count > 0)
+    {
+        IReadOnlyList<CollectibleDefinition> visibleCollectibles =
+            await collectibleRepository.GetVisibleAsync(cancellationToken);
+        foreach (CollectibleDefinition collectible in visibleCollectibles.Where(candidate =>
+                     collectibleKeys.Contains(candidate.CollectibleKey, StringComparer.OrdinalIgnoreCase)))
+        {
+            categoryKeys.Add(collectible.CategoryKey);
+        }
+    }
+
+    CollectibleOwnershipSnapshot snapshot = new(
+        characterId,
+        walletAddress,
+        collectibleKeys,
+        categoryKeys.OrderBy(value => value, StringComparer.OrdinalIgnoreCase).ToArray(),
+        "development_override",
+        DateTime.UtcNow);
+
+    await collectibleOwnershipRepository.StoreAsync(snapshot, cancellationToken);
+
+    return Results.Ok(new
+    {
+        ownership = snapshot,
+        collector = await collectorProfileService.BuildAsync(characterId, cancellationToken),
+        launchAccess = await launchEntitlementService.EvaluateAsync(characterId, cancellationToken)
+    });
+});
+
+if (app.Environment.IsDevelopment())
+app.MapPost("/hotel/collectibles/xp/grant", async (
+    HttpContext httpContext,
+    GrantXpInput input,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    ICollectorProfileService collectorProfileService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (input.Xp <= 0)
+    {
+        return Results.BadRequest(new { error = "xp_must_be_positive" });
+    }
+
+    CharacterId characterId = new(session.CharacterId);
+    CollectorProgressSnapshot progress = await collectFeatService.GrantXpAsync(
+        characterId,
+        input.Xp,
+        input.ReasonCode ?? "manual_grant",
+        cancellationToken);
+    return Results.Ok(new
+    {
+        progress,
+        collector = await collectorProfileService.BuildAsync(characterId, cancellationToken)
+    });
+});
+
+app.MapPost("/hotel/collectibles/emeralds/accrue", async (
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    WalletSnapshot? wallet = await collectFeatService.AccrueEmeraldsAsync(new CharacterId(session.CharacterId), cancellationToken);
+    return Results.Ok(wallet);
+});
+
+app.MapGet("/hotel/collectibles/gift-boxes", async (
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(await collectFeatService.GetGiftBoxesAsync(new CharacterId(session.CharacterId), cancellationToken));
+});
+
+app.MapPost("/hotel/collectibles/gift-boxes/{boxKey}", async (
+    HttpContext httpContext,
+    string boxKey,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    GiftBoxOpenResult? result = await collectFeatService.OpenGiftBoxAsync(new CharacterId(session.CharacterId), boxKey, cancellationToken);
+    return result is null ? Results.BadRequest(new { error = "gift_box_unavailable" }) : Results.Ok(result);
+});
+
+app.MapGet("/hotel/collectibles/factories", async (
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    return Results.Ok(await collectFeatService.GetFactoriesAsync(new CharacterId(session.CharacterId), cancellationToken));
+});
+
+app.MapPost("/hotel/collectibles/factories/{factoryKey}/claim", async (
+    HttpContext httpContext,
+    string factoryKey,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    GiftBoxOpenResult? result = await collectFeatService.ClaimFactoryAsync(new CharacterId(session.CharacterId), factoryKey, cancellationToken);
+    return result is null ? Results.BadRequest(new { error = "factory_not_ready" }) : Results.Ok(result);
+});
+
+app.MapGet("/hotel/collectibles/collectimatic/recipes", async (
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    return Results.Ok(await collectFeatService.GetRecipesAsync(cancellationToken));
+});
+
+app.MapPost("/hotel/collectibles/collectimatic/recycle", async (
+    HttpContext httpContext,
+    RecycleInput input,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    GiftBoxOpenResult? result = await collectFeatService.RecycleAsync(new CharacterId(session.CharacterId), input.RecipeKey, cancellationToken);
+    return result is null ? Results.BadRequest(new { error = "recipe_requirements_not_met" }) : Results.Ok(result);
+});
+
+app.MapGet("/hotel/collectibles/marketplace/listings", async (
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    return Results.Ok(await collectFeatService.GetMarketListingsAsync(cancellationToken));
+});
+
+app.MapPost("/hotel/collectibles/marketplace/listings", async (
+    HttpContext httpContext,
+    CreateListingInput input,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    MarketListingSnapshot? listing = await collectFeatService.CreateListingAsync(
+        new CharacterId(session.CharacterId),
+        input.CollectibleKey,
+        input.PriceEmeralds,
+        cancellationToken);
+    return listing is null ? Results.BadRequest(new { error = "listing_creation_failed" }) : Results.Ok(listing);
+});
+
+app.MapPost("/hotel/collectibles/marketplace/listings/{listingId:long}/buy", async (
+    HttpContext httpContext,
+    long listingId,
+    ISessionStore sessionStore,
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    MarketListingSnapshot? listing = await collectFeatService.BuyListingAsync(
+        new CharacterId(session.CharacterId),
+        listingId,
+        cancellationToken);
+    return listing is null ? Results.BadRequest(new { error = "listing_purchase_failed" }) : Results.Ok(listing);
+});
+
+app.MapGet("/api/public/collectibles", async (
+    ICollectFeatService collectFeatService,
+    CancellationToken cancellationToken) =>
+{
+    return Results.Ok(await collectFeatService.GetPublicSnapshotAsync(cancellationToken));
 });
 
 app.MapGet("/hotel/groups", async (
@@ -500,6 +876,205 @@ app.MapPost("/hotel/groups/{groupId:long}/room", async (
     return snapshot is null
         ? Results.BadRequest(new { error = "group_room_link_rejected" })
         : Results.Ok(snapshot);
+});
+
+app.MapGet("/hotel/events/habbowood", async (
+    HttpContext httpContext,
+    ISessionStore sessionStore,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    HabbowoodEventSnapshot? snapshot = await habbowoodService.GetSnapshotAsync(
+        new CharacterId(session.CharacterId),
+        cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapGet("/hotel/events/habbowood/leaderboard", async (
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    IReadOnlyList<HabbowoodLeaderboardEntry> leaderboard =
+        await habbowoodService.GetLeaderboardAsync(cancellationToken);
+    return Results.Ok(leaderboard);
+});
+
+app.MapGet("/hotel/events/habbowood/submissions", async (
+    HttpContext httpContext,
+    bool includePending,
+    ISessionStore sessionStore,
+    IAccessControlService accessControlService,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    bool canManage = await RequireCapabilityAsync(
+        accessControlService,
+        session,
+        StaffCapabilityKeys.EventsManage,
+        cancellationToken);
+
+    IReadOnlyList<HabbowoodSubmissionSnapshot> submissions = await habbowoodService.GetSubmissionsAsync(
+        includePending && canManage,
+        cancellationToken);
+    return Results.Ok(submissions);
+});
+
+app.MapGet("/hotel/events/habbowood/submissions/{slug}", async (
+    string slug,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    HabbowoodSubmissionSnapshot? snapshot = await habbowoodService.GetSubmissionAsync(slug, cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapPost("/hotel/events/habbowood/submissions", async (
+    HttpContext httpContext,
+    SubmitHabbowoodMovieInput input,
+    ISessionStore sessionStore,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    SubmitHabbowoodMovieResult result = await habbowoodService.SubmitAsync(
+        new SubmitHabbowoodMovieRequest(
+            new CharacterId(session.CharacterId),
+            input.Title,
+            input.Synopsis,
+            input.ScriptPayload,
+            input.ContactHandle,
+            input.LanguageCode ?? "en"),
+        cancellationToken);
+
+    return result.Succeeded
+        ? Results.Ok(result.Snapshot)
+        : Results.BadRequest(result);
+});
+
+app.MapPost("/hotel/events/habbowood/submissions/{slug}/vote", async (
+    HttpContext httpContext,
+    string slug,
+    VoteHabbowoodMovieInput input,
+    ISessionStore sessionStore,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    VoteHabbowoodMovieResult result = await habbowoodService.VoteAsync(
+        new VoteHabbowoodMovieRequest(
+            new CharacterId(session.CharacterId),
+            slug,
+            input.VoteDelta,
+            httpContext.Connection.RemoteIpAddress?.ToString()),
+        cancellationToken);
+
+    return result.Succeeded
+        ? Results.Ok(result)
+        : Results.BadRequest(result);
+});
+
+app.MapPost("/hotel/events/habbowood/submissions/{slug}/publish", async (
+    HttpContext httpContext,
+    string slug,
+    ModerateHabbowoodSubmissionInput input,
+    ISessionStore sessionStore,
+    IAccessControlService accessControlService,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!await RequireCapabilityAsync(accessControlService, session, StaffCapabilityKeys.EventsManage, cancellationToken))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    HabbowoodSubmissionSnapshot? snapshot = await habbowoodService.PublishAsync(
+        slug,
+        new CharacterId(session.CharacterId),
+        input.ModerationNote,
+        cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapPost("/hotel/events/habbowood/submissions/{slug}/reject", async (
+    HttpContext httpContext,
+    string slug,
+    ModerateHabbowoodSubmissionInput input,
+    ISessionStore sessionStore,
+    IAccessControlService accessControlService,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!await RequireCapabilityAsync(accessControlService, session, StaffCapabilityKeys.EventsManage, cancellationToken))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    HabbowoodSubmissionSnapshot? snapshot = await habbowoodService.RejectAsync(
+        slug,
+        new CharacterId(session.CharacterId),
+        input.ModerationNote,
+        cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapPost("/hotel/events/habbowood/activation", async (
+    HttpContext httpContext,
+    SetHabbowoodActivationInput input,
+    ISessionStore sessionStore,
+    IAccessControlService accessControlService,
+    IHabbowoodService habbowoodService,
+    CancellationToken cancellationToken) =>
+{
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    if (!await RequireCapabilityAsync(accessControlService, session, StaffCapabilityKeys.EventsManage, cancellationToken))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    HabbowoodEventDefinition? definition = await habbowoodService.SetActivationAsync(
+        input.IsActive,
+        new CharacterId(session.CharacterId),
+        cancellationToken);
+    return definition is null ? Results.NotFound() : Results.Ok(definition);
 });
 
 app.MapGet("/hotel/catalog/pages", async (
@@ -948,10 +1523,27 @@ app.MapPost("/hotel/rooms/chat", async (
 
 app.MapGet("/hotel/rooms/{roomId:long}/runtime", async (
     long roomId,
+    HttpContext httpContext,
+    ISessionStore sessionStore,
     IRoomRuntimeSnapshotService roomRuntimeSnapshotService,
     CancellationToken cancellationToken) =>
 {
+    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
+    if (session is null)
+    {
+        return Results.Unauthorized();
+    }
+
     RoomRuntimeSnapshot? snapshot = await roomRuntimeSnapshotService.BuildAsync(new RoomId(roomId), cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
+app.MapGet("/hotel/rooms/{roomId:long}/animations", async (
+    long roomId,
+    IRoomAnimService roomAnimService,
+    CancellationToken cancellationToken) =>
+{
+    RoomAnimSnapshot? snapshot = await roomAnimService.BuildAsync(new RoomId(roomId), cancellationToken);
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
@@ -1082,25 +1674,12 @@ static string? TryFindRepositoryRoot(string startPath)
     return null;
 }
 
-static async ValueTask<RoomId?> ResolveCurrentRoomIdAsync(
+static ValueTask<RoomId?> ResolveCurrentRoomIdAsync(
     CharacterId characterId,
     IRoomRuntimeRepository roomRuntimeRepository,
     CancellationToken cancellationToken)
 {
-    IReadOnlyList<RoomId> activeRoomIds = await roomRuntimeRepository.GetAllActiveRoomIdsAsync(cancellationToken);
-    foreach (RoomId roomId in activeRoomIds)
-    {
-        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(
-            roomId,
-            characterId.Value,
-            cancellationToken);
-        if (actor is not null)
-        {
-            return roomId;
-        }
-    }
-
-    return null;
+    return roomRuntimeRepository.FindRoomForActorAsync(characterId.Value, cancellationToken);
 }
 
 static object BuildConnectionSnapshot(SessionTicket session, RoomId? roomId)
@@ -1120,164 +1699,15 @@ static object BuildConnectionSnapshot(SessionTicket session, RoomId? roomId)
     };
 }
 
-static async Task<IResult> ExecuteTicketAuthenticationAsync(
-    HttpContext httpContext,
-    ISessionStore sessionStore,
-    CancellationToken cancellationToken)
+static IResult ToHttpResult(ProtocolCommandExecutionResult result)
 {
-    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
-    return session is null
-        ? Results.Unauthorized()
-        : Results.Ok(new
-        {
-            authenticated = true,
-            session = session
-        });
-}
-
-static async Task<IResult> ExecuteGetSelfAsync(
-    HttpContext httpContext,
-    ISessionStore sessionStore,
-    IHotelReadService hotelReadService,
-    CancellationToken cancellationToken)
-{
-    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
-    if (session is null)
+    return result.StatusCode switch
     {
-        return Results.Unauthorized();
-    }
-
-    CharacterHotelSnapshot? snapshot = await hotelReadService.GetCharacterSnapshotAsync(
-        new CharacterId(session.CharacterId),
-        cancellationToken);
-    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
-}
-
-static async Task<IResult> ExecuteProtocolRoomEntryAsync(
-    HttpContext httpContext,
-    ISessionStore sessionStore,
-    IRoomEntryService roomEntryService,
-    IReadOnlyDictionary<string, System.Text.Json.JsonElement> arguments,
-    CancellationToken cancellationToken)
-{
-    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
-    if (session is null)
-    {
-        return Results.Unauthorized();
-    }
-
-    if (!TryReadInt64(arguments, "roomId", out long roomId))
-    {
-        return Results.BadRequest(new { error = "roomId_required" });
-    }
-
-    string? password = TryReadString(arguments, "password");
-    bool spectatorMode = TryReadBoolean(arguments, "spectatorMode");
-
-    RoomEntryResult result = await roomEntryService.EnterAsync(
-        new RoomEntryRequest(new CharacterId(session.CharacterId), new RoomId(roomId), password, spectatorMode),
-        cancellationToken);
-
-    return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
-}
-
-static async Task<IResult> ExecuteProtocolMoveAsync(
-    HttpContext httpContext,
-    ISessionStore sessionStore,
-    IRoomInteractionService roomInteractionService,
-    IReadOnlyDictionary<string, System.Text.Json.JsonElement> arguments,
-    CancellationToken cancellationToken)
-{
-    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
-    if (session is null)
-    {
-        return Results.Unauthorized();
-    }
-
-    if (!TryReadInt64(arguments, "roomId", out long roomId) ||
-        !TryReadInt32(arguments, "destinationX", out int destinationX) ||
-        !TryReadInt32(arguments, "destinationY", out int destinationY))
-    {
-        return Results.BadRequest(new { error = "roomId_destinationX_destinationY_required" });
-    }
-
-    RoomActorMovementResult result = await roomInteractionService.MoveActorAsync(
-        new RoomActorMovementRequest(new CharacterId(session.CharacterId), new RoomId(roomId), destinationX, destinationY),
-        cancellationToken);
-
-    return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
-}
-
-static async Task<IResult> ExecuteProtocolChatAsync(
-    HttpContext httpContext,
-    ISessionStore sessionStore,
-    IRoomInteractionService roomInteractionService,
-    IReadOnlyDictionary<string, System.Text.Json.JsonElement> arguments,
-    CancellationToken cancellationToken)
-{
-    SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
-    if (session is null)
-    {
-        return Results.Unauthorized();
-    }
-
-    if (!TryReadInt64(arguments, "roomId", out long roomId) ||
-        string.IsNullOrWhiteSpace(TryReadString(arguments, "message")))
-    {
-        return Results.BadRequest(new { error = "roomId_message_required" });
-    }
-
-    RoomChatResult result = await roomInteractionService.SendChatAsync(
-        new RoomChatRequest(new CharacterId(session.CharacterId), new RoomId(roomId), TryReadString(arguments, "message")!),
-        cancellationToken);
-
-    return result.Succeeded ? Results.Ok(result) : Results.BadRequest(result);
-}
-
-static bool TryReadInt64(
-    IReadOnlyDictionary<string, System.Text.Json.JsonElement> arguments,
-    string key,
-    out long value)
-{
-    value = default;
-    return arguments.TryGetValue(key, out System.Text.Json.JsonElement argument) && argument.TryGetInt64(out value);
-}
-
-static bool TryReadInt32(
-    IReadOnlyDictionary<string, System.Text.Json.JsonElement> arguments,
-    string key,
-    out int value)
-{
-    value = default;
-    return arguments.TryGetValue(key, out System.Text.Json.JsonElement argument) && argument.TryGetInt32(out value);
-}
-
-static string? TryReadString(
-    IReadOnlyDictionary<string, System.Text.Json.JsonElement> arguments,
-    string key)
-{
-    if (!arguments.TryGetValue(key, out System.Text.Json.JsonElement argument))
-    {
-        return null;
-    }
-
-    return argument.ValueKind == System.Text.Json.JsonValueKind.String
-        ? argument.GetString()
-        : argument.ToString();
-}
-
-static bool TryReadBoolean(
-    IReadOnlyDictionary<string, System.Text.Json.JsonElement> arguments,
-    string key)
-{
-    return arguments.TryGetValue(key, out System.Text.Json.JsonElement argument) &&
-           argument.ValueKind == System.Text.Json.JsonValueKind.True
-        ? true
-        : arguments.TryGetValue(key, out argument) &&
-          argument.ValueKind == System.Text.Json.JsonValueKind.False
-            ? false
-            : arguments.TryGetValue(key, out argument) &&
-              argument.ValueKind == System.Text.Json.JsonValueKind.String &&
-              bool.TryParse(argument.GetString(), out bool parsed) &&
-              parsed;
+        StatusCodes.Status200OK => Results.Ok(result.Payload),
+        StatusCodes.Status400BadRequest => Results.BadRequest(result.Payload),
+        StatusCodes.Status401Unauthorized => Results.Json(result.Payload, statusCode: StatusCodes.Status401Unauthorized),
+        StatusCodes.Status403Forbidden => Results.Json(result.Payload, statusCode: StatusCodes.Status403Forbidden),
+        StatusCodes.Status404NotFound => Results.NotFound(result.Payload),
+        _ => Results.Json(result.Payload, statusCode: result.StatusCode)
+    };
 }

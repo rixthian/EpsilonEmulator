@@ -6,29 +6,40 @@ namespace Epsilon.CoreGame;
 public sealed class RoomBotRuntimeService : IRoomBotRuntimeService
 {
     private readonly IRoomBotDefinitionRepository _botDefinitionRepository;
+    private readonly IHotelReadService _hotelReadService;
     private readonly INavigatorPublicRoomRepository _navigatorPublicRoomRepository;
     private readonly IRoomRuntimeRepository _roomRuntimeRepository;
     private readonly IRoomRuntimeCoordinator _roomRuntimeCoordinator;
+    private readonly IHotelEventBus _hotelEventBus;
 
     public RoomBotRuntimeService(
         IRoomBotDefinitionRepository botDefinitionRepository,
+        IHotelReadService hotelReadService,
         INavigatorPublicRoomRepository navigatorPublicRoomRepository,
         IRoomRuntimeRepository roomRuntimeRepository,
-        IRoomRuntimeCoordinator roomRuntimeCoordinator)
+        IRoomRuntimeCoordinator roomRuntimeCoordinator,
+        IHotelEventBus hotelEventBus)
     {
         _botDefinitionRepository = botDefinitionRepository;
+        _hotelReadService = hotelReadService;
         _navigatorPublicRoomRepository = navigatorPublicRoomRepository;
         _roomRuntimeRepository = roomRuntimeRepository;
         _roomRuntimeCoordinator = roomRuntimeCoordinator;
+        _hotelEventBus = hotelEventBus;
     }
 
-    public async ValueTask<IReadOnlyList<RoomActorState>> EnsurePublicRoomBotsAsync(
-        NavigatorPublicRoomDefinition publicRoomEntry,
-        RoomLayoutDefinition roomLayout,
+    public async ValueTask<IReadOnlyList<RoomActorState>> EnsureRoomBotsAsync(
+        RoomHotelSnapshot room,
+        NavigatorPublicRoomDefinition? publicRoomEntry,
         CancellationToken cancellationToken = default)
     {
+        if (room.Layout is null)
+        {
+            return [];
+        }
+
         IReadOnlyList<HotelBotDefinition> botDefinitions =
-            await _botDefinitionRepository.GetByAssetPackageKeyAsync(publicRoomEntry.AssetPackageKey, cancellationToken);
+            await GetRoomBotDefinitionsAsync(room.Room.RoomId, publicRoomEntry, cancellationToken);
 
         if (botDefinitions.Count == 0)
         {
@@ -37,22 +48,43 @@ public sealed class RoomBotRuntimeService : IRoomBotRuntimeService
 
         List<RoomActorState> materializedBots = [];
         bool anyCreated = false;
-        foreach (HotelBotDefinition bot in botDefinitions.Where(static bot => bot.IsEnabled))
+
+        // Resolve actor IDs for all bots upfront and detect hash collisions within
+        // the batch. If two different bot keys produce the same ID, the later one
+        // gets a deterministic offset applied until the slot is free.
+        HashSet<long> assignedIds = [];
+        IReadOnlyList<HotelBotDefinition> enabledBots = botDefinitions.Where(static bot => bot.IsEnabled).ToArray();
+        Dictionary<string, long> botActorIds = new(StringComparer.OrdinalIgnoreCase);
+        foreach (HotelBotDefinition bot in enabledBots)
         {
             long actorId = BuildBotActorId(bot.BotKey);
+            int offset = 0;
+            while (!assignedIds.Add(actorId))
+            {
+                // Collision within this batch — nudge the ID by a fixed step until free.
+                offset++;
+                actorId = BuildBotActorId(bot.BotKey) - offset;
+            }
+
+            botActorIds[bot.BotKey] = actorId;
+        }
+
+        foreach (HotelBotDefinition bot in enabledBots)
+        {
+            long actorId = botActorIds[bot.BotKey];
             RoomActorState? existingActor = await _roomRuntimeRepository.GetActorByIdAsync(
-                publicRoomEntry.RoomId,
+                room.Room.RoomId,
                 actorId,
                 cancellationToken);
 
-            if (existingActor is not null)
+            RoomActorState botActor = BuildBotActorState(room.Room.RoomId, room.Layout, bot, actorId);
+            if (existingActor is not null && existingActor == botActor)
             {
                 materializedBots.Add(existingActor);
                 continue;
             }
 
-            RoomActorState botActor = BuildBotActorState(publicRoomEntry.RoomId, roomLayout, bot, actorId);
-            await _roomRuntimeRepository.StoreActorStateAsync(publicRoomEntry.RoomId, botActor, cancellationToken);
+            await _roomRuntimeRepository.StoreActorStateAsync(room.Room.RoomId, botActor, cancellationToken);
             materializedBots.Add(botActor);
             anyCreated = true;
         }
@@ -60,7 +92,7 @@ public sealed class RoomBotRuntimeService : IRoomBotRuntimeService
         if (anyCreated)
         {
             await _roomRuntimeCoordinator.SignalMutationAsync(
-                publicRoomEntry.RoomId,
+                room.Room.RoomId,
                 RoomRuntimeMutationKind.ActorPresenceChanged,
                 cancellationToken);
         }
@@ -76,13 +108,14 @@ public sealed class RoomBotRuntimeService : IRoomBotRuntimeService
     {
         NavigatorPublicRoomDefinition? publicRoomEntry =
             await _navigatorPublicRoomRepository.GetByRoomIdAsync(roomId, cancellationToken);
-        if (publicRoomEntry is null)
+        RoomHotelSnapshot? room = await _hotelReadService.GetRoomSnapshotAsync(roomId, cancellationToken);
+        if (room is null)
         {
             return null;
         }
 
         IReadOnlyList<HotelBotDefinition> botDefinitions =
-            await _botDefinitionRepository.GetByAssetPackageKeyAsync(publicRoomEntry.AssetPackageKey, cancellationToken);
+            await GetRoomBotDefinitionsAsync(roomId, publicRoomEntry, cancellationToken);
         if (botDefinitions.Count == 0)
         {
             return null;
@@ -147,11 +180,42 @@ public sealed class RoomBotRuntimeService : IRoomBotRuntimeService
                 roomId,
                 RoomRuntimeMutationKind.ChatMessageAppended,
                 cancellationToken);
+            await _hotelEventBus.PublishAsync(
+                HotelEventKind.BotDialoguePublished,
+                new ChatMessagePublishedEvent(
+                    roomId,
+                    botActor.ActorId,
+                    botActor.DisplayName,
+                    RoomChatMessageKind.User,
+                    reply.ResponseText),
+                null,
+                roomId,
+                cancellationToken);
 
             return botMessage;
         }
 
         return null;
+    }
+
+    private async ValueTask<IReadOnlyList<HotelBotDefinition>> GetRoomBotDefinitionsAsync(
+        RoomId roomId,
+        NavigatorPublicRoomDefinition? publicRoomEntry,
+        CancellationToken cancellationToken)
+    {
+        IReadOnlyList<HotelBotDefinition> roomBots =
+            await _botDefinitionRepository.GetByRoomIdAsync(roomId, cancellationToken);
+        IReadOnlyList<HotelBotDefinition> packageBots =
+            publicRoomEntry is null
+                ? []
+                : await _botDefinitionRepository.GetByAssetPackageKeyAsync(publicRoomEntry.AssetPackageKey, cancellationToken);
+
+        return roomBots
+            .Concat(packageBots)
+            .GroupBy(bot => bot.BotKey, StringComparer.OrdinalIgnoreCase)
+            .Select(group => group.Last())
+            .OrderBy(bot => bot.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
     }
 
     private static RoomActorState BuildBotActorState(

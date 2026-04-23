@@ -3,8 +3,14 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace Epsilon.Protocol;
 
+/// <summary>
+/// Service registration helpers for protocol infrastructure.
+/// </summary>
 public static class DependencyInjection
 {
+    /// <summary>
+    /// Registers packet manifests, command manifests, registries, and self-check services.
+    /// </summary>
     public static IServiceCollection AddProtocolServices(this IServiceCollection services, IConfiguration configuration)
     {
         services.AddOptions<PacketManifestOptions>()

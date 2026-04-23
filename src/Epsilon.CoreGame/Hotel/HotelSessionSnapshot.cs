@@ -3,6 +3,8 @@ namespace Epsilon.CoreGame;
 public sealed record HotelSessionSnapshot(
     HotelBootstrapSnapshot Bootstrap,
     WalletSnapshot Wallet,
+    CollectorProfileSnapshot Collector,
+    LaunchEntitlementSnapshot LaunchEntitlement,
     InterfacePreferenceSnapshot InterfacePreferences,
     IReadOnlyList<HotelGroupSummary> Groups,
     IReadOnlyList<MessengerContact> MessengerContacts,

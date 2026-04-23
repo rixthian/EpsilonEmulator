@@ -14,6 +14,25 @@ public static class StartupValidationExtensions
             .Validate(options => !string.IsNullOrWhiteSpace(options.HotelName), "Gateway hotel name is required.")
             .Validate(options => !string.IsNullOrWhiteSpace(options.PublicHost), "Gateway public host is required.")
             .Validate(options => options.TcpPort is > 0 and <= 65535, "Gateway TCP port must be between 1 and 65535.")
+            .Validate(options => !string.IsNullOrWhiteSpace(options.RealtimePath), "Gateway realtime path is required.")
+            .Validate(options => options.RealtimePath.StartsWith('/'), "Gateway realtime path must start with '/'.")
+            .Validate(options => options.RealtimeKeepAliveSeconds is > 0 and <= 300, "Gateway realtime keepalive must be between 1 and 300 seconds.")
+            .ValidateOnStart();
+
+        services.AddOptions<RoomTickSchedulerOptions>()
+            .Bind(configuration.GetSection(RoomTickSchedulerOptions.SectionName))
+            .Validate(options => options.TickIntervalMilliseconds is >= 50 and <= 5000, "Room tick interval must be between 50 and 5000 milliseconds.")
+            .Validate(options => options.RollerIntervalTicks is > 0 and <= 60, "Room roller interval must be between 1 and 60 ticks.")
+            .ValidateOnStart();
+
+        services.AddOptions<ProtocolHealthMonitorOptions>()
+            .Bind(configuration.GetSection(ProtocolHealthMonitorOptions.SectionName))
+            .Validate(options => options.CheckIntervalSeconds is > 0 and <= 3600, "Protocol health check interval must be between 1 and 3600 seconds.")
+            .Validate(options => options.RecentPacketWindowSeconds is > 0 and <= 3600, "Protocol health packet window must be between 1 and 3600 seconds.")
+            .Validate(options => options.IdleWarningSeconds is > 0 and <= 86400, "Protocol health idle warning must be between 1 and 86400 seconds.")
+            .Validate(options => options.IdleCriticalSeconds >= options.IdleWarningSeconds, "Protocol health idle critical threshold must be greater than or equal to the warning threshold.")
+            .Validate(options => options.RealtimeIdleWarningSeconds is > 0 and <= 86400, "Protocol realtime idle warning must be between 1 and 86400 seconds.")
+            .Validate(options => options.RealtimeIdleCriticalSeconds >= options.RealtimeIdleWarningSeconds, "Protocol realtime idle critical threshold must be greater than or equal to the warning threshold.")
             .ValidateOnStart();
 
         services.AddOptions<InfrastructureOptions>()
@@ -24,6 +43,14 @@ public static class StartupValidationExtensions
                            !string.IsNullOrWhiteSpace(options.PostgresConnectionString),
                 "PostgreSQL connection string is required when Infrastructure.Provider is Postgres.")
             .ValidateOnStart();
+
+        services.AddSingleton<ProtocolCommandExecutionService>();
+        services.AddSingleton<HotelRealtimeSocketHandler>();
+        services.AddSingleton<IRealtimeConnectionMonitor, RealtimeConnectionMonitor>();
+        services.AddSingleton<IProtocolHealthMonitor, ProtocolHealthMonitor>();
+        services.AddSingleton<IHotelIntelligenceService, HotelIntelligenceService>();
+        services.AddHostedService<ProtocolHealthMonitorWorker>();
+        services.AddHostedService<RoomTickWorker>();
 
         return services;
     }
@@ -51,7 +78,10 @@ public static class StartupValidationExtensions
                 {
                     gateway.HotelName,
                     gateway.PublicHost,
-                    gateway.TcpPort
+                    gateway.TcpPort,
+                    gateway.RealtimePath,
+                    gateway.RequireTlsForRealtime,
+                    gateway.RealtimeKeepAliveSeconds
                 },
                 infrastructure = new
                 {
@@ -72,6 +102,54 @@ public static class StartupValidationExtensions
             });
         });
 
+        diagnostics.MapGet("/summary", (
+            IOptions<GatewayRuntimeOptions> gatewayOptions,
+            IPersistenceReadinessChecker persistenceChecker,
+            IProtocolHealthMonitor protocolHealthMonitor,
+            IRealtimeConnectionMonitor realtimeConnectionMonitor) =>
+        {
+            GatewayRuntimeOptions gateway = gatewayOptions.Value;
+            PersistenceReadinessReport readiness = persistenceChecker.Check();
+            ProtocolHealthSnapshot protocol = protocolHealthMonitor.GetSnapshot();
+            RealtimeConnectionSnapshot realtimeConnections = realtimeConnectionMonitor.GetSnapshot();
+
+            GatewayDiagnosticsSummary summary = new(
+                Gateway: new GatewaySummaryIdentity(
+                    gateway.HotelName,
+                    gateway.PublicHost,
+                    gateway.TcpPort,
+                    gateway.RealtimePath,
+                    gateway.RequireTlsForRealtime,
+                    gateway.RealtimeKeepAliveSeconds),
+                Realtime: new GatewayRealtimeStatus(
+                    gateway.RequireTlsForRealtime ? "wss" : "ws",
+                    gateway.RealtimePath,
+                    gateway.RequireTlsForRealtime,
+                    gateway.AllowInsecureLoopbackRealtime,
+                    gateway.RealtimeKeepAliveSeconds,
+                    !string.IsNullOrWhiteSpace(gateway.RealtimePath),
+                    realtimeConnections),
+                Persistence: readiness,
+                Protocol: protocol,
+                Overall: new GatewayOverallStatus(
+                    readiness.IsReady && protocol.State is ProtocolHealthState.Healthy,
+                    !readiness.IsReady || protocol.State is ProtocolHealthState.Critical
+                        ? "critical"
+                        : protocol.State is ProtocolHealthState.Warning
+                            ? "warning"
+                            : "healthy"));
+
+            return Results.Ok(summary);
+        });
+
+        diagnostics.MapGet("/intelligence", async (
+            IHotelIntelligenceService hotelIntelligenceService,
+            CancellationToken cancellationToken) =>
+        {
+            HotelIntelligenceSummary summary = await hotelIntelligenceService.BuildAsync(cancellationToken);
+            return Results.Ok(summary);
+        });
+
         diagnostics.MapGet("/protocol", (
             PacketRegistry packetRegistry,
             ProtocolCommandRegistry commandRegistry,
@@ -86,6 +164,12 @@ public static class StartupValidationExtensions
                 outgoingPackets = packetRegistry.Outgoing,
                 commands = commandRegistry.Commands
             });
+        });
+
+        diagnostics.MapGet("/protocol/health", (
+            IProtocolHealthMonitor protocolHealthMonitor) =>
+        {
+            return Results.Ok(protocolHealthMonitor.GetSnapshot());
         });
 
         diagnostics.MapGet("/packetlog", (

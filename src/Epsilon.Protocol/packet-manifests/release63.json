@@ -31,6 +31,13 @@
       "notes": "Starter id to be confirmed against packet docs and fixtures."
     },
     {
+      "name": "room_runtime",
+      "direction": "incoming",
+      "id": 391,
+      "confidence": "inferred",
+      "notes": "Starter id reserved for realtime room runtime sync requests."
+    },
+    {
       "name": "move_avatar",
       "direction": "incoming",
       "id": 75,
@@ -43,6 +50,34 @@
       "id": 52,
       "confidence": "inferred",
       "notes": "Starter id to be confirmed against packet docs and fixtures."
+    },
+    {
+      "name": "inventory",
+      "direction": "incoming",
+      "id": 140,
+      "confidence": "inferred",
+      "notes": "Starter id reserved for inventory sync requests."
+    },
+    {
+      "name": "catalog_purchase",
+      "direction": "incoming",
+      "id": 100,
+      "confidence": "inferred",
+      "notes": "Starter id reserved for catalog purchase requests."
+    },
+    {
+      "name": "games_list",
+      "direction": "incoming",
+      "id": 360,
+      "confidence": "inferred",
+      "notes": "Starter id reserved for game session listing requests."
+    },
+    {
+      "name": "game_session",
+      "direction": "incoming",
+      "id": 361,
+      "confidence": "inferred",
+      "notes": "Starter id reserved for game session detail requests."
     },
     {
       "name": "authentication_ok",
@@ -60,4 +95,3 @@
     }
   ]
 }
-

@@ -41,6 +41,7 @@ VALUES (
 INSERT INTO characters (
     character_id,
     account_id,
+    public_id,
     username,
     motto,
     figure,
@@ -55,6 +56,7 @@ INSERT INTO characters (
 VALUES (
     1,
     1,
+    'usr_epsilon',
     'epsilon',
     'Modern compatibility runtime',
     'hr-100-42.hd-180-1.ch-210-66.lg-270-82.sh-290-80',

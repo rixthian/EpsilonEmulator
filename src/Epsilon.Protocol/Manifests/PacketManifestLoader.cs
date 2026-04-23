@@ -3,15 +3,24 @@ using Microsoft.Extensions.Options;
 
 namespace Epsilon.Protocol;
 
+/// <summary>
+/// Loads packet manifests from configured JSON files.
+/// </summary>
 public sealed class PacketManifestLoader
 {
     private readonly PacketManifestOptions _options;
 
+    /// <summary>
+    /// Creates a packet manifest loader.
+    /// </summary>
     public PacketManifestLoader(IOptions<PacketManifestOptions> options)
     {
         _options = options.Value;
     }
 
+    /// <summary>
+    /// Loads the configured packet manifest.
+    /// </summary>
     public PacketManifest Load()
     {
         if (string.IsNullOrWhiteSpace(_options.ManifestPath))

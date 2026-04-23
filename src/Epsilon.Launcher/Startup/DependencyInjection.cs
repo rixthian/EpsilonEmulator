@@ -15,6 +15,7 @@ public static class DependencyInjection
             .Validate(options => options.ConnectionProfiles.Count > 0, "At least one launcher connection profile is required.")
             .ValidateOnStart();
 
+        services.AddHttpClient();
         services.AddSingleton<ILauncherBootstrapService, LauncherBootstrapService>();
         return services;
     }

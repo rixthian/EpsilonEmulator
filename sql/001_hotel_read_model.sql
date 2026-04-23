@@ -14,6 +14,7 @@ CREATE TABLE accounts (
 CREATE TABLE characters (
     character_id BIGINT PRIMARY KEY,
     account_id BIGINT NOT NULL REFERENCES accounts(account_id),
+    public_id VARCHAR(64) NOT NULL UNIQUE,
     username VARCHAR(32) NOT NULL UNIQUE,
     motto VARCHAR(128) NOT NULL DEFAULT '',
     figure VARCHAR(255) NOT NULL,
@@ -24,6 +25,7 @@ CREATE TABLE characters (
     respect_points INT NOT NULL DEFAULT 0,
     daily_respect_points INT NOT NULL DEFAULT 3,
     daily_pet_respect_points INT NOT NULL DEFAULT 3,
+    CONSTRAINT chk_characters_public_id_not_blank CHECK (btrim(public_id) <> ''),
     CONSTRAINT chk_characters_username_not_blank CHECK (btrim(username) <> ''),
     CONSTRAINT chk_characters_gender CHECK (gender IN ('M', 'F', 'U')),
     CONSTRAINT chk_characters_credits_balance CHECK (credits_balance >= 0),
@@ -41,6 +43,15 @@ CREATE TABLE character_subscriptions (
     PRIMARY KEY (character_id, subscription_type),
     CONSTRAINT chk_character_subscriptions_type_not_blank CHECK (btrim(subscription_type) <> ''),
     CONSTRAINT chk_character_subscriptions_expiry CHECK (expires_at_utc > activated_at_utc)
+);
+
+CREATE TABLE character_chat_filter_preferences (
+    character_id BIGINT PRIMARY KEY REFERENCES characters(character_id),
+    mute_bots BOOLEAN NOT NULL DEFAULT FALSE,
+    mute_pets BOOLEAN NOT NULL DEFAULT FALSE,
+    updated_at_utc TIMESTAMPTZ NOT NULL,
+    updated_by VARCHAR(64) NOT NULL,
+    CONSTRAINT chk_character_chat_filter_preferences_updated_by_not_blank CHECK (btrim(updated_by) <> '')
 );
 
 CREATE TABLE room_layouts (
@@ -160,5 +171,6 @@ CREATE INDEX idx_pets_owner_character_id ON pets(owner_character_id);
 CREATE INDEX idx_pets_room_id ON pets(room_id);
 CREATE INDEX idx_characters_account_id ON characters(account_id);
 CREATE INDEX idx_character_subscriptions_character_id ON character_subscriptions(character_id);
+CREATE UNIQUE INDEX idx_characters_public_id_lower ON characters (lower(public_id));
 CREATE UNIQUE INDEX idx_accounts_login_name_lower ON accounts (lower(login_name));
 CREATE UNIQUE INDEX idx_characters_username_lower ON characters (lower(username));

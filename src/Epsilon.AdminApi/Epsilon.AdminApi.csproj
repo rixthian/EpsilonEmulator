@@ -7,5 +7,6 @@
     <ProjectReference Include="..\Epsilon.Auth\Epsilon.Auth.csproj" />
     <ProjectReference Include="..\Epsilon.Persistence\Epsilon.Persistence.csproj" />
     <ProjectReference Include="..\Epsilon.CoreGame\Epsilon.CoreGame.csproj" />
+    <ProjectReference Include="..\Epsilon.Gateway\Epsilon.Gateway.csproj" />
   </ItemGroup>
 </Project>

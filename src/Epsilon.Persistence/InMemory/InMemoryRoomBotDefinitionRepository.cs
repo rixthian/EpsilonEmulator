@@ -16,10 +16,43 @@ internal sealed class InMemoryRoomBotDefinitionRepository : IRoomBotDefinitionRe
         CancellationToken cancellationToken = default)
     {
         IReadOnlyList<HotelBotDefinition> definitions = _store.BotDefinitions
-            .Where(candidate => string.Equals(candidate.AssetPackageKey, assetPackageKey, StringComparison.OrdinalIgnoreCase))
+            .Where(candidate =>
+                candidate.RoomId is null &&
+                string.Equals(candidate.AssetPackageKey, assetPackageKey, StringComparison.OrdinalIgnoreCase))
             .OrderBy(candidate => candidate.DisplayName, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         return ValueTask.FromResult(definitions);
+    }
+
+    public ValueTask<IReadOnlyList<HotelBotDefinition>> GetByRoomIdAsync(
+        RoomId roomId,
+        CancellationToken cancellationToken = default)
+    {
+        IReadOnlyList<HotelBotDefinition> definitions = _store.BotDefinitions
+            .Where(candidate => candidate.RoomId == roomId)
+            .OrderBy(candidate => candidate.DisplayName, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        return ValueTask.FromResult(definitions);
+    }
+
+    public ValueTask StoreAsync(
+        HotelBotDefinition definition,
+        CancellationToken cancellationToken = default)
+    {
+        int existingIndex = _store.BotDefinitions.FindIndex(candidate =>
+            string.Equals(candidate.BotKey, definition.BotKey, StringComparison.OrdinalIgnoreCase));
+
+        if (existingIndex >= 0)
+        {
+            _store.BotDefinitions[existingIndex] = definition;
+        }
+        else
+        {
+            _store.BotDefinitions.Add(definition);
+        }
+
+        return ValueTask.CompletedTask;
     }
 }

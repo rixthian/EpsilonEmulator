@@ -1,0 +1,12 @@
+{
+  "siteKey": "habbohotel-2001",
+  "displayName": "Habbo Hotel 2001",
+  "era": "2001",
+  "launcherUrl": "/",
+  "gatewayHealthUrl": "/health",
+  "gatewayReadinessUrl": "/readiness",
+  "gatewayDiagnosticsUrl": "/diagnostics/summary",
+  "adminUrl": "/diagnostics/summary",
+  "publicPlayerLookupPattern": "/hotel/characters/public/{publicId}",
+  "habbowoodSnapshotUrl": "/hotel/events/habbowood"
+}

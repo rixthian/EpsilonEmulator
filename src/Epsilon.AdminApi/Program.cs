@@ -1,8 +1,10 @@
 using Epsilon.AdminApi;
 using Epsilon.CoreGame;
+using Epsilon.Gateway;
 using Epsilon.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Net.Http.Json;
 using System.Reflection;
 
 const string AdminKeyHeaderName = "X-Epsilon-Admin-Key";
@@ -58,6 +60,29 @@ app.MapGet("/housekeeping/characters/{characterId:long}", async (
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
+app.MapGet("/cms/players/public/{publicId}", async (
+    HttpContext httpContext,
+    string publicId,
+    [FromServices] IOptions<AdminRuntimeOptions> adminOptions,
+    [FromServices] ICharacterProfileRepository characterProfileRepository,
+    [FromServices] IHotelReadService hotelReadService,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsAuthorized(httpContext, adminOptions.Value))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    CharacterProfile? profile = await characterProfileRepository.GetByPublicIdAsync(publicId, cancellationToken);
+    if (profile is null)
+    {
+        return Results.NotFound();
+    }
+
+    CharacterHotelSnapshot? snapshot = await hotelReadService.GetCharacterSnapshotAsync(profile.CharacterId, cancellationToken);
+    return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
+});
+
 app.MapGet("/runtime/rooms", async (
     HttpContext httpContext,
     [FromServices] IOptions<AdminRuntimeOptions> adminOptions,
@@ -104,6 +129,74 @@ app.MapGet("/diagnostics/packetlog", (
 
     IReadOnlyList<PacketLogEntry> entries = packetLogger.GetRecent(Math.Clamp(count, 1, 2000));
     return Results.Ok(new { count = entries.Count, entries });
+});
+
+app.MapGet("/diagnostics/summary", async (
+    HttpContext httpContext,
+    [FromServices] IOptions<AdminRuntimeOptions> adminOptions,
+    [FromServices] IHttpClientFactory httpClientFactory,
+    [FromServices] IPersistenceReadinessChecker persistenceChecker,
+    CancellationToken cancellationToken) =>
+{
+    if (!IsAuthorized(httpContext, adminOptions.Value))
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
+    }
+
+    PersistenceReadinessReport readiness = persistenceChecker.Check();
+    GatewayDiagnosticsSummary? gateway = null;
+    string? gatewayError = null;
+    object? launcher = null;
+    string? launcherError = null;
+
+    if (!string.IsNullOrWhiteSpace(adminOptions.Value.GatewayBaseUrl))
+    {
+        try
+        {
+            using HttpClient httpClient = httpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri(adminOptions.Value.GatewayBaseUrl, UriKind.Absolute);
+            gateway = await httpClient.GetFromJsonAsync<GatewayDiagnosticsSummary>("/diagnostics/summary", cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            gatewayError = exception.Message;
+        }
+    }
+    else
+    {
+        gatewayError = "GatewayBaseUrl is not configured.";
+    }
+
+    if (!string.IsNullOrWhiteSpace(adminOptions.Value.LauncherBaseUrl))
+    {
+        try
+        {
+            using HttpClient httpClient = httpClientFactory.CreateClient();
+            httpClient.BaseAddress = new Uri(adminOptions.Value.LauncherBaseUrl, UriKind.Absolute);
+            launcher = await httpClient.GetFromJsonAsync<object>("/health", cancellationToken);
+        }
+        catch (Exception exception)
+        {
+            launcherError = exception.Message;
+        }
+    }
+    else
+    {
+        launcherError = "LauncherBaseUrl is not configured.";
+    }
+
+    AdminDiagnosticsSummary summary = new(
+        Admin: new AdminServiceStatus(adminOptions.Value.ServiceName, DateTime.UtcNow),
+        Persistence: readiness,
+        Gateway: gateway,
+        GatewayError: gatewayError,
+        Launcher: launcher,
+        LauncherError: launcherError,
+        Overall: new AdminOverallStatus(
+            readiness.IsReady && gatewayError is null && launcherError is null,
+            !readiness.IsReady || gatewayError is not null || launcherError is not null ? "degraded" : "healthy"));
+
+    return Results.Ok(summary);
 });
 
 // Emergency endpoints — require admin key and affect the live hotel state.

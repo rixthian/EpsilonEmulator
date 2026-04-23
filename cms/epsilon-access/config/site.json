@@ -1,0 +1,12 @@
+{
+  "siteKey": "epsilon-access",
+  "displayName": "Epsilon Access Portal",
+  "era": "2026",
+  "launcherUrl": "/api/epsilon/bootstrap",
+  "gatewayHealthUrl": "/api/epsilon/health",
+  "gatewayReadinessUrl": "/api/epsilon/health",
+  "gatewayDiagnosticsUrl": "/api/epsilon/health",
+  "adminUrl": "/portal",
+  "publicPlayerLookupPattern": "/hotel/characters/public/{publicId}",
+  "habbowoodSnapshotUrl": "/hotel/events/habbowood"
+}

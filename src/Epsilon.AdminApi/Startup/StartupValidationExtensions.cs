@@ -9,6 +9,8 @@ public static class StartupValidationExtensions
             .Validate(options => !string.IsNullOrWhiteSpace(options.ServiceName), "Admin service name is required.")
             .ValidateOnStart();
 
+        services.AddHttpClient();
+
         services.AddOptions<InfrastructureOptions>()
             .Bind(configuration.GetSection(InfrastructureOptions.SectionName))
             .Validate(options => !string.IsNullOrWhiteSpace(options.Provider), "Infrastructure provider is required.")

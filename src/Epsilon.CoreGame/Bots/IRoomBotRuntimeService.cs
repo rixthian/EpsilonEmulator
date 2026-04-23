@@ -5,9 +5,9 @@ namespace Epsilon.CoreGame;
 
 public interface IRoomBotRuntimeService
 {
-    ValueTask<IReadOnlyList<RoomActorState>> EnsurePublicRoomBotsAsync(
-        NavigatorPublicRoomDefinition publicRoomEntry,
-        RoomLayoutDefinition roomLayout,
+    ValueTask<IReadOnlyList<RoomActorState>> EnsureRoomBotsAsync(
+        RoomHotelSnapshot room,
+        NavigatorPublicRoomDefinition? publicRoomEntry,
         CancellationToken cancellationToken = default);
 
     ValueTask<RoomChatMessage?> TryHandlePlayerChatAsync(

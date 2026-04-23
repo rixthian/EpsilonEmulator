@@ -1,0 +1,36 @@
+{
+  "toolchainName": "epsilon-swf-toolchain",
+  "version": 1,
+  "tools": [
+    {
+      "key": "ffdec",
+      "displayName": "JPEXS FFDec",
+      "role": "inspection",
+      "sourceRepository": "https://github.com/jindrapetrik/jpexs-decompiler",
+      "supportsProtectedContentBypass": false,
+      "recommended": true
+    },
+    {
+      "key": "rabcdasm",
+      "displayName": "RABCDAsm",
+      "role": "abc_patching",
+      "sourceRepository": "https://github.com/CyberShadow/RABCDAsm",
+      "supportsProtectedContentBypass": false,
+      "recommended": true
+    },
+    {
+      "key": "flex_sdk",
+      "displayName": "Apache Flex SDK",
+      "role": "compilation",
+      "sourceRepository": "https://github.com/apache/flex-sdk",
+      "supportsProtectedContentBypass": false,
+      "recommended": true
+    }
+  ],
+  "policy": {
+    "allowPublicAssetFetch": true,
+    "allowProtectedAssetBypass": false,
+    "allowKeyExtraction": false,
+    "allowManualReviewOnlyForProtectedArtifacts": true
+  }
+}

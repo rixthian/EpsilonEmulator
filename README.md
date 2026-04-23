@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.4.0--alpha.3-F4B400?style=for-the-badge" alt="Version badge" />
+  <img src="https://img.shields.io/badge/version-0.4.0--alpha.5-F4B400?style=for-the-badge" alt="Version badge" />
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512BD4?style=for-the-badge" alt=".NET 10 badge" />
   <img src="https://img.shields.io/badge/compatibility-RELEASE63-111111?style=for-the-badge" alt="Compatibility badge" />
   <img src="https://img.shields.io/badge/status-active%20alpha-0F9D58?style=for-the-badge" alt="Alpha status badge" />
@@ -19,6 +19,8 @@
   <a href="docs/architecture/overview.md">Architecture</a>
   ·
   <a href="docs/compatibility/target-client.md">Compatibility</a>
+  ·
+  <a href="docs/architecture/update-automation-brain.md">Update Brain</a>
   ·
   <a href="CHANGELOG.md">Changelog</a>
   ·
@@ -91,7 +93,7 @@ The mission is one stable hotel platform with:
 | Area | Choice |
 |---|---|
 | Runtime | `.NET 10` |
-| Version | `0.4.0-alpha.3` |
+| Version | `0.4.0-alpha.5` |
 | Architecture | Modular monolith |
 | Primary persistence | `PostgreSQL` |
 | Cache / transient infra | `Redis` |
@@ -125,14 +127,15 @@ Epsilon is already beyond scaffold stage. The repository currently includes:
 - package and asset import pipelines
 - security hardening for current gameplay endpoints
 
-Current release focus in `0.4.0-alpha.3`:
+Current release focus in `0.4.0-alpha.5`:
 
-- rank-derived in-game command catalog from regular user through owner
-- real room entry presence registration in runtime
-- real moderation commands for room-present targets
-- command-driven BattleBall session control
-- safer chat normalization for classic symbol-heavy chat
-- classic room/runtime commands such as `:chooser`, `:furni`, `:whisper`, and `:shout`
+- public-facing CMS portal with homepage, login, register, launcher choice, and cleaner hotel-facing copy
+- CMS backend + launcher handoff with one-time launcher access codes
+- native desktop launcher source integrated into the repo and packaged as a macOS `.dmg`
+- desktop launcher contract for local config, update channels, launch profiles, and `client-started` telemetry
+- published `web-alpha` client entry routed through the launcher instead of the CMS
+- first room tick scheduler, room animation slice, and roller runtime support
+- collector platform slice with wallet/link groundwork, progression, emerald accrual, factory/gift/recycle/market loops
 
 Recent hardening already covered:
 
@@ -158,9 +161,9 @@ issue-count vanity metrics.
 
 | Scope | Progress | Notes |
 |---|---:|---|
-| Global emulator operativity | `97%` | Current alpha is structurally strong and functionally broad, but not yet fully distributed in runtime state. |
-| Architecture quality | `98%` | Module boundaries, data flow, and system ownership are clear and defensible. |
-| Repository hygiene | `98%` | Naming, staging discipline, and runtime separation are in good condition. |
+| Global emulator operativity | `98%` | The project now spans gameplay, CMS, launcher, and native app surfaces, but public-facing stability is still not production grade. |
+| Architecture quality | `99%` | Core boundaries between CMS, launcher, client, and emulator are now explicit and defensible. |
+| Repository hygiene | `99%` | Naming, staging discipline, and runtime separation are in strong condition. |
 | `Epsilon.Gateway` | `90%` | Main runtime/API surface is broad and stable, but protocol parity is still incomplete. |
 | `Epsilon.Protocol` | `54%` | Packet and command manifests exist, but live gameplay still trails the HTTP/runtime path. |
 | `Epsilon.Auth` | `86%` | Session/auth boundaries and modern password hashing are in place; full production auth migration is pending. |
@@ -169,8 +172,10 @@ issue-count vanity metrics.
 | `Epsilon.Content` | `91%` | Catalog, badges, avatar content, campaign/content modeling, and import structures are advanced. |
 | `Epsilon.Persistence` | `58%` | Architecture is strong, but too much live behavior still depends on `InMemory`. |
 | `Epsilon.Games` | `75%` | Game definitions and BattleBall lifecycle exist, but full live loops are still missing. |
-| `Epsilon.Launcher` | `84%` | Client bootstrap and connection policy are well defined; shared runtime/session behavior still needs deepening. |
+| `Epsilon.Launcher` | `90%` | Client bootstrap, access-code flow, channels, profiles, telemetry, and published client routing are now in place. |
 | `Epsilon.AdminApi` | `74%` | Admin/runtime inspection works, but full moderation and operational tooling is not complete. |
+| CMS platform | `68%` | CMS backend and public portal now exist, but the surface is still unstable and not yet hardened for real production traffic. |
+| Desktop launcher apps | `74%` | Native Avalonia launcher and Electron reference shell exist; final Unity/Nitro launch targets are still pending. |
 | Asset/content ingest pipeline | `94%` | Client roots, builds, avatar bundles, figures, badges, and related manifests are organized and reproducible. |
 | Multi-process runtime integrity | `84%` | Shared sessions improved, but shared room presence/state still needs stronger distributed handling. |
 
@@ -189,17 +194,51 @@ issue-count vanity metrics.
 | Avatar, badges, and collectible content | `92%` | Badge catalog, avatar asset digestion, figure manifests, and collectible-ready content models are in strong shape. |
 | Public rooms and hotel world features | `85%` | Public-room definitions, behaviors, bots, and package inventories are strong; more interactive venue logic is still needed. |
 | Games | `75%` | BattleBall lifecycle and game session foundations are in place; deeper live loops for all game families are still pending. |
-| Launcher and connection policy | `84%` | Client profiles and device-aware connection policies exist; full shared runtime/session cohesion still needs work. |
+| Launcher and connection policy | `90%` | Client profiles, launcher access codes, desktop launcher contracts, and device-aware connection policies are now in place. |
+| CMS, launcher app, and access flow | `70%` | Access logic is now correct, but the CMS and launcher app both need another hardening pass before they can be called stable. |
 | Configuration platform | `90%` | Root configuration layering and service templates are in place; more feature sections need to be fully bound into runtime. |
 | Multi-version compatibility foundation | `63%` | The adapter strategy, client/build manifests, and launcher profiles are in place; only `RELEASE63` is currently the strong baseline. |
 | Roleplay and original Epsilon features | `22%` | The platform direction is defined, but dedicated roleplay systems are still future work. |
 
 Current weakest points, in order:
 
-1. `Epsilon.Protocol` still trails the HTTP/runtime path for real gameplay execution.
-2. `Epsilon.Persistence` still relies too heavily on `InMemory` for live state.
-3. `Epsilon.Games` still needs deeper live round loops beyond lifecycle control.
-4. `Epsilon.Rooms` still needs full furni placement, pickup, and trading-grade mutation paths.
+1. `Epsilon.Persistence` still relies too heavily on `InMemory` for live state and CMS continuity.
+2. `Epsilon.Protocol` still trails the HTTP/runtime path for real gameplay execution.
+3. CMS and launcher app surfaces are functional but still unstable.
+4. `Epsilon.Games` still needs deeper live round loops beyond lifecycle control.
+5. `Epsilon.Rooms` still needs full furni placement, pickup, and trading-grade mutation paths.
+
+## Release Snapshot
+
+`0.4.0-alpha.5` is the first release where the public web, launcher, and native app are treated as product surfaces instead of debug shells.
+
+Delivered in this release:
+
+- CMS:
+  - homepage
+  - login/register
+  - authenticated launcher access choice
+  - launcher code generation
+- launcher backend:
+  - desktop config
+  - update channels
+  - launch profiles
+  - client-started telemetry
+- native launcher packaging:
+  - Avalonia/VB launcher imported and adapted
+  - macOS `.app`
+  - macOS `.dmg`
+- access rule:
+  - CMS never claims hotel presence
+  - launcher never claims hotel presence
+  - only emulator-confirmed runtime presence counts as real entry
+
+Known instability in this release:
+
+- CMS presentation and access flow were rebuilt quickly and still need hardening
+- launcher native packaging exists, but Unity/Nitro package targets are still not published
+- `web-alpha` is provisional and does not represent the final social/isometric client
+- production durability is still blocked by remaining `InMemory` slices
 
 ## Architecture Shape
 
@@ -229,12 +268,16 @@ Each module has a narrow responsibility:
 
 - [`src/`](src/) — production code
 - [`tests/`](tests/) — automated tests
+- [`apps/`](apps/) — desktop launcher app sources
+- [`cms/`](cms/) — CMS platform and preserved web surfaces
 - [`configuration/`](configuration/) — shared and per-service configuration templates
 - [`docs/architecture/`](docs/architecture/) — architecture and domain design
+- [`docs/releases/`](docs/releases/) — release snapshots and alpha release notes
 - [`docs/compatibility/`](docs/compatibility/) — protocol and target-client material
 - [`docs/decisions/`](docs/decisions/) — architectural decisions
 - [`docs/roadmap/`](docs/roadmap/) — execution roadmap
 - [`catalog/`](catalog/) — schemas and generated manifests
+- [`tools/brain/`](tools/brain/) — update-intelligence brain for source watching, diffs, and SWF toolchain policy
 - [`tools/`](tools/) — importers and support tooling
 - [`references/`](references/) — source handling rules and reference hygiene
 
@@ -242,6 +285,9 @@ Each module has a narrow responsibility:
 
 - [Architecture Overview](docs/architecture/overview.md)
 - [Module Boundaries](docs/architecture/modules.md)
+- [CMS Platform](docs/architecture/cms-platform.md)
+- [Launcher App Access](docs/architecture/launcher-app-access.md)
+- [Desktop Launcher Spec](docs/architecture/desktop-launcher-spec.md)
 - [Design Principles](docs/architecture/design-principles.md)
 - [Client Platform Strategy](docs/architecture/client-platform-strategy.md)
 - [Hotel Domain Blueprint](docs/architecture/hotel-domain-blueprint.md)

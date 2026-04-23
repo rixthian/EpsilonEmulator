@@ -12,5 +12,5 @@ public sealed record CharacterProfile(
     int ActivityPointsBalance,
     int RespectPoints,
     int DailyRespectPoints,
-    int DailyPetRespectPoints);
-
+    int DailyPetRespectPoints,
+    string PublicId = "");

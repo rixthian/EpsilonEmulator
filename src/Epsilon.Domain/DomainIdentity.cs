@@ -9,3 +9,4 @@ public readonly record struct CatalogPageId(long Value);
 public readonly record struct CatalogOfferId(long Value);
 public readonly record struct PetId(long Value);
 public readonly record struct GroupId(long Value);
+public readonly record struct HabbowoodSubmissionId(long Value);

@@ -1,10 +1,16 @@
 namespace Epsilon.Protocol;
 
+/// <summary>
+/// Validates consistency between packet and command manifests.
+/// </summary>
 public sealed class ProtocolSelfCheckService
 {
     private readonly PacketRegistry _packetRegistry;
     private readonly ProtocolCommandRegistry _commandRegistry;
 
+    /// <summary>
+    /// Creates a protocol self-check service.
+    /// </summary>
     public ProtocolSelfCheckService(
         PacketRegistry packetRegistry,
         ProtocolCommandRegistry commandRegistry)
@@ -13,6 +19,9 @@ public sealed class ProtocolSelfCheckService
         _commandRegistry = commandRegistry;
     }
 
+    /// <summary>
+    /// Runs protocol consistency validation.
+    /// </summary>
     public ProtocolSelfCheckReport Run()
     {
         List<string> issues = [];
@@ -43,14 +52,16 @@ public sealed class ProtocolSelfCheckService
             }
         }
 
-        return new ProtocolSelfCheckReport(
-            issues.Count == 0,
-            _packetRegistry.Family,
-            _commandRegistry.Family,
-            _commandRegistry.Revision,
-            _packetRegistry.Incoming.Count,
-            _packetRegistry.Outgoing.Count,
-            _commandRegistry.Commands.Count,
-            issues);
+        return new ProtocolSelfCheckReport
+        {
+            IsHealthy = issues.Count == 0,
+            PacketFamily = _packetRegistry.Family,
+            CommandFamily = _commandRegistry.Family,
+            CommandRevision = _commandRegistry.Revision,
+            IncomingPacketCount = _packetRegistry.Incoming.Count,
+            OutgoingPacketCount = _packetRegistry.Outgoing.Count,
+            CommandCount = _commandRegistry.Commands.Count,
+            Issues = issues
+        };
     }
 }

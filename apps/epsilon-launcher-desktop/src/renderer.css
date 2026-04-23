@@ -1,0 +1,252 @@
+:root {
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: "Trebuchet MS", Verdana, sans-serif;
+  color: #eef4fb;
+  background:
+    radial-gradient(circle at top left, rgba(255, 200, 87, 0.14), transparent 24%),
+    radial-gradient(circle at top right, rgba(64, 191, 255, 0.12), transparent 28%),
+    linear-gradient(180deg, #17324d 0%, #0b1c2c 44%, #08131e 100%);
+}
+
+.app-shell {
+  max-width: 1320px;
+  margin: 0 auto;
+  padding: 28px 24px 36px;
+  display: grid;
+  gap: 20px;
+}
+
+.panel {
+  background: rgba(18, 44, 68, 0.92);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.28);
+}
+
+.hero {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  align-items: flex-start;
+}
+
+.hero-actions,
+.actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.grid {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.span-2 {
+  grid-column: span 2;
+}
+
+.eyebrow {
+  margin: 0 0 8px;
+  color: #ffd64d;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+h1, h2 {
+  margin: 0 0 12px;
+}
+
+h1 {
+  font-size: clamp(36px, 4vw, 54px);
+  line-height: 0.96;
+}
+
+h2 {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.lede,
+.muted {
+  color: #9fc0d8;
+  line-height: 1.45;
+}
+
+.field,
+.toggle {
+  display: grid;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+.field span {
+  color: #9fc0d8;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+input,
+select,
+button {
+  font: inherit;
+}
+
+input,
+select {
+  width: 100%;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(5, 14, 22, 0.45);
+  color: #eef4fb;
+}
+
+button {
+  min-height: 48px;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 14px;
+  cursor: pointer;
+  background: linear-gradient(180deg, #35cf7f, #1f9d5b);
+  color: #062114;
+  font-weight: 800;
+}
+
+button.secondary {
+  background: linear-gradient(180deg, #35536d, #24384c);
+  color: #eef4fb;
+}
+
+button.ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  color: #eef4fb;
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.notice {
+  margin-top: 16px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+}
+
+.notice.error {
+  background: rgba(214, 87, 87, 0.18);
+  border-color: rgba(214, 87, 87, 0.55);
+}
+
+.notice.success {
+  background: rgba(45, 187, 114, 0.18);
+  border-color: rgba(45, 187, 114, 0.55);
+}
+
+.hidden {
+  display: none;
+}
+
+.info-box {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  color: #d8e6f2;
+  min-height: 100px;
+}
+
+.metrics {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.metric,
+.channel-card,
+.log-entry {
+  padding: 16px;
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.metric span,
+.channel-card span {
+  display: block;
+  color: #9fc0d8;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin-bottom: 8px;
+}
+
+.metric strong,
+.channel-card strong {
+  font-size: 20px;
+}
+
+.config-grid,
+.stack,
+.activity-log {
+  display: grid;
+  gap: 12px;
+}
+
+.toggle {
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: 10px;
+}
+
+.toggle span {
+  color: #d8e6f2;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.activity-log {
+  max-height: 280px;
+  overflow: auto;
+}
+
+.log-entry time {
+  display: block;
+  color: #9fc0d8;
+  font-size: 12px;
+  margin-bottom: 6px;
+}
+
+@media (max-width: 980px) {
+  .hero,
+  .grid,
+  .metrics {
+    grid-template-columns: 1fr;
+    display: grid;
+  }
+
+  .span-2 {
+    grid-column: span 1;
+  }
+}
+

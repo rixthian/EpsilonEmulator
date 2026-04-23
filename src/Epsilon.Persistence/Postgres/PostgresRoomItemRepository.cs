@@ -70,4 +70,12 @@ internal sealed class PostgresRoomItemRepository : IRoomItemRepository
     {
         throw new NotSupportedException("Postgres-backed room-item removal is not wired yet.");
     }
+
+    public ValueTask StoreByRoomIdAsync(
+        RoomId roomId,
+        IReadOnlyList<RoomItemState> items,
+        CancellationToken cancellationToken = default)
+    {
+        throw new NotSupportedException("Postgres-backed room-item storage is not wired yet.");
+    }
 }

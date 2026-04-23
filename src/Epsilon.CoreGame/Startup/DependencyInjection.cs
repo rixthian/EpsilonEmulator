@@ -6,10 +6,12 @@ public static class DependencyInjection
 {
     public static IServiceCollection AddCoreGameRuntime(this IServiceCollection services)
     {
+        services.AddSingleton<IHotelEventBus, InMemoryHotelEventBus>();
         services.AddSingleton<IHotelOperationalState, HotelOperationalState>();
         services.AddSingleton<IAccessControlService, AccessControlService>();
         services.AddSingleton<IBadgeCatalogService, BadgeCatalogService>();
         services.AddSingleton<IGroupService, GroupService>();
+        services.AddSingleton<IHabbowoodService, HabbowoodService>();
         services.AddSingleton<IHotelReadService, HotelReadService>();
         services.AddSingleton<IHotelBootstrapService, HotelBootstrapService>();
         services.AddSingleton<IHotelSessionSnapshotService, HotelSessionSnapshotService>();
@@ -21,9 +23,17 @@ public static class DependencyInjection
         services.AddSingleton<IHotelPresentationService, HotelPresentationService>();
         services.AddSingleton<IHotelWorldFeatureService, HotelWorldFeatureService>();
         services.AddSingleton<IInterfacePreferenceService, InterfacePreferenceService>();
+        services.AddSingleton<IWalletChallengeService, WalletChallengeService>();
+        services.AddSingleton<ICollectorProfileService, CollectorProfileService>();
+        services.AddSingleton<ILaunchEntitlementService, LaunchEntitlementService>();
+        services.AddSingleton<IEmeraldLedgerService, EmeraldLedgerService>();
+        services.AddSingleton<ICollectFeatService, CollectFeatService>();
         services.AddSingleton<IRoomBotRuntimeService, RoomBotRuntimeService>();
+        services.AddSingleton<IRoomAnimService, RoomAnimService>();
         services.AddSingleton<IRoomEntryService, RoomEntryService>();
         services.AddSingleton<IRoomInteractionService, RoomInteractionService>();
+        services.AddSingleton<IRoomRollerService, RoomRollerService>();
+        services.AddSingleton<IRoomTickScheduler, RoomTickScheduler>();
         services.AddSingleton<IRoomRuntimeSnapshotService, RoomRuntimeSnapshotService>();
         return services;
     }

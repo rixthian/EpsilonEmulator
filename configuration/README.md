@@ -37,6 +37,7 @@ Copy the templates you need:
 - `launcher.template.json` -> `launcher.json`
 - `admin.template.json` -> `admin.json`
 - `features.template.json` -> `features.json`
+- `brain.template.json` -> `brain.json`
 
 ## Purpose
 
@@ -53,6 +54,8 @@ The central split is:
   admin API key and admin service settings
 - `features.json`
   hotel/game/bot/economy/console/network feature policy
+- `brain.json`
+  source-watch automation, SWF toolchain policy, and update-intelligence settings
 
 ## Operational model
 
@@ -66,13 +69,16 @@ Use configuration by responsibility:
   ports, protocol family, request policy, gateway-only switches
 - `launcher.json`
   for client bootstrap and connection negotiation:
-  launcher profiles, client families, device policies, asset roots
+  launcher profiles, client families, desktop launcher policy, access-code flow, update channels, and asset roots
 - `admin.json`
   for staff/admin surfaces:
   admin endpoint, admin credentials, admin-only diagnostics
 - `features.json`
   for product policy:
   bots, games, moderation, economy, welcome flow, roleplay-specific future features
+- `brain.json`
+  for update automation policy:
+  official source watch profiles, output directories, body-hash limits, and protected-asset handling
 
 ## Environment guidance
 
@@ -100,3 +106,8 @@ Configuration must eventually support:
 - Not every field in `features.template.json` is wired into runtime yet.
 - The template includes both active and planned sections so the hotel can be configured coherently as more systems are completed.
 - Do not commit live secrets.
+- `launcher.template.json` now also carries the desktop launcher contract:
+  - local config defaults
+  - update channels
+  - launch profiles
+  - platform-aware launcher behavior

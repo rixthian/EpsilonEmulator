@@ -11,6 +11,8 @@ public sealed record LauncherBootstrapSnapshot(
     string EntryAssetUrl,
     string AssetBaseUrl,
     InterfacePreferenceSnapshot? InterfacePreferences,
+    CollectorProfileSnapshot? Collector,
+    LaunchEntitlementSnapshot? LaunchEntitlement,
     IReadOnlyList<InterfaceLanguageDefinition> SupportedLanguages,
     LauncherSessionSnapshot? Session,
     IReadOnlyDictionary<string, string> EndpointMap);

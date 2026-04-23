@@ -2,6 +2,10 @@
   "Gateway": {
     "HotelName": "Epsilon Emulator",
     "PublicHost": "localhost",
-    "TcpPort": 30000
+    "TcpPort": 30000,
+    "RealtimePath": "/realtime",
+    "RequireTlsForRealtime": true,
+    "AllowInsecureLoopbackRealtime": true,
+    "RealtimeKeepAliveSeconds": 30
   }
 }

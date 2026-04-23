@@ -33,12 +33,15 @@ internal sealed class RegistrationService : IRegistrationService
         RegistrationRequest request,
         CancellationToken cancellationToken = default)
     {
-        if (string.IsNullOrWhiteSpace(request.Username) || !UsernamePattern.IsMatch(request.Username))
+        string normalizedUsername = request.Username?.Trim() ?? string.Empty;
+        string normalizedEmail = request.Email?.Trim() ?? string.Empty;
+
+        if (string.IsNullOrWhiteSpace(normalizedUsername) || !UsernamePattern.IsMatch(normalizedUsername))
         {
             return new RegistrationResult(false, "username_invalid", null, null);
         }
 
-        if (string.IsNullOrWhiteSpace(request.Email) || !EmailPattern.IsMatch(request.Email))
+        if (string.IsNullOrWhiteSpace(normalizedEmail) || !EmailPattern.IsMatch(normalizedEmail))
         {
             return new RegistrationResult(false, "email_invalid", null, null);
         }
@@ -49,14 +52,14 @@ internal sealed class RegistrationService : IRegistrationService
         }
 
         CharacterProfile? existingUsername =
-            await _characterProfileRepository.GetByUsernameAsync(request.Username, cancellationToken);
+            await _characterProfileRepository.GetByUsernameAsync(normalizedUsername, cancellationToken);
         if (existingUsername is not null)
         {
             return new RegistrationResult(false, "username_taken", null, null);
         }
 
         AccountRecord? existingEmail =
-            await _accountRepository.GetByEmailAsync(request.Email, cancellationToken);
+            await _accountRepository.GetByEmailAsync(normalizedEmail, cancellationToken);
         if (existingEmail is not null)
         {
             return new RegistrationResult(false, "email_taken", null, null);
@@ -65,17 +68,26 @@ internal sealed class RegistrationService : IRegistrationService
         PasswordHashRecord hashRecord = _passwordHashService.HashPassword(request.Password);
         string passwordHashJson = hashRecord.ToString();
 
-        AccountId accountId = await _accountRepository.CreateAsync(
-            request.Email,
-            passwordHashJson,
-            cancellationToken);
+        try
+        {
+            AccountId accountId = await _accountRepository.CreateAsync(
+                normalizedEmail,
+                passwordHashJson,
+                cancellationToken);
 
-        CharacterProfile profile = await _characterProfileRepository.CreateAsync(
-            accountId,
-            request.Username,
-            DefaultHomeRoomId,
-            cancellationToken);
+            CharacterProfile profile = await _characterProfileRepository.CreateAsync(
+                accountId,
+                normalizedUsername,
+                DefaultHomeRoomId,
+                cancellationToken);
 
-        return new RegistrationResult(true, null, accountId.Value, profile.CharacterId.Value);
+            return new RegistrationResult(true, null, accountId.Value, profile.CharacterId.Value);
+        }
+        catch (InvalidOperationException exception) when (
+            string.Equals(exception.Message, "username_taken", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(exception.Message, "email_taken", StringComparison.OrdinalIgnoreCase))
+        {
+            return new RegistrationResult(false, exception.Message, null, null);
+        }
     }
 }

@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Epsilon Launcher Desktop</title>
+  <link rel="stylesheet" href="./renderer.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="hero panel">
+      <div>
+        <p class="eyebrow">Desktop Launcher</p>
+        <h1>Epsilon Launcher</h1>
+        <p class="lede">Esta app canjea el código del launcher, selecciona el perfil correcto y abre el cliente que conecta al emulador.</p>
+      </div>
+      <div class="hero-actions">
+        <button id="open-cms-button" class="ghost" type="button">Abrir CMS</button>
+        <button id="refresh-button" type="button">Actualizar estado</button>
+      </div>
+    </section>
+
+    <section class="grid">
+      <article class="panel">
+        <p class="eyebrow">Acceso</p>
+        <h2>Canjear código</h2>
+        <p class="muted">La CMS emite un código único. Esta app lo canjea contra el launcher y obtiene el handoff real.</p>
+        <div id="redeem-banner" class="notice hidden"></div>
+        <label class="field">
+          <span>Código</span>
+          <input id="redeem-code" type="text" autocomplete="off" placeholder="88D4-CA17-2F06">
+        </label>
+        <div class="actions">
+          <button id="redeem-button" type="button">Canjear código</button>
+        </div>
+      </article>
+
+      <article class="panel">
+        <p class="eyebrow">Perfil</p>
+        <h2>Perfil de lanzamiento</h2>
+        <p class="muted">El launcher decide qué cliente abrir. El hotel solo empieza cuando el cliente conecta y el emulador confirma presencia.</p>
+        <label class="field">
+          <span>Perfil</span>
+          <select id="profile-select"></select>
+        </label>
+        <div id="profile-summary" class="info-box"></div>
+        <div class="actions">
+          <button id="launch-button" type="button" disabled>Abrir cliente</button>
+        </div>
+      </article>
+
+      <article class="panel span-2">
+        <p class="eyebrow">Estado</p>
+        <h2>Handoff actual</h2>
+        <div class="metrics">
+          <div class="metric">
+            <span>Plataforma</span>
+            <strong id="metric-platform">-</strong>
+          </div>
+          <div class="metric">
+            <span>Canal</span>
+            <strong id="metric-channel">-</strong>
+          </div>
+          <div class="metric">
+            <span>Perfil por defecto</span>
+            <strong id="metric-default-profile">-</strong>
+          </div>
+          <div class="metric">
+            <span>Código canjeado</span>
+            <strong id="metric-redeemed">no</strong>
+          </div>
+        </div>
+      </article>
+
+      <article class="panel span-2">
+        <p class="eyebrow">Config local</p>
+        <h2>Máquina</h2>
+        <div class="config-grid">
+          <label class="field">
+            <span>Hotel URL</span>
+            <input id="hotel-url" type="text">
+          </label>
+          <label class="field">
+            <span>Launcher API URL</span>
+            <input id="launcher-url" type="text">
+          </label>
+          <label class="toggle">
+            <input id="toggle-auto-launch" type="checkbox">
+            <span>Auto abrir tras canjear</span>
+          </label>
+          <label class="toggle">
+            <input id="toggle-remember-profile" type="checkbox">
+            <span>Recordar último perfil</span>
+          </label>
+        </div>
+        <div class="actions">
+          <button id="save-config-button" class="secondary" type="button">Guardar config local</button>
+        </div>
+      </article>
+
+      <article class="panel span-2">
+        <p class="eyebrow">Canales</p>
+        <h2>Update channel</h2>
+        <div id="channels-list" class="stack"></div>
+      </article>
+
+      <article class="panel span-2">
+        <p class="eyebrow">Actividad</p>
+        <h2>Eventos</h2>
+        <div id="activity-log" class="activity-log"></div>
+      </article>
+    </section>
+  </main>
+  <script src="./renderer.js"></script>
+</body>
+</html>
+

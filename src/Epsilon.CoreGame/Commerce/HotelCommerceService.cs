@@ -120,26 +120,18 @@ public sealed class HotelCommerceService : IHotelCommerceService
             return new CatalogPurchaseResult(false, "Catalog page is not available for this character.", request.CatalogOfferId, null, null);
         }
 
-        WalletSnapshot wallet = await _walletRepository.GetByCharacterIdAsync(request.CharacterId, cancellationToken)
-            ?? new WalletSnapshot(request.CharacterId, [], []);
+        string catalogReason = $"catalog:{offer.CatalogOfferId.Value}";
+        List<(string CurrencyCode, int Amount, string ReasonCode)> debits = [];
+        if (offer.CreditsCost > 0) debits.Add(("credits", offer.CreditsCost, catalogReason));
+        if (offer.ActivityPointsCost > 0) debits.Add(("duckets", offer.ActivityPointsCost, catalogReason));
+        if (offer.SnowCost > 0) debits.Add(("snow", offer.SnowCost, catalogReason));
 
-        if (!HasSufficientFunds(wallet, "credits", offer.CreditsCost))
+        WalletSnapshot? updatedWallet = await _walletRepository.TryApplyDebitsAsync(
+            request.CharacterId, debits, cancellationToken);
+        if (updatedWallet is null)
         {
-            return new CatalogPurchaseResult(false, "Insufficient credits for this offer.", request.CatalogOfferId, null, wallet);
+            return new CatalogPurchaseResult(false, "Insufficient funds for this offer.", request.CatalogOfferId, null, null);
         }
-
-        if (!HasSufficientFunds(wallet, "duckets", offer.ActivityPointsCost))
-        {
-            return new CatalogPurchaseResult(false, "Insufficient duckets for this offer.", request.CatalogOfferId, null, wallet);
-        }
-
-        if (!HasSufficientFunds(wallet, "snow", offer.SnowCost))
-        {
-            return new CatalogPurchaseResult(false, "Insufficient snow for this offer.", request.CatalogOfferId, null, wallet);
-        }
-
-        WalletSnapshot updatedWallet = ApplyPurchase(wallet, offer);
-        await _walletRepository.StoreAsync(updatedWallet, cancellationToken);
 
         List<ItemDefinitionId> purchasedItems = [];
         foreach (CatalogOfferProductDefinition product in offer.Products)
@@ -334,37 +326,6 @@ public sealed class HotelCommerceService : IHotelCommerceService
                page.MinimumRank <= 0;
     }
 
-    private static bool HasSufficientFunds(
-        WalletSnapshot wallet,
-        string currencyCode,
-        int requiredAmount)
-    {
-        if (requiredAmount <= 0)
-        {
-            return true;
-        }
-
-        WalletBalance? balance = wallet.Balances.FirstOrDefault(candidate =>
-            string.Equals(candidate.CurrencyCode, currencyCode, StringComparison.OrdinalIgnoreCase));
-
-        return balance is not null && balance.Amount >= requiredAmount;
-    }
-
-    private static WalletSnapshot ApplyPurchase(WalletSnapshot wallet, CatalogOfferDefinition offer)
-    {
-        List<WalletBalance> balances = wallet.Balances.ToList();
-        List<WalletLedgerEntry> ledger = wallet.RecentEntries.ToList();
-
-        ApplyDebit(balances, ledger, "credits", offer.CreditsCost, $"catalog:{offer.CatalogOfferId.Value}");
-        ApplyDebit(balances, ledger, "duckets", offer.ActivityPointsCost, $"catalog:{offer.CatalogOfferId.Value}");
-        ApplyDebit(balances, ledger, "snow", offer.SnowCost, $"catalog:{offer.CatalogOfferId.Value}");
-
-        return new WalletSnapshot(wallet.CharacterId, balances, ledger
-            .OrderByDescending(entry => entry.CreatedAtUtc)
-            .Take(20)
-            .ToArray());
-    }
-
     private static WalletSnapshot ApplyCredit(
         WalletSnapshot wallet,
         string currencyCode,
@@ -394,31 +355,4 @@ public sealed class HotelCommerceService : IHotelCommerceService
             .ToArray());
     }
 
-    private static void ApplyDebit(
-        List<WalletBalance> balances,
-        List<WalletLedgerEntry> ledger,
-        string currencyCode,
-        int amount,
-        string reasonCode)
-    {
-        if (amount <= 0)
-        {
-            return;
-        }
-
-        int index = balances.FindIndex(candidate =>
-            string.Equals(candidate.CurrencyCode, currencyCode, StringComparison.OrdinalIgnoreCase));
-        if (index < 0)
-        {
-            return;
-        }
-
-        WalletBalance current = balances[index];
-        balances[index] = current with
-        {
-            Amount = current.Amount - amount
-        };
-
-        ledger.Insert(0, new WalletLedgerEntry(currencyCode, -amount, reasonCode, DateTime.UtcNow));
-    }
 }

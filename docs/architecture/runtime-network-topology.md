@@ -3,11 +3,30 @@
 Epsilon has three runtime-facing application surfaces:
 
 - `Gateway`
-  hotel runtime and mutable gameplay actions
+  hotel runtime, realtime session transport, and mutable gameplay actions
 - `Launcher`
   client bootstrap and capability negotiation
 - `Admin API`
   operational and privileged runtime inspection
+
+## Network Plane Split
+
+Epsilon separates transport into two planes:
+
+- control plane
+  - `HTTPS`
+  - launcher bootstrap
+  - registration and login
+  - diagnostics and admin traffic
+- realtime plane
+  - `wss://`
+  - hotel session commands
+  - room join, move, and chat
+  - future game and inventory realtime commands
+
+The hotel runtime should not depend on plaintext `ws://` or `http://` for production gameplay traffic.
+
+Loopback-only insecure realtime is allowed for local development when explicitly configured.
 
 ## Shared Runtime Rule
 
@@ -51,6 +70,7 @@ This enables:
 - shared launcher/gateway session tickets
 - shared room-runtime coordination
 - cleaner operational inspection from the admin surface
+- TLS-protected realtime session traffic behind the gateway or reverse proxy
 
 ## Design Rule
 
@@ -63,3 +83,19 @@ In-memory state remains acceptable only as:
 - deterministic local development storage
 - single-process fallback
 - per-node acceleration that can be rebuilt
+
+## Transport Rule
+
+Gameplay authority should flow through the realtime plane first.
+
+HTTP protocol execution remains only as:
+
+- fallback tooling for diagnostics
+- controlled local integration support
+- a bridge while client transports are being migrated
+
+The target shape is:
+
+- launcher/bootstrap over `HTTPS`
+- hotel runtime over `wss://`
+- no public plaintext gameplay transport

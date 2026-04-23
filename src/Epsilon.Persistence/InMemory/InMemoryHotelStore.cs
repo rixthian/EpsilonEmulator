@@ -14,7 +14,14 @@ internal sealed class InMemoryHotelStore
     public Dictionary<CharacterId, List<SubscriptionRecord>> Subscriptions { get; } = [];
     public Dictionary<CharacterId, List<PetProfile>> Pets { get; } = [];
     public Dictionary<CharacterId, WalletSnapshot> Wallets { get; } = [];
+    public Dictionary<CharacterId, List<WalletLinkSnapshot>> WalletLinks { get; } = [];
+    public Dictionary<CharacterId, CollectibleOwnershipSnapshot> CollectibleOwnerships { get; } = [];
+    public Dictionary<CharacterId, CollectorProgressSnapshot> CollectorProgress { get; } = [];
+    public Dictionary<CharacterId, List<string>> PendingGiftBoxes { get; } = [];
+    public Dictionary<CharacterId, Dictionary<string, DateTime>> FactoryClaims { get; } = [];
+    public List<MarketListingState> MarketListings { get; } = [];
     public Dictionary<CharacterId, CharacterInterfacePreference> InterfacePreferences { get; } = [];
+    public Dictionary<CharacterId, CharacterChatFilterPreference> ChatFilterPreferences { get; } = [];
     public Dictionary<CharacterId, List<InventoryItemState>> InventoryItems { get; } = [];
     public Dictionary<CharacterId, List<MessengerContact>> MessengerContacts { get; } = [];
     public Dictionary<CharacterId, List<MessengerRequest>> PendingMessengerRequests { get; } = [];
@@ -51,6 +58,10 @@ internal sealed class InMemoryHotelStore
     public List<GameDefinition> GameDefinitions { get; } = [];
     public List<GameVenueDefinition> GameVenues { get; } = [];
     public List<GameSessionState> GameSessions { get; } = [];
+    public HabbowoodEventDefinition? HabbowoodDefinition { get; set; }
+    public List<HabbowoodAssetPackage> HabbowoodAssetPackages { get; } = [];
+    public List<HabbowoodMovieSubmission> HabbowoodSubmissions { get; } = [];
+    public List<HabbowoodVoteLedgerEntry> HabbowoodVotes { get; } = [];
     public List<VoucherDefinition> VoucherDefinitions { get; } = [];
     public Dictionary<CharacterId, HashSet<string>> RedeemedVoucherCodes { get; } = [];
     public List<CollectibleDefinition> CollectibleDefinitions { get; } = [];
@@ -65,4 +76,6 @@ internal sealed class InMemoryHotelStore
         new(StringComparer.OrdinalIgnoreCase);
     public long NextItemId { get; set; } = 10000;
     public long NextGroupId { get; set; } = 100;
+    public long NextHabbowoodSubmissionId { get; set; } = 1000;
+    public long NextMarketListingId { get; set; } = 1;
 }

@@ -34,6 +34,7 @@ CREATE TABLE account_security_events (
 CREATE TABLE characters (
     character_id BIGINT PRIMARY KEY,
     account_id BIGINT NOT NULL REFERENCES accounts(account_id),
+    public_id VARCHAR(64) NOT NULL UNIQUE,
     username VARCHAR(32) NOT NULL UNIQUE,
     normalized_username VARCHAR(32) NOT NULL UNIQUE,
     motto VARCHAR(128) NOT NULL DEFAULT '',
@@ -43,6 +44,7 @@ CREATE TABLE characters (
     online_status VARCHAR(16) NOT NULL DEFAULT 'offline',
     created_at_utc TIMESTAMPTZ NOT NULL,
     last_online_at_utc TIMESTAMPTZ NULL,
+    CONSTRAINT chk_characters_public_id_not_blank CHECK (btrim(public_id) <> ''),
     CONSTRAINT chk_characters_username_not_blank CHECK (btrim(username) <> ''),
     CONSTRAINT chk_characters_normalized_username_not_blank CHECK (btrim(normalized_username) <> ''),
     CONSTRAINT chk_characters_gender CHECK (gender IN ('M', 'F', 'U')),
@@ -80,6 +82,7 @@ CREATE TABLE character_sessions (
 
 CREATE INDEX idx_account_security_events_account_id ON account_security_events(account_id);
 CREATE INDEX idx_characters_account_id ON characters(account_id);
+CREATE UNIQUE INDEX idx_characters_public_id_lower ON characters(lower(public_id));
 CREATE INDEX idx_character_sessions_account_id ON character_sessions(account_id);
 CREATE INDEX idx_character_sessions_character_id ON character_sessions(character_id);
 CREATE INDEX idx_character_sessions_expires_at_utc ON character_sessions(expires_at_utc);

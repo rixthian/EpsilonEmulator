@@ -164,3 +164,31 @@ It means:
 - stable operational infrastructure
 
 That is the only maintainable way to support many eras responsibly.
+
+## Current milestone: `0.4.0-alpha.5`
+
+The project is now crossing an important boundary:
+
+- the CMS is no longer just a technical access helper
+- the launcher is no longer just a bootstrap/debug page
+- the desktop launcher exists as a real app package
+
+Current release outcome:
+
+- authenticated CMS homepage/login/register flow exists
+- launcher access code flow exists
+- native macOS launcher package exists
+- published client routing exists through launcher profiles
+
+Current release risk:
+
+- CMS and launcher app are still unstable and need another hardening pass
+- the published client is still `web-alpha`, not the final Unity/Nitro client
+- the persistence story is still not strong enough for a durable public hotel
+
+That means the next roadmap priority is not “more surfaces.”
+It is:
+
+1. harden CMS and launcher app behavior
+2. finish durable persistence for access-critical flows
+3. publish the real client package target

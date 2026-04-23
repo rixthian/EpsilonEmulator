@@ -176,6 +176,224 @@ public sealed class ClassicCommandExecutionTests
         Assert.Contains(messages, message => message.SenderName == "Lido Bar" && message.Message.Contains("ice cream", StringComparison.OrdinalIgnoreCase));
     }
 
+    [Fact]
+    public async Task Idle_TogglesIdleStatusEntry()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":idle"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Contains(actor!.StatusEntries, entry => entry.Key == "idle");
+    }
+
+    [Fact]
+    public async Task Kiss_SetsGestureStatus()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":kiss"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Contains(actor!.StatusEntries, entry => entry.Key == "gest" && entry.Value == "kiss");
+    }
+
+    [Fact]
+    public async Task Dance_SetsDanceStatus()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":dance 3"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Contains(actor!.StatusEntries, entry => entry.Key == "dance" && entry.Value == "3");
+    }
+
+    [Fact]
+    public async Task ShortcutWave_TriggersWaveStatus()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), "o/"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Contains(actor!.StatusEntries, entry => entry.Key == "wav" && entry.Value == "1");
+    }
+
+    [Fact]
+    public async Task ShortcutSmile_TriggersSmileEmote()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":D"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Contains(actor!.StatusEntries, entry => entry.Key == "gest" && entry.Value == "smile");
+    }
+
+    [Fact]
+    public async Task ShortcutBlowKiss_TriggersKissEmote()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), "_b"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Contains(actor!.StatusEntries, entry => entry.Key == "gest" && entry.Value == "kiss");
+    }
+
+    [Fact]
+    public async Task ShortcutColonX_TriggersKissEmote()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":x"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(result.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Contains(actor!.StatusEntries, entry => entry.Key == "gest" && entry.Value == "kiss");
+    }
+
+    [Fact]
+    public async Task Drop_ClearsCarryItem()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        RoomChatResult carryResult = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":carry 7"),
+            cancellationToken);
+
+        RoomChatResult dropResult = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":drop"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
+
+        Assert.True(carryResult.Succeeded);
+        Assert.True(dropResult.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Null(actor!.CarryItem);
+    }
+
+    [Fact]
+    public async Task MuteBots_SuppressesScriptedBotReplies()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomEntryService roomEntryService = services.GetRequiredService<IRoomEntryService>();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
+
+        await roomEntryService.EnterAsync(new RoomEntryRequest(new CharacterId(7), new RoomId(10), null, false), cancellationToken);
+
+        RoomChatResult muteResult = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(7), new RoomId(10), ":mutebots"),
+            cancellationToken);
+
+        RoomChatResult chatResult = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(7), new RoomId(10), "ice cream please"),
+            cancellationToken);
+
+        RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(10), 7, cancellationToken);
+        IReadOnlyList<RoomChatMessage> messages =
+            await roomRuntimeRepository.GetChatMessagesByRoomIdAsync(new RoomId(10), cancellationToken);
+
+        Assert.True(muteResult.Succeeded);
+        Assert.True(chatResult.Succeeded);
+        Assert.NotNull(actor);
+        Assert.Null(actor!.CarryItem);
+        Assert.DoesNotContain(messages, message => message.SenderName == "Lido Bar");
+    }
+
+    [Fact]
+    public async Task Respect_TransfersDailyRespectToRoomPresentUser()
+    {
+        CancellationToken cancellationToken = TestContext.Current.CancellationToken;
+        ServiceProvider services = BuildServices();
+        IRoomEntryService roomEntryService = services.GetRequiredService<IRoomEntryService>();
+        IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        ICharacterProfileRepository characterProfileRepository = services.GetRequiredService<ICharacterProfileRepository>();
+
+        await roomEntryService.EnterAsync(new RoomEntryRequest(new CharacterId(7), new RoomId(1), null, false), cancellationToken);
+
+        CharacterProfile? senderBefore = await characterProfileRepository.GetByIdAsync(new CharacterId(1), cancellationToken);
+        CharacterProfile? targetBefore = await characterProfileRepository.GetByIdAsync(new CharacterId(7), cancellationToken);
+
+        RoomChatResult result = await roomInteractionService.SendChatAsync(
+            new RoomChatRequest(new CharacterId(1), new RoomId(1), ":respect vector"),
+            cancellationToken);
+
+        CharacterProfile? senderAfter = await characterProfileRepository.GetByIdAsync(new CharacterId(1), cancellationToken);
+        CharacterProfile? targetAfter = await characterProfileRepository.GetByIdAsync(new CharacterId(7), cancellationToken);
+
+        Assert.NotNull(senderBefore);
+        Assert.NotNull(targetBefore);
+        Assert.True(result.Succeeded);
+        Assert.Contains("Respect sent to vector", result.Detail, StringComparison.OrdinalIgnoreCase);
+        Assert.NotNull(senderAfter);
+        Assert.NotNull(targetAfter);
+        Assert.Equal(senderBefore!.DailyRespectPoints - 1, senderAfter!.DailyRespectPoints);
+        Assert.Equal(targetBefore!.RespectPoints + 1, targetAfter!.RespectPoints);
+    }
+
     private static ServiceProvider BuildServices()
     {
         ConfigurationManager configuration = new();
