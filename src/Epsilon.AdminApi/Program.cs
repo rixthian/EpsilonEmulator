@@ -4,6 +4,7 @@ using Epsilon.Gateway;
 using Epsilon.Persistence;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Options;
+using System.Net;
 using System.Net.Http.Json;
 using System.Reflection;
 
@@ -309,10 +310,9 @@ app.Run();
 
 static bool IsAuthorized(HttpContext context, AdminRuntimeOptions options)
 {
-    // If no key is configured the endpoint is open (development convenience).
     if (string.IsNullOrWhiteSpace(options.AdminApiKey))
     {
-        return true;
+        return options.AllowMissingAdminApiKeyForLocalDevelopment && IsLocalRequest(context);
     }
 
     if (!context.Request.Headers.TryGetValue(AdminKeyHeaderName, out var values))
@@ -322,6 +322,19 @@ static bool IsAuthorized(HttpContext context, AdminRuntimeOptions options)
 
     string? providedKey = values.FirstOrDefault();
     return string.Equals(providedKey, options.AdminApiKey, StringComparison.Ordinal);
+}
+
+static bool IsLocalRequest(HttpContext context)
+{
+    IPAddress? remoteIp = context.Connection.RemoteIpAddress;
+    if (remoteIp is not null && IPAddress.IsLoopback(remoteIp))
+    {
+        return true;
+    }
+
+    string host = context.Request.Host.Host;
+    return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+           IPAddress.TryParse(host, out IPAddress? hostAddress) && IPAddress.IsLoopback(hostAddress);
 }
 
 static string ResolveInformationalVersion(Assembly assembly)

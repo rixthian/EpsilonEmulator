@@ -75,11 +75,11 @@ public static class DependencyInjection
                 provider,
                 inMemory: sp => sp.GetRequiredService<InMemoryGroupRepository>(),
                 postgres: sp => throw new NotSupportedException("Postgres-backed group repository is not wired yet.")));
-        services.AddSingleton<IHabbowoodRepository>(provider =>
+        services.AddSingleton<IStudioRepository>(provider =>
             ResolveProvider(
                 provider,
-                inMemory: sp => sp.GetRequiredService<InMemoryHabbowoodRepository>(),
-                postgres: sp => throw new NotSupportedException("Postgres-backed Habbowood repository is not wired yet.")));
+                inMemory: sp => sp.GetRequiredService<InMemoryStudioRepository>(),
+                postgres: sp => throw new NotSupportedException("Postgres-backed Studio repository is not wired yet.")));
         services.AddSingleton<IBadgeRepository>(provider =>
             ResolveProvider(
                 provider,
@@ -277,7 +277,7 @@ public static class DependencyInjection
         services.AddSingleton<InMemoryInventoryRepository>();
         services.AddSingleton<InMemoryMessengerRepository>();
         services.AddSingleton<InMemoryGroupRepository>();
-        services.AddSingleton<InMemoryHabbowoodRepository>();
+        services.AddSingleton<InMemoryStudioRepository>();
         services.AddSingleton<InMemoryBadgeRepository>();
         services.AddSingleton<InMemoryBadgeDefinitionRepository>();
         services.AddSingleton<InMemoryAchievementRepository>();

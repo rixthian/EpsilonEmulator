@@ -58,10 +58,10 @@ internal sealed class InMemoryHotelStore
     public List<GameDefinition> GameDefinitions { get; } = [];
     public List<GameVenueDefinition> GameVenues { get; } = [];
     public List<GameSessionState> GameSessions { get; } = [];
-    public HabbowoodEventDefinition? HabbowoodDefinition { get; set; }
-    public List<HabbowoodAssetPackage> HabbowoodAssetPackages { get; } = [];
-    public List<HabbowoodMovieSubmission> HabbowoodSubmissions { get; } = [];
-    public List<HabbowoodVoteLedgerEntry> HabbowoodVotes { get; } = [];
+    public StudioEventDefinition? StudioDefinition { get; set; }
+    public List<StudioAssetPackage> StudioAssetPackages { get; } = [];
+    public List<StudioMovieSubmission> StudioSubmissions { get; } = [];
+    public List<StudioVoteLedgerEntry> StudioVotes { get; } = [];
     public List<VoucherDefinition> VoucherDefinitions { get; } = [];
     public Dictionary<CharacterId, HashSet<string>> RedeemedVoucherCodes { get; } = [];
     public List<CollectibleDefinition> CollectibleDefinitions { get; } = [];
@@ -76,6 +76,6 @@ internal sealed class InMemoryHotelStore
         new(StringComparer.OrdinalIgnoreCase);
     public long NextItemId { get; set; } = 10000;
     public long NextGroupId { get; set; } = 100;
-    public long NextHabbowoodSubmissionId { get; set; } = 1000;
+    public long NextStudioSubmissionId { get; set; } = 1000;
     public long NextMarketListingId { get; set; } = 1;
 }

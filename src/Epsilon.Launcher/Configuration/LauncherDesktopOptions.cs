@@ -2,13 +2,13 @@ namespace Epsilon.Launcher;
 
 public sealed class LauncherDesktopOptions
 {
-    public string HotelBaseUrl { get; set; } = "http://localhost:4100";
+    public string HotelBaseUrl { get; set; } = "http://localhost:8081";
 
     public string LauncherApiBaseUrl { get; set; } = "http://localhost:5001";
 
     public string DefaultChannel { get; set; } = "stable";
 
-    public string DefaultProfileKey { get; set; } = "unity-desktop";
+    public string DefaultProfileKey { get; set; } = "loader-desktop";
 
     public LauncherLocalConfigDefaultsOptions LocalConfigDefaults { get; set; } = new();
 

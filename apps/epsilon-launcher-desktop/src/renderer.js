@@ -50,7 +50,7 @@ function bindEvents() {
       return;
     }
 
-    await window.epsilonLauncher.openUrl(`${state.localConfig.hotelBaseUrl}/sites/epsilon-access/`);
+    await window.epsilonLauncher.openUrl(state.localConfig.hotelBaseUrl);
   });
 }
 
@@ -61,7 +61,7 @@ async function bootstrap() {
     state.localConfig = await window.epsilonLauncher.getLocalConfig();
     state.desktopConfig = await window.epsilonLauncher.getDesktopConfig();
     const channelResponse = await window.epsilonLauncher.getUpdateChannels();
-    state.channels = channelResponse.channels || [];
+    state.channels = (channelResponse && channelResponse.channels) || [];
     state.profiles = [];
     state.redeemed = null;
     state.selectedProfileKey = null;
@@ -80,23 +80,27 @@ async function bootstrap() {
 }
 
 async function refreshProfiles(channel) {
-  const selectedChannel = channel || state.desktopConfig?.defaultChannel || state.localConfig?.defaultChannel || "stable";
-  const response = await window.epsilonLauncher.getLaunchProfiles({
-    platformKind: state.runtimeInfo?.platformKind,
-    channel: selectedChannel
-  });
-  state.profiles = response.profiles || [];
-  if (!state.selectedProfileKey) {
-    state.selectedProfileKey =
-      state.localConfig?.lastProfileKey ||
-      response.defaultProfileKey ||
-      state.desktopConfig?.defaultProfileKey ||
-      state.profiles[0]?.profileKey ||
-      null;
-  }
-  renderProfiles();
-  if (state.selectedProfileKey) {
-    await selectProfile(state.selectedProfileKey, false);
+  try {
+    const selectedChannel = channel || state.desktopConfig?.defaultChannel || state.localConfig?.defaultChannel || "stable";
+    const response = await window.epsilonLauncher.getLaunchProfiles({
+      platformKind: state.runtimeInfo?.platformKind,
+      channel: selectedChannel
+    });
+    state.profiles = (response && response.profiles) || [];
+    if (!state.selectedProfileKey) {
+      state.selectedProfileKey =
+        state.localConfig?.lastProfileKey ||
+        (response && response.defaultProfileKey) ||
+        state.desktopConfig?.defaultProfileKey ||
+        state.profiles[0]?.profileKey ||
+        null;
+    }
+    renderProfiles();
+    if (state.selectedProfileKey) {
+      await selectProfile(state.selectedProfileKey, false);
+    }
+  } catch (error) {
+    addLog(`Error cargando perfiles: ${normalizeError(error)}`);
   }
 }
 
@@ -202,12 +206,17 @@ function renderProfileSummary(forcedMessage) {
 
   const result = state.selectedProfileResult;
   const profile = result.profile || {};
+  const isUnityWeb = (profile.clientKind || "").toLowerCase() === "unity-web";
   const lines = [
     `Perfil: ${profile.displayName || profile.profileKey || "-"}`,
     `Cliente: ${profile.clientKind || "-"}`,
     `Estrategia: ${result.launchStrategy || "-"}`,
     `Arranque inmediato: ${result.canStartNow ? "sí" : "no"}`
   ];
+
+  if (isUnityWeb) {
+    lines.push("Modo: Abre el juego Unity en una ventana del launcher (navegador integrado).");
+  }
 
   if (result.blockingReason) {
     lines.push(`Bloqueo: ${result.blockingReason}`);
@@ -258,12 +267,13 @@ async function launchClient() {
       clientKind: profile.clientKind
     });
 
+    const isUnityWeb = (profile.clientKind || "").toLowerCase() === "unity-web";
     await window.epsilonLauncher.openClient({
       launchUrl: result.launchUrl,
       title: profile.displayName || "Epsilon Hotel"
     });
 
-    addLog(`Cliente abierto: ${profile.displayName || profile.profileKey}.`);
+    addLog(`Cliente abierto: ${profile.displayName || profile.profileKey}${isUnityWeb ? " (Unity Web — ventana integrada)" : ""}.`);
     setRedeemBanner("Cliente abierto. La presencia real depende ahora del emulador.", "success");
   } catch (error) {
     setRedeemBanner(`No se pudo abrir el cliente: ${normalizeError(error)}`, "error");

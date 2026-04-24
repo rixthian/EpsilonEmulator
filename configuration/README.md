@@ -37,7 +37,6 @@ Copy the templates you need:
 - `launcher.template.json` -> `launcher.json`
 - `admin.template.json` -> `admin.json`
 - `features.template.json` -> `features.json`
-- `brain.template.json` -> `brain.json`
 
 ## Purpose
 
@@ -54,8 +53,6 @@ The central split is:
   admin API key and admin service settings
 - `features.json`
   hotel/game/bot/economy/console/network feature policy
-- `brain.json`
-  source-watch automation, SWF toolchain policy, and update-intelligence settings
 
 ## Operational model
 
@@ -76,8 +73,6 @@ Use configuration by responsibility:
 - `features.json`
   for product policy:
   bots, games, moderation, economy, welcome flow, roleplay-specific future features
-- `brain.json`
-  for update automation policy:
   official source watch profiles, output directories, body-hash limits, and protected-asset handling
 
 ## Environment guidance

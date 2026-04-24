@@ -14,7 +14,7 @@ Public Partial Class App
 
         desktop = TryCast(ApplicationLifetime, IClassicDesktopStyleApplicationLifetime)
         if desktop IsNot Nothing Then
-            desktop.MainWindow = New MainWindow()
+            desktop.MainWindow = New LauncherWindow()
         End If
 
         MyBase.OnFrameworkInitializationCompleted()

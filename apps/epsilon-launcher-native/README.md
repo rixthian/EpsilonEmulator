@@ -1,10 +1,10 @@
 # Epsilon Launcher Native
 
-Base project imported from `HabboCustomLauncherBeta` and reconfigured for Epsilon.
+Native desktop launcher shell for Epsilon.
 
 Current behavior:
 
-- uses the Avalonia/VB launcher shell from the original project
+- uses an Avalonia/VB launcher shell
 - redeems one-time launcher codes issued by the CMS
 - reads launch profiles from the Epsilon launcher backend
 - opens the published client for the selected profile
@@ -15,7 +15,7 @@ Current status:
 - usable for development handoff and desktop launcher testing
 - packaged as a macOS `.app` and `.dmg`
 - still unstable as a product surface
-- still waiting for final Unity/Nitro client targets
+- still waiting for final client targets
 
 Current backend contract:
 
@@ -30,8 +30,8 @@ Local development:
 
 ```bash
 cd /Users/yasminluengo/Documents/Playground/EpsilonEmulator/apps/epsilon-launcher-native
-dotnet build HabboCustomLauncher.sln
-dotnet run --project HabboCustomLauncher.vbproj
+dotnet build EpsilonLauncher.sln
+dotnet run --project EpsilonLauncher.vbproj
 ```
 
 Build macOS app bundle + DMG:

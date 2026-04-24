@@ -169,10 +169,17 @@ app.MapPost("/auth/register", async (
 });
 
 app.MapPost("/auth/development/login", async (
+    HttpContext httpContext,
     AuthenticationRequest request,
     IAuthenticator authenticator,
+    Microsoft.Extensions.Options.IOptions<AuthOptions> authOptions,
     CancellationToken cancellationToken) =>
 {
+    if (!IsDevelopmentAuthRequestAllowed(httpContext, authOptions.Value))
+    {
+        return Results.NotFound();
+    }
+
     AuthenticationResult result = await authenticator.AuthenticateAsync(request, cancellationToken);
 
     return result.Succeeded
@@ -181,10 +188,17 @@ app.MapPost("/auth/development/login", async (
 });
 
 app.MapGet("/auth/development/sessions/{ticket}", async (
+    HttpContext httpContext,
     string ticket,
     ISessionStore sessionStore,
+    Microsoft.Extensions.Options.IOptions<AuthOptions> authOptions,
     CancellationToken cancellationToken) =>
 {
+    if (!IsDevelopmentAuthRequestAllowed(httpContext, authOptions.Value))
+    {
+        return Results.NotFound();
+    }
+
     SessionTicket? session = await sessionStore.FindByTicketAsync(ticket, cancellationToken);
     return session is null ? Results.NotFound() : Results.Ok(session);
 });
@@ -884,10 +898,10 @@ app.MapPost("/hotel/groups/{groupId:long}/room", async (
         : Results.Ok(snapshot);
 });
 
-app.MapGet("/hotel/events/habbowood", async (
+app.MapGet("/hotel/events/studio", async (
     HttpContext httpContext,
     ISessionStore sessionStore,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
@@ -896,27 +910,27 @@ app.MapGet("/hotel/events/habbowood", async (
         return Results.Unauthorized();
     }
 
-    HabbowoodEventSnapshot? snapshot = await habbowoodService.GetSnapshotAsync(
+    StudioEventSnapshot? snapshot = await studioService.GetSnapshotAsync(
         new CharacterId(session.CharacterId),
         cancellationToken);
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
-app.MapGet("/hotel/events/habbowood/leaderboard", async (
-    IHabbowoodService habbowoodService,
+app.MapGet("/hotel/events/studio/leaderboard", async (
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
-    IReadOnlyList<HabbowoodLeaderboardEntry> leaderboard =
-        await habbowoodService.GetLeaderboardAsync(cancellationToken);
+    IReadOnlyList<StudioLeaderboardEntry> leaderboard =
+        await studioService.GetLeaderboardAsync(cancellationToken);
     return Results.Ok(leaderboard);
 });
 
-app.MapGet("/hotel/events/habbowood/submissions", async (
+app.MapGet("/hotel/events/studio/submissions", async (
     HttpContext httpContext,
     bool includePending,
     ISessionStore sessionStore,
     IAccessControlService accessControlService,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
@@ -931,26 +945,26 @@ app.MapGet("/hotel/events/habbowood/submissions", async (
         StaffCapabilityKeys.EventsManage,
         cancellationToken);
 
-    IReadOnlyList<HabbowoodSubmissionSnapshot> submissions = await habbowoodService.GetSubmissionsAsync(
+    IReadOnlyList<StudioSubmissionSnapshot> submissions = await studioService.GetSubmissionsAsync(
         includePending && canManage,
         cancellationToken);
     return Results.Ok(submissions);
 });
 
-app.MapGet("/hotel/events/habbowood/submissions/{slug}", async (
+app.MapGet("/hotel/events/studio/submissions/{slug}", async (
     string slug,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
-    HabbowoodSubmissionSnapshot? snapshot = await habbowoodService.GetSubmissionAsync(slug, cancellationToken);
+    StudioSubmissionSnapshot? snapshot = await studioService.GetSubmissionAsync(slug, cancellationToken);
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
-app.MapPost("/hotel/events/habbowood/submissions", async (
+app.MapPost("/hotel/events/studio/submissions", async (
     HttpContext httpContext,
-    SubmitHabbowoodMovieInput input,
+    SubmitStudioMovieInput input,
     ISessionStore sessionStore,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
@@ -959,8 +973,8 @@ app.MapPost("/hotel/events/habbowood/submissions", async (
         return Results.Unauthorized();
     }
 
-    SubmitHabbowoodMovieResult result = await habbowoodService.SubmitAsync(
-        new SubmitHabbowoodMovieRequest(
+    SubmitStudioMovieResult result = await studioService.SubmitAsync(
+        new SubmitStudioMovieRequest(
             new CharacterId(session.CharacterId),
             input.Title,
             input.Synopsis,
@@ -974,12 +988,12 @@ app.MapPost("/hotel/events/habbowood/submissions", async (
         : Results.BadRequest(result);
 });
 
-app.MapPost("/hotel/events/habbowood/submissions/{slug}/vote", async (
+app.MapPost("/hotel/events/studio/submissions/{slug}/vote", async (
     HttpContext httpContext,
     string slug,
-    VoteHabbowoodMovieInput input,
+    VoteStudioMovieInput input,
     ISessionStore sessionStore,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
@@ -988,8 +1002,8 @@ app.MapPost("/hotel/events/habbowood/submissions/{slug}/vote", async (
         return Results.Unauthorized();
     }
 
-    VoteHabbowoodMovieResult result = await habbowoodService.VoteAsync(
-        new VoteHabbowoodMovieRequest(
+    VoteStudioMovieResult result = await studioService.VoteAsync(
+        new VoteStudioMovieRequest(
             new CharacterId(session.CharacterId),
             slug,
             input.VoteDelta,
@@ -1001,13 +1015,13 @@ app.MapPost("/hotel/events/habbowood/submissions/{slug}/vote", async (
         : Results.BadRequest(result);
 });
 
-app.MapPost("/hotel/events/habbowood/submissions/{slug}/publish", async (
+app.MapPost("/hotel/events/studio/submissions/{slug}/publish", async (
     HttpContext httpContext,
     string slug,
-    ModerateHabbowoodSubmissionInput input,
+    ModerateStudioSubmissionInput input,
     ISessionStore sessionStore,
     IAccessControlService accessControlService,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
@@ -1021,7 +1035,7 @@ app.MapPost("/hotel/events/habbowood/submissions/{slug}/publish", async (
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
-    HabbowoodSubmissionSnapshot? snapshot = await habbowoodService.PublishAsync(
+    StudioSubmissionSnapshot? snapshot = await studioService.PublishAsync(
         slug,
         new CharacterId(session.CharacterId),
         input.ModerationNote,
@@ -1029,13 +1043,13 @@ app.MapPost("/hotel/events/habbowood/submissions/{slug}/publish", async (
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
-app.MapPost("/hotel/events/habbowood/submissions/{slug}/reject", async (
+app.MapPost("/hotel/events/studio/submissions/{slug}/reject", async (
     HttpContext httpContext,
     string slug,
-    ModerateHabbowoodSubmissionInput input,
+    ModerateStudioSubmissionInput input,
     ISessionStore sessionStore,
     IAccessControlService accessControlService,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
@@ -1049,7 +1063,7 @@ app.MapPost("/hotel/events/habbowood/submissions/{slug}/reject", async (
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
-    HabbowoodSubmissionSnapshot? snapshot = await habbowoodService.RejectAsync(
+    StudioSubmissionSnapshot? snapshot = await studioService.RejectAsync(
         slug,
         new CharacterId(session.CharacterId),
         input.ModerationNote,
@@ -1057,12 +1071,12 @@ app.MapPost("/hotel/events/habbowood/submissions/{slug}/reject", async (
     return snapshot is null ? Results.NotFound() : Results.Ok(snapshot);
 });
 
-app.MapPost("/hotel/events/habbowood/activation", async (
+app.MapPost("/hotel/events/studio/activation", async (
     HttpContext httpContext,
-    SetHabbowoodActivationInput input,
+    SetStudioActivationInput input,
     ISessionStore sessionStore,
     IAccessControlService accessControlService,
-    IHabbowoodService habbowoodService,
+    IStudioService studioService,
     CancellationToken cancellationToken) =>
 {
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
@@ -1076,7 +1090,7 @@ app.MapPost("/hotel/events/habbowood/activation", async (
         return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
-    HabbowoodEventDefinition? definition = await habbowoodService.SetActivationAsync(
+    StudioEventDefinition? definition = await studioService.SetActivationAsync(
         input.IsActive,
         new CharacterId(session.CharacterId),
         cancellationToken);
@@ -1703,6 +1717,29 @@ static object BuildConnectionSnapshot(SessionTicket session, RoomId? roomId)
         connected = true,
         currentRoomId = roomId?.Value
     };
+}
+
+static bool IsDevelopmentAuthRequestAllowed(HttpContext context, AuthOptions options)
+{
+    if (options.AllowRemoteDevelopmentAuth)
+    {
+        return true;
+    }
+
+    return IsLocalRequest(context);
+}
+
+static bool IsLocalRequest(HttpContext context)
+{
+    IPAddress? remoteIp = context.Connection.RemoteIpAddress;
+    if (remoteIp is not null && IPAddress.IsLoopback(remoteIp))
+    {
+        return true;
+    }
+
+    string host = context.Request.Host.Host;
+    return string.Equals(host, "localhost", StringComparison.OrdinalIgnoreCase) ||
+           IPAddress.TryParse(host, out IPAddress? hostAddress) && IPAddress.IsLoopback(hostAddress);
 }
 
 static IResult ToHttpResult(ProtocolCommandExecutionResult result)

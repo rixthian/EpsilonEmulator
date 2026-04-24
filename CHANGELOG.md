@@ -4,6 +4,38 @@ All notable changes to Epsilon Emulator should be documented in this file.
 
 The format is intentionally simple while the project is still in alpha.
 
+## [0.4.0-alpha.6] - 2026-04-24
+
+### Added
+
+- official lightweight Epsilon CMS logo under `assets/epsilon-cms-logo.gif`
+- official lightweight Epsilon Emulator repository logo under `assets/epsilon-emulator-logo.gif`
+- release documentation for `0.4.0-alpha.6` with requirements, verification notes, known risks, and development progress by system
+- README development graph showing current alpha coverage across architecture, core runtime, launcher, content, rooms, CMS, persistence, and protocol
+
+### Changed
+
+- CMS runtime sanitizer now installs the official GIF logo into the active CMS container
+- CMS settings now use `Epsilon Web Management System` naming and remove active low-value legacy vendor residue
+- README now presents `0.4.0-alpha.6` as the active release
+- `.NET` package metadata now reports `0.4.0-alpha.6`
+- roadmap now frames the current milestone around CMS identity, runtime sanitization, and remaining CMS hardening
+- repository presentation no longer depends on the older heavy PNG logo asset
+
+### Hygiene
+
+- reduced active brand asset weight by replacing the large repository PNG with small pixel GIF assets
+- kept CMS/launcher/game authority boundaries explicit:
+  - CMS authenticates and presents access
+  - launcher starts the loader/client
+  - emulator confirms actual hotel presence
+
+### Known Issues
+
+- CMS is usable locally, but registration/access hardening and production security review are still required
+- desktop launcher packaging still needs final release-signing/notarization work
+- the current loader remains provisional until the final game client package is published
+
 ## [0.4.0-alpha.5] - 2026-04-23
 
 ### Added
@@ -161,7 +193,7 @@ The format is intentionally simple while the project is still in alpha.
 - centralized package version management for the `.NET 10` toolchain
 - protocol and gateway runtime now report an explicit application version
 - GitHub-ready project presentation with branded `README` content
-- repository logo asset under `assets/epsilon-logo.png`
+- repository logo asset, later superseded by the lightweight `assets/epsilon-emulator-logo.gif`
 
 ### Changed
 

@@ -45,12 +45,12 @@ The emulator needs tight coordination between packets, simulation, and persisten
 - `Persistence` is designed to support document-oriented storage as the long-term default.
 - `AdminApi` exposes moderation and operational controls.
 
-The packet-to-application translation boundary is defined in [client-hotel-flow-blueprint.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-hotel-flow-blueprint.md).
-Runtime surfaces above the packet layer are defined in [hotel-runtime-domains.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/hotel-runtime-domains.md).
-The persistence direction is defined in [document-storage-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/document-storage-strategy.md).
+The packet-to-application translation boundary is defined in [client-entry-flow.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-entry-flow.md).
+Runtime surfaces above the packet layer are defined in [runtime-domains.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/runtime-domains.md).
+The persistence direction is defined in [document-storage.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/document-storage.md).
 
 ## Compatibility Strategy
 
 The initial compatibility target is Flash `RELEASE63`. Later versions should be supported through additional protocol adapters, not by polluting the core domain with version switches.
 
-Compatibility does not mean dependence on Flash as the runtime platform. The server strategy is defined in [client-platform-strategy.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-platform-strategy.md).
+Compatibility does not mean dependence on Flash as the runtime platform. The server strategy is defined in [client-platform.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-platform.md).

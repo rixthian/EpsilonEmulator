@@ -1,0 +1,79 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <RootNamespace>EpsilonLauncher</RootNamespace>
+    <ApplicationIcon>Assets\app-icon.ico</ApplicationIcon>
+    <AssemblyName>EpsilonLauncher</AssemblyName>
+    <Product>Epsilon Launcher</Product>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Remove="Assets\source-link-hover.png" />
+    <None Remove="Assets\source-link.png" />
+    <None Remove="Assets\footer-mark-hover.png" />
+    <None Remove="Assets\game-logo-hover.png" />
+    <None Remove="Assets\client-runtime-plus.zip" />
+    <None Remove="Assets\app-icon.png" />
+    <None Remove="Assets\Segoe-UI-Variable-Static-Text.ttf" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="AirSwfDecryptor">
+      <HintPath>Assets\client-runtime-bridge.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\source-link-hover.png" />
+    <AvaloniaResource Include="Assets\source-link.png" />
+    <AvaloniaResource Include="Assets\footer-mark-hover.png" />
+    <AvaloniaResource Include="Assets\footer-mark.png" />
+    <AvaloniaResource Include="Assets\game-logo-hover.png" />
+    <AvaloniaResource Include="Assets\game-logo.png" />
+    <AvaloniaResource Include="Assets\client-runtime-plus.zip" />
+    <AvaloniaResource Include="Assets\app-icon.png" />
+    <AvaloniaResource Include="Assets\Segoe-UI-Variable-Static-Text.ttf" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'win-x86' OR '$(Configuration)' == 'Debug'">
+    <AvaloniaResource Include="Assets\client-runtime-windows-x86.zip" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-x64' OR '$(Configuration)' == 'Debug'">
+    <AvaloniaResource Include="Assets\client-runtime-linux-x64.zip" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'linux-arm64' OR '$(Configuration)' == 'Debug'">
+    <AvaloniaResource Include="Assets\client-runtime-linux-arm64.zip" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-x64' OR '$(Configuration)' == 'Debug'">
+    <AvaloniaResource Include="Assets\client-runtime-macos.zip" />
+    <AvaloniaResource Include="Assets\client-shortcut-macos.zip" />
+  </ItemGroup>
+
+  <ItemGroup Condition="'$(RuntimeIdentifier)' == 'osx-arm64' OR '$(Configuration)' == 'Debug'">
+    <AvaloniaResource Include="Assets\client-runtime-macos.zip" />
+    <AvaloniaResource Include="Assets\client-shortcut-macos.zip" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\app-icon.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <TrimmerRootAssembly Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--Condition below is needed to remove Avalonia.Diagnostics package from build output in Release configuration.-->
+    <PackageReference Include="Avalonia.Desktop" />
+    <PackageReference Include="Avalonia.Themes.Fluent" />
+  </ItemGroup>
+
+</Project>

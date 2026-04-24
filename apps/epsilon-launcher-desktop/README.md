@@ -30,6 +30,6 @@ npm start
 
 ## Backend prerequisites
 
-- CMS running on `http://127.0.0.1:4100`
+- CMS running on `http://127.0.0.1:8081`
 - launcher backend running on `http://127.0.0.1:5001`
 - gateway running on `http://127.0.0.1:5100`

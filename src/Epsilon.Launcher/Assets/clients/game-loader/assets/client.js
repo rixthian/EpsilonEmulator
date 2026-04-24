@@ -3,20 +3,35 @@ import { LoaderPhase, LoaderStateMachine } from "./modules/loader-state-machine.
 import { PopupManager } from "./modules/popup-manager.js";
 import { ProgressTracker } from "./modules/progress-tracker.js";
 import { RoomRuntimeView } from "./modules/room-runtime-view.js";
+import { UnityPopupManager } from "./modules/unity-popup.js";
 
 const params = new URLSearchParams(window.location.search);
 const ticket = params.get("ticket") || "";
 let runtimeRoomId = normalizeRoomId(params.get("roomId"));
 let pollHandle = null;
+let pollActive = false;
+let unityWebUrl = null;
 
 const view = new RoomRuntimeView(document);
 const progress = new ProgressTracker(document);
 const popup = new PopupManager(document.body);
+const unityPopup = new UnityPopupManager(document.body);
 const api = new LauncherApiClient({
   ticket,
   profileKey: "loader-desktop",
   clientKind: "loader"
 });
+
+const unityLaunchSection = document.getElementById("unity-launch-section");
+const unityLaunchButton = document.getElementById("unity-launch-button");
+
+if (unityLaunchButton) {
+  unityLaunchButton.addEventListener("click", () => {
+    if (unityWebUrl) {
+      unityPopup.show(unityWebUrl);
+    }
+  });
+}
 
 const sessionContext = {
   username: null,
@@ -76,6 +91,7 @@ async function boot() {
     const alreadyPresent = await synchronizeRuntime({ allowMissingRoom: true });
     if (alreadyPresent) {
       state.transition(LoaderPhase.PresenceConfirmed, { roomId: runtimeRoomId });
+      activateUnityLaunchButton();
       startRuntimePolling();
       return;
     }
@@ -94,6 +110,7 @@ async function boot() {
     const confirmed = await waitForPresence();
     if (confirmed) {
       state.transition(LoaderPhase.PresenceConfirmed, { roomId: runtimeRoomId });
+      activateUnityLaunchButton();
       await api.sendTelemetry("room_presence_confirmed", "El emulador confirmó presencia real del avatar.", {
         roomId: String(runtimeRoomId)
       });
@@ -136,6 +153,37 @@ function applyBootstrapContext(bootstrap) {
   if (bootstrap && bootstrap.session && bootstrap.session.characterId) {
     sessionContext.characterId = Number(bootstrap.session.characterId) || null;
   }
+
+  if (bootstrap && bootstrap.endpointMap) {
+    const unityEntry = bootstrap.endpointMap["unity_web"] || bootstrap.endpointMap["unity-web"] || null;
+    if (unityEntry) {
+      unityWebUrl = typeof unityEntry === "string"
+        ? unityEntry
+        : (unityEntry.url || unityEntry.href || null);
+    }
+  }
+
+  if (!unityWebUrl && bootstrap && bootstrap.profile) {
+    const clientKind = bootstrap.profile.clientKind || bootstrap.profile.ClientKind || "";
+    if (clientKind === "unity-web" && bootstrap.entryAssetUrl) {
+      unityWebUrl = bootstrap.entryAssetUrl.includes("ticket=")
+        ? bootstrap.entryAssetUrl
+        : `${bootstrap.entryAssetUrl}${bootstrap.entryAssetUrl.includes("?") ? "&" : "?"}ticket=${encodeURIComponent(ticket)}`;
+    }
+  }
+}
+
+function activateUnityLaunchButton() {
+  if (!unityLaunchSection || !unityLaunchButton) {
+    return;
+  }
+
+  if (!unityWebUrl) {
+    return;
+  }
+
+  unityLaunchSection.style.display = "flex";
+  unityLaunchButton.disabled = false;
 }
 
 async function ensureRoomEntry() {
@@ -192,10 +240,16 @@ function startRuntimePolling() {
   }
 
   pollHandle = window.setInterval(async () => {
+    if (pollActive) {
+      return;
+    }
+
+    pollActive = true;
     try {
       const confirmed = await synchronizeRuntime({ allowMissingRoom: false });
       if (confirmed && !state.snapshot.hasRealPresence) {
         state.transition(LoaderPhase.PresenceConfirmed, { roomId: runtimeRoomId });
+        activateUnityLaunchButton();
         await api.sendTelemetry("room_presence_confirmed", "Presencia confirmada durante sincronización continua.", {
           roomId: String(runtimeRoomId)
         });
@@ -211,6 +265,8 @@ function startRuntimePolling() {
           error: stringifyError(error)
         });
       }
+    } finally {
+      pollActive = false;
     }
   }, 4000);
 }

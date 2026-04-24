@@ -165,25 +165,30 @@ It means:
 
 That is the only maintainable way to support many eras responsibly.
 
-## Current milestone: `0.4.0-alpha.5`
+## Current milestone: `0.4.0-alpha.6`
 
 The project is now crossing an important boundary:
 
-- the CMS is no longer just a technical access helper
-- the launcher is no longer just a bootstrap/debug page
-- the desktop launcher exists as a real app package
+- the CMS has an Epsilon identity instead of inherited development branding
+- the active web surface uses a retro 2007 visual direction over a modern runtime
+- the launcher remains the boundary for starting the game loader
+- the emulator remains the only authority for real hotel presence
 
 Current release outcome:
 
 - authenticated CMS homepage/login/register flow exists
+- official CMS and repository pixel logos are installed
+- the language selector is limited to English, Spanish, Portuguese, French, and Russian
+- active CMS settings/views are sanitized for low-value legacy residue
 - launcher access code flow exists
 - native macOS launcher package exists
 - published client routing exists through launcher profiles
 
 Current release risk:
 
-- CMS and launcher app are still unstable and need another hardening pass
-- the published loader is still `game-loader`, not the final Unity/Nitro client package
+- CMS is cleaner and usable locally, but still needs registration/access hardening and production security review
+- launcher app is still unstable and needs another hardening pass
+- the published loader is still `game-loader`, not the final client package
 - the persistence story is still not strong enough for a durable public hotel
 
 That means the next roadmap priority is not “more surfaces.”

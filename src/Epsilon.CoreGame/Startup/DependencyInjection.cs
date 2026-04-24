@@ -11,7 +11,7 @@ public static class DependencyInjection
         services.AddSingleton<IAccessControlService, AccessControlService>();
         services.AddSingleton<IBadgeCatalogService, BadgeCatalogService>();
         services.AddSingleton<IGroupService, GroupService>();
-        services.AddSingleton<IHabbowoodService, HabbowoodService>();
+        services.AddSingleton<IStudioService, StudioService>();
         services.AddSingleton<IHotelReadService, HotelReadService>();
         services.AddSingleton<IHotelBootstrapService, HotelBootstrapService>();
         services.AddSingleton<IHotelSessionSnapshotService, HotelSessionSnapshotService>();

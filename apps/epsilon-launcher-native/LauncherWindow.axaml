@@ -1,0 +1,143 @@
+<Window x:Class="EpsilonLauncher.LauncherWindow"
+        xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:EpsilonLauncher"
+        x:Name="Window"
+        mc:Ignorable="d"
+        Width="860"
+        Height="720"
+        MinWidth="820"
+        MinHeight="680"
+        CanResize="True"
+        Title="Epsilon Launcher"
+        WindowStartupLocation="CenterScreen"
+        Background="#08131E"
+        FontFamily="{StaticResource NewSegoeUI}"
+        Icon="/Assets/app-icon.ico">
+  <Grid RowDefinitions="Auto,*,Auto">
+    <Border Grid.Row="0" Background="#14385A" Padding="24,18">
+      <Grid ColumnDefinitions="Auto,*,Auto" VerticalAlignment="Center">
+        <Image x:Name="GameLogoButton" Source="/Assets/game-logo.png" Stretch="None" VerticalAlignment="Center"/>
+        <StackPanel Grid.Column="1" Margin="20,0,20,0" VerticalAlignment="Center">
+          <TextBlock Text="EPSILON LAUNCHER" Foreground="#FFD64D" FontSize="14" FontWeight="Bold"/>
+          <TextBlock Text="Launcher desktop conectado al emulador" Foreground="#EEF4FB" FontSize="28" FontWeight="Bold"/>
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8" VerticalAlignment="Center">
+          <local:LauncherButton x:Name="OpenCmsButton" Text="Abrir CMS" BackColor="#35536D" Height="40" Width="120"/>
+          <local:LauncherButton x:Name="RefreshButton" Text="Actualizar" BackColor="#1F9D5B" Height="40" Width="120"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <ScrollViewer Grid.Row="1"
+                  Margin="24"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+    <Grid ColumnDefinitions="1.2*,0.9*" RowDefinitions="Auto,Auto,*,Auto">
+      <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Acceso por código único" Foreground="#EEF4FB" FontSize="26" FontWeight="Bold"/>
+          <TextBlock Text="La CMS genera el código. Esta app lo canjea, inicia el juego y lanza el loader correcto. El usuario no está dentro del hotel hasta que el emulador confirme presencia real." Foreground="#9FC0D8" TextWrapping="Wrap" FontSize="16"/>
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBox x:Name="AccessCodeTextBox"
+                     Watermark="88D4-CA17-2F06"
+                     Height="44"
+                     FontSize="18"
+                     Background="#08131E"
+                     Foreground="#EEF4FB"
+                     BorderBrush="#3F5C78"
+                     Margin="0,0,10,0"/>
+            <local:LauncherButton x:Name="RedeemCodeButton" Grid.Column="1" Text="Canjear código" BackColor="#1F9D5B" Height="44" Width="170"/>
+          </Grid>
+          <Border Background="#1A3D5D" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Padding="14">
+            <TextBlock x:Name="StatusTextBlock" Foreground="#EEF4FB" TextWrapping="Wrap" FontSize="15"/>
+          </Border>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Grid.Column="0" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Modo de inicio" Foreground="#EEF4FB" FontSize="22" FontWeight="Bold"/>
+          <TextBlock Text="La app decide cómo iniciar el juego y lanzar el loader. Eso no equivale a presencia dentro del hotel." Foreground="#9FC0D8" TextWrapping="Wrap" FontSize="15"/>
+          <ComboBox x:Name="ProfileComboBox" Height="42" Background="#08131E" Foreground="#EEF4FB"/>
+          <Border Background="#08131E" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Padding="14">
+            <TextBlock x:Name="ProfileSummaryTextBlock" Foreground="#D8E6F2" TextWrapping="Wrap" FontSize="15"/>
+          </Border>
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <local:LauncherButton x:Name="LaunchClientButton" Text="Iniciar juego" BackColor="#1F9D5B" Height="44" Width="160" IsButtonDisabled="True"/>
+            <local:LauncherButton x:Name="SaveConfigButton" Text="Guardar config" BackColor="#35536D" Height="44" Width="150"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="1" Grid.Column="1" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Config local" Foreground="#EEF4FB" FontSize="22" FontWeight="Bold"/>
+          <TextBlock Text="Estas rutas son locales a esta máquina. No definen la verdad del hotel." Foreground="#9FC0D8" TextWrapping="Wrap" FontSize="15"/>
+          <TextBlock Text="Hotel Base URL" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+          <TextBox x:Name="HotelBaseUrlTextBox" Height="40" Background="#08131E" Foreground="#EEF4FB"/>
+          <TextBlock Text="Launcher API URL" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+          <TextBox x:Name="LauncherApiBaseUrlTextBox" Height="40" Background="#08131E" Foreground="#EEF4FB"/>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="2" Grid.Column="0" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Estado" Foreground="#EEF4FB" FontSize="22" FontWeight="Bold"/>
+          <UniformGrid Columns="2" Rows="2">
+            <Border Background="#1A3D5D" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Margin="0,0,10,10" Padding="14">
+              <StackPanel>
+                <TextBlock Text="Plataforma" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+                <TextBlock x:Name="PlatformValueTextBlock" Foreground="#EEF4FB" FontSize="20" FontWeight="Bold"/>
+              </StackPanel>
+            </Border>
+            <Border Background="#1A3D5D" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Margin="0,0,0,10" Padding="14">
+              <StackPanel>
+                <TextBlock Text="Canal" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+                <TextBlock x:Name="ChannelValueTextBlock" Foreground="#EEF4FB" FontSize="20" FontWeight="Bold"/>
+              </StackPanel>
+            </Border>
+            <Border Background="#1A3D5D" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Margin="0,0,10,0" Padding="14">
+              <StackPanel>
+                <TextBlock Text="Modo por defecto" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+                <TextBlock x:Name="DefaultProfileValueTextBlock" Foreground="#EEF4FB" FontSize="20" FontWeight="Bold" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+            <Border Background="#1A3D5D" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Padding="14">
+              <StackPanel>
+                <TextBlock Text="Conexión real" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+                <TextBlock x:Name="RedeemedValueTextBlock" Foreground="#EEF4FB" FontSize="20" FontWeight="Bold"/>
+              </StackPanel>
+            </Border>
+          </UniformGrid>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="2" Grid.Column="1" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Canales" Foreground="#EEF4FB" FontSize="22" FontWeight="Bold"/>
+          <ItemsControl x:Name="ChannelsItemsControl"/>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Row="3" Grid.ColumnSpan="2" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
+        <StackPanel Spacing="12">
+          <TextBlock Text="Actividad" Foreground="#EEF4FB" FontSize="22" FontWeight="Bold"/>
+          <ScrollViewer Height="130">
+            <TextBlock x:Name="ActivityLogTextBlock" Foreground="#D8E6F2" TextWrapping="Wrap" FontSize="14"/>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
+    </Grid>
+    </ScrollViewer>
+
+    <Grid Grid.Row="2">
+      <Grid Background="Black" Opacity="0.5"/>
+      <local:LauncherButton IsButtonDisabled="False" x:Name="FooterButton" Text="Launcher desktop for Epsilon Hotel" BackColor="Transparent" Opacity="0.8" HorizontalAlignment="Center" VerticalAlignment="Center" Height="40" Margin="0,0,13,0"/>
+      <Image Name="GithubButton" Source="/Assets/source-link.png" Stretch="None" Margin="15,10,0,10" HorizontalAlignment="Left"/>
+      <Image Name="VendorFooterButton" Source="/Assets/footer-mark.png" Stretch="None" Margin="0,10,15,10" HorizontalAlignment="Right"/>
+    </Grid>
+  </Grid>
+</Window>

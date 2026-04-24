@@ -360,10 +360,10 @@ internal static class InMemoryHotelSeedBuilder
             new SupportTopicEntry(3, "How to report harassment", "Use the support button and select the abuse category.", 2, false, true)
         ]);
 
-        store.HabbowoodDefinition = new HabbowoodEventDefinition(
-            EventKey: "habbowood",
-            DisplayName: "Habbowood Revival",
-            Slug: "habbowood",
+        store.StudioDefinition = new StudioEventDefinition(
+            EventKey: "studio",
+            DisplayName: "Studio Showcase",
+            Slug: "studio",
             Description: "Classic movie-making event rebuilt inside the Epsilon hotel platform.",
             LobbyRoomId: new RoomId(10),
             IsActive: true,
@@ -373,20 +373,20 @@ internal static class InMemoryHotelSeedBuilder
             ActivatedAtUtc: DateTime.UtcNow.AddDays(-7),
             ActivatedByCharacterId: managerCharacterId);
 
-        store.HabbowoodAssetPackages.AddRange(
+        store.StudioAssetPackages.AddRange(
         [
-            new HabbowoodAssetPackage("habbowood-studio-classic", "Studio Runtime", "studio", 3, "Main, intro, and studio animation runtime packages."),
-            new HabbowoodAssetPackage("habbowood-actors-classic", "Actor Pack", "actors", 13, "Classic actor packages preserved from the event runtime."),
-            new HabbowoodAssetPackage("habbowood-ambient-classic", "Ambient Pack", "ambient", 5, "Ambient scene layers and event atmosphere assets."),
-            new HabbowoodAssetPackage("habbowood-sound-classic", "Sound Pack", "sound", 13, "Intro soundtrack and event sound-effect package inventory."),
-            new HabbowoodAssetPackage("habbowood-localization-classic", "Localization Pack", "localization", 2, "Localized text surfaces from the preserved event package.")
+            new StudioAssetPackage("studio-runtime-classic", "Studio Runtime", "studio", 3, "Main, intro, and studio animation runtime packages."),
+            new StudioAssetPackage("studio-actors-classic", "Actor Pack", "actors", 13, "Classic actor packages preserved from the event runtime."),
+            new StudioAssetPackage("studio-ambient-classic", "Ambient Pack", "ambient", 5, "Ambient scene layers and event atmosphere assets."),
+            new StudioAssetPackage("studio-sound-classic", "Sound Pack", "sound", 13, "Intro soundtrack and event sound-effect package inventory."),
+            new StudioAssetPackage("studio-localization-classic", "Localization Pack", "localization", 2, "Localized text surfaces from the preserved event package.")
         ]);
 
-        store.HabbowoodSubmissions.AddRange(
+        store.StudioSubmissions.AddRange(
         [
-            new HabbowoodMovieSubmission(
-                new HabbowoodSubmissionId(store.NextHabbowoodSubmissionId++),
-                "habbowood",
+            new StudioMovieSubmission(
+                new StudioSubmissionId(store.NextStudioSubmissionId++),
+                "studio",
                 characterId,
                 "epsilon",
                 "Pixels of Justice",
@@ -395,15 +395,15 @@ internal static class InMemoryHotelSeedBuilder
                 "<movie><scene set=\"studio\"><actor id=\"lead\" action=\"inspect\" /></scene></movie>",
                 "@epsilonhotel",
                 "en",
-                HabbowoodSubmissionStatus.Published,
+                StudioSubmissionStatus.Published,
                 14,
                 DateTime.UtcNow.AddDays(-6),
                 DateTime.UtcNow.AddDays(-6),
                 null,
                 null),
-            new HabbowoodMovieSubmission(
-                new HabbowoodSubmissionId(store.NextHabbowoodSubmissionId++),
-                "habbowood",
+            new StudioMovieSubmission(
+                new StudioSubmissionId(store.NextStudioSubmissionId++),
+                "studio",
                 playerCharacterId,
                 "vector",
                 "Ducks on the Boulevard",
@@ -412,15 +412,15 @@ internal static class InMemoryHotelSeedBuilder
                 "<movie><scene set=\"boulevard\"><actor id=\"duckboss\" action=\"dance\" /></scene></movie>",
                 "@vectorfilms",
                 "en",
-                HabbowoodSubmissionStatus.Published,
+                StudioSubmissionStatus.Published,
                 9,
                 DateTime.UtcNow.AddDays(-4),
                 DateTime.UtcNow.AddDays(-3),
                 null,
                 null),
-            new HabbowoodMovieSubmission(
-                new HabbowoodSubmissionId(store.NextHabbowoodSubmissionId++),
-                "habbowood",
+            new StudioMovieSubmission(
+                new StudioSubmissionId(store.NextStudioSubmissionId++),
+                "studio",
                 roomGuardianCharacterId,
                 "delta",
                 "Studio Ghost Shift",
@@ -429,7 +429,7 @@ internal static class InMemoryHotelSeedBuilder
                 "<movie><scene set=\"stage\"><ambient id=\"fog\" /></scene></movie>",
                 "@deltapictures",
                 "en",
-                HabbowoodSubmissionStatus.Pending,
+                StudioSubmissionStatus.Pending,
                 0,
                 DateTime.UtcNow.AddHours(-18),
                 null,
@@ -437,11 +437,11 @@ internal static class InMemoryHotelSeedBuilder
                 null)
         ]);
 
-        store.HabbowoodVotes.AddRange(
+        store.StudioVotes.AddRange(
         [
-            new HabbowoodVoteLedgerEntry(new HabbowoodSubmissionId(1000), playerCharacterId, 1, null, DateTime.UtcNow.AddDays(-2)),
-            new HabbowoodVoteLedgerEntry(new HabbowoodSubmissionId(1000), moderatorCharacterId, 1, null, DateTime.UtcNow.AddDays(-2)),
-            new HabbowoodVoteLedgerEntry(new HabbowoodSubmissionId(1001), characterId, 1, null, DateTime.UtcNow.AddDays(-1))
+            new StudioVoteLedgerEntry(new StudioSubmissionId(1000), playerCharacterId, 1, null, DateTime.UtcNow.AddDays(-2)),
+            new StudioVoteLedgerEntry(new StudioSubmissionId(1000), moderatorCharacterId, 1, null, DateTime.UtcNow.AddDays(-2)),
+            new StudioVoteLedgerEntry(new StudioSubmissionId(1001), characterId, 1, null, DateTime.UtcNow.AddDays(-1))
         ]);
 
         store.ChatCommandCatalog.AddRange(

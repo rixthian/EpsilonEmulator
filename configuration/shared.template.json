@@ -3,6 +3,7 @@
     "SessionTtlMinutes": 120,
     "TicketLength": 48,
     "AllowInMemorySessions": true,
+    "AllowRemoteDevelopmentAuth": false,
     "RedisConnectionString": ""
   },
   "Cryptography": {

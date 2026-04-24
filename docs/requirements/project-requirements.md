@@ -1,8 +1,12 @@
 # Project Requirements
 
-Date: 2026-04-23
+Date: 2026-04-24
 
 This document defines the local SDK and runtime requirements for Epsilon. It exists so the CMS, launcher, popup/loader, Unity client, and emulator are not treated as the same application.
+
+Current active web surface: **Epsilon Web Management System**. The CMS is usable
+for local testing, but it still requires registration/access hardening before it
+can be treated as production ready.
 
 ## Required Local SDKs
 

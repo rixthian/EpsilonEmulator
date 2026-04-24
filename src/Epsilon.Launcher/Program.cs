@@ -30,7 +30,22 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<LauncherTelemetryStore>();
 builder.Services.AddSingleton<LauncherAccessCodeStore>();
 
+builder.Services.AddCors(cors =>
+{
+    cors.AddDefaultPolicy(policy =>
+    {
+        string hotelBaseUrl = builder.Configuration["Launcher:DesktopLauncher:HotelBaseUrl"] ?? "http://localhost:8081";
+        policy
+            .WithOrigins(hotelBaseUrl.TrimEnd('/'), "http://127.0.0.1:8081", "http://localhost:8081")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
+
 var app = builder.Build();
+
+app.UseCors();
 
 string launcherAssetsRoot = Path.Combine(app.Environment.ContentRootPath, "Assets");
 if (Directory.Exists(launcherAssetsRoot))
@@ -47,13 +62,17 @@ if (Directory.Exists(launcherAssetsRoot))
     });
 }
 
-app.MapGet("/launcher/loader", (HttpContext httpContext, string? ticket) =>
+app.MapGet("/launcher/loader", (
+    HttpContext httpContext,
+    string? ticket,
+    Microsoft.Extensions.Options.IOptions<LauncherRuntimeOptions> launcherOptions) =>
 {
     string safeTicket = string.IsNullOrWhiteSpace(ticket) ? string.Empty : ticket.Trim();
     bool macLauncherReady = File.Exists(ResolveNativeLauncherMacDmgPath(app.Environment.ContentRootPath));
+    string hotelBaseUrl = launcherOptions.Value.DesktopLauncher.HotelBaseUrl;
     httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
     httpContext.Response.Headers.Pragma = "no-cache";
-    return Results.Content(RenderLauncherLoaderPage(safeTicket, macLauncherReady), "text/html; charset=utf-8", Encoding.UTF8);
+    return Results.Content(RenderLauncherLoaderPage(safeTicket, macLauncherReady, hotelBaseUrl), "text/html; charset=utf-8", Encoding.UTF8);
 });
 
 app.MapGet("/launcher/play", (HttpContext httpContext, string? ticket, long? roomId) =>
@@ -309,9 +328,9 @@ app.MapPost("/launcher/access-codes/redeem", async (
             ["platformKind"] = string.IsNullOrWhiteSpace(input.PlatformKind) ? (redeemed.PlatformKind ?? "unknown") : input.PlatformKind.Trim()
         }));
 
-    string entryAssetUrl = string.IsNullOrWhiteSpace(bootstrap.EntryAssetUrl)
-        ? string.Empty
-        : $"{bootstrap.EntryAssetUrl}{(bootstrap.EntryAssetUrl.Contains('?') ? '&' : '?')}ticket={Uri.EscapeDataString(redeemed.Ticket)}";
+    string entryAssetUrl = TryAppendTicketToHttpUrl(bootstrap.EntryAssetUrl, redeemed.Ticket, out string safeEntryAssetUrl)
+        ? safeEntryAssetUrl
+        : string.Empty;
 
     return Results.Ok(new
     {
@@ -427,20 +446,23 @@ app.MapPost("/launcher/launch-profiles/select", async (
 
     bool canLaunchFromDesktopApp =
         string.Equals(profile.ClientKind, "loader", StringComparison.OrdinalIgnoreCase)
-        || string.Equals(profile.ClientKind, "web", StringComparison.OrdinalIgnoreCase);
+        || string.Equals(profile.ClientKind, "web", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(profile.ClientKind, "unity-web", StringComparison.OrdinalIgnoreCase);
 
     string launchUrl = string.Empty;
     if (canLaunchFromDesktopApp
-        && !string.IsNullOrWhiteSpace(bootstrap.EntryAssetUrl))
+        && TryAppendTicketToHttpUrl(bootstrap.EntryAssetUrl, bootstrap.Session.Ticket, out string safeLaunchUrl))
     {
-        launchUrl = $"{bootstrap.EntryAssetUrl}{(bootstrap.EntryAssetUrl.Contains('?') ? '&' : '?')}ticket={Uri.EscapeDataString(bootstrap.Session.Ticket)}";
+        launchUrl = safeLaunchUrl;
     }
 
     string launchStrategy = string.Equals(profile.ClientKind, "loader", StringComparison.OrdinalIgnoreCase)
         ? "app_loader"
         : string.Equals(profile.ClientKind, "web", StringComparison.OrdinalIgnoreCase)
             ? "web_url"
-            : "native_package";
+            : string.Equals(profile.ClientKind, "unity-web", StringComparison.OrdinalIgnoreCase)
+                ? "unity_web"
+                : "native_package";
 
     telemetryStore.Append(new LauncherTelemetryEvent(
         Ticket: bootstrap.Session.Ticket,
@@ -865,7 +887,7 @@ static async Task<IResult> ProxyGatewayPostAsync(
     return Results.Content(body, contentType, Encoding.UTF8, (int)response.StatusCode);
 }
 
-static string RenderLauncherLoaderPage(string ticket, bool macLauncherReady)
+static string RenderLauncherLoaderPage(string ticket, bool macLauncherReady, string hotelBaseUrl = "http://localhost:8081")
 {
     string macLauncherHref = macLauncherReady ? "/launcher/downloads/macos-arm64" : "#";
 
@@ -1106,7 +1128,7 @@ static string RenderLauncherLoaderPage(string ticket, bool macLauncherReady)
     <section class="launcher-modal">
       <div class="launcher-head">
         <h1>Juega con la app de Epsilon</h1>
-        <a href="http://127.0.0.1:4100/sites/epsilon-access/">Cerrar</a>
+        <a href="{{hotelBaseUrl}}">Cerrar</a>
       </div>
       <div class="launcher-body">
         <button id="launch-button" class="launcher-button" type="button" disabled>Abrir launcher instalado</button>
@@ -1221,7 +1243,7 @@ static string RenderLauncherLoaderPage(string ticket, bool macLauncherReady)
             return await request("/launcher/access-codes", {
               method: "POST",
               headers: { "content-type": "application/json" },
-              body: JSON.stringify({ ticket: ticket, platformKind: "native_app" })
+              body: JSON.stringify({ ticket: ticket, platformKind: "web" })
             });
           }
 
@@ -1257,7 +1279,7 @@ static string RenderLauncherLoaderPage(string ticket, bool macLauncherReady)
             copyCodeButton.disabled = true;
             currentCode = "";
             renderCode();
-          launcherCopy.textContent = "El acceso sigue bloqueado. La app todavía no puede ejecutar el loader.";
+            launcherCopy.textContent = "El acceso sigue bloqueado. La app todavía no puede ejecutar el loader.";
             clientStateNote.textContent = "Primero se necesita un acceso válido. Después la app ejecutará el loader del juego.";
             setBanner("Tu acceso todavía no puede abrir la app.", "error");
             return;
@@ -1345,6 +1367,41 @@ static string ResolveNativeLauncherMacDmgPath(string contentRootPath)
 {
     string repoRoot = Path.GetFullPath(Path.Combine(contentRootPath, "..", ".."));
     return Path.Combine(repoRoot, "apps", "epsilon-launcher-native", "dist", "EpsilonLauncher-macOS-arm64.dmg");
+}
+
+static bool TryAppendTicketToHttpUrl(string? entryAssetUrl, string ticket, out string launchUrl)
+{
+    launchUrl = string.Empty;
+    if (string.IsNullOrWhiteSpace(entryAssetUrl))
+    {
+        return false;
+    }
+
+    if (!Uri.TryCreate(entryAssetUrl, UriKind.Absolute, out Uri? uri) ||
+        (!string.Equals(uri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) &&
+         !string.Equals(uri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)))
+    {
+        return false;
+    }
+
+    UriBuilder builder = new(uri)
+    {
+        UserName = string.Empty,
+        Password = string.Empty
+    };
+
+    string query = builder.Query;
+    if (query.StartsWith("?", StringComparison.Ordinal))
+    {
+        query = query[1..];
+    }
+
+    string encodedTicket = $"ticket={Uri.EscapeDataString(ticket)}";
+    builder.Query = string.IsNullOrWhiteSpace(query)
+        ? encodedTicket
+        : $"{query}&{encodedTicket}";
+    launchUrl = builder.Uri.ToString();
+    return true;
 }
 
 #pragma warning disable CS8321

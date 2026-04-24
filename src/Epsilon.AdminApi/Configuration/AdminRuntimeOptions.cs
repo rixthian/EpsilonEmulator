@@ -8,10 +8,15 @@ public sealed class AdminRuntimeOptions
 
     /// <summary>
     /// Static API key required on all non-health requests via
-    /// X-Epsilon-Admin-Key header. Leave empty to disable authentication
-    /// (not recommended outside local development).
+    /// X-Epsilon-Admin-Key header.
     /// </summary>
     public string AdminApiKey { get; set; } = string.Empty;
+
+    /// <summary>
+    /// Allows missing admin API keys only for explicit local development flows.
+    /// Keep false for shared machines, tunnels, LAN access, staging, and production.
+    /// </summary>
+    public bool AllowMissingAdminApiKeyForLocalDevelopment { get; set; }
 
     /// <summary>
     /// Optional gateway base URL used by the admin surface to query gateway diagnostics.

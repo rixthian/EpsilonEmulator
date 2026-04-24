@@ -13,6 +13,12 @@ export class PopupManager {
       </article>
     `;
 
+    this._onKeyDown = (event) => {
+      if (event.key === "Escape" && !this.host.classList.contains("hidden")) {
+        this.hide();
+      }
+    };
+
     this.root.appendChild(this.host);
     this.host.querySelector(".popup-close").addEventListener("click", () => this.hide());
     this.host.addEventListener("click", (event) => {
@@ -20,6 +26,7 @@ export class PopupManager {
         this.hide();
       }
     });
+    document.addEventListener("keydown", this._onKeyDown);
   }
 
   show(options) {

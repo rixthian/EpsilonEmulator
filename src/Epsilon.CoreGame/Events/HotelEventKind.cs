@@ -10,7 +10,7 @@ public enum HotelEventKind
     BotDialoguePublished,
     HotelAlertBroadcast,
     WalletAdjusted,
-    HabbowoodSubmissionChanged,
-    HabbowoodVoteRecorded,
-    HabbowoodActivationChanged
+    StudioSubmissionChanged,
+    StudioVoteRecorded,
+    StudioActivationChanged
 }

@@ -1,10 +1,8 @@
 # Module Boundaries
 
-The cross-surface access boundary is defined in [modular-cms-launcher-loader.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modular-cms-launcher-loader.md). Use that document when deciding whether a behavior belongs to the CMS, launcher app, game loader, launcher backend, runtime gateway, or emulator.
+The cross-surface access boundary is defined in [platform-boundaries.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/platform-boundaries.md). Use that document when deciding whether a behavior belongs to the CMS, launcher app, game loader, launcher backend, runtime gateway, or emulator.
 
-The local service orchestration boundary is defined in [local-orchestration-topology.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/local-orchestration-topology.md). Use that document when deciding how CMS, launcher, gateway, assets, imaging, database, Redis, and admin services should run together.
-
-The emulator/runtime reference boundary is defined in [emulator-reference-model.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/emulator-reference-model.md). Use that document when comparing Epsilon modules against mature emulator projects such as Arcturus Community.
+The local service orchestration boundary is defined in [local-runtime.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/local-runtime.md). Use that document when deciding how CMS, launcher, gateway, assets, imaging, database, Redis, and admin services should run together.
 
 ## `Epsilon.Gateway`
 
@@ -34,7 +32,7 @@ Must not:
 - own gameplay state
 - talk directly to the database
 
-It should translate packet payloads into typed application commands that are then handled by the flow model defined in [client-hotel-flow-blueprint.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-hotel-flow-blueprint.md).
+It should translate packet payloads into typed application commands that are then handled by the flow model defined in [client-entry-flow.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/client-entry-flow.md).
 
 ## `Epsilon.Auth`
 
@@ -96,18 +94,18 @@ Responsibilities:
 - operational health endpoints
 - replay/test tooling endpoints
 - content and compatibility inspection tools
-- catalog administration commands following [catalog-admin-tooling.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/catalog-admin-tooling.md)
+- catalog administration commands with validation, audit, and publication control
 
 Must not:
 
 - expose catalog mutation endpoints to normal users
 - let staff tools write directly to catalog tables without command validation, audit, and publication control
 
-## `cms/system`
+## CMS base
 
 Responsibilities:
 
-- serve the public-facing CMS platform
+- serve the public-facing CMS platform from the adopted local base in `vendor/cms-runtime-base`
 - resolve web sessions against the hotel backend
 - provide CMS-facing APIs for home, account, launcher access, and support surfaces
 - hand users off to the launcher without pretending the CMS is the game
@@ -133,26 +131,17 @@ Must not:
 - confirm that the user is inside the hotel
 - replace the emulator as runtime authority
 
-## `tools/importers`
+## `tools`
 
 Responsibilities:
 
-- convert legacy asset packages into canonical Epsilon manifests
-- inventory public-room bundles and shared assets
-- normalize filenames and metadata
-- separate extraction concerns from runtime loading concerns
-
-## `tools/brain`
-
-Responsibilities:
-
-- watch public upstream artifacts
-- capture hashes and metadata
-- generate source snapshot diffs
-- recommend importer actions without mutating runtime directly
+- clean generated local artifacts
+- verify naming, hygiene, language scope, tests, builds, and local runtime health
+- start and check the temporary CMS runtime base
+- package launcher builds
 
 Must not:
 
-- bypass encryption or DRM
 - act as gameplay runtime authority
 - write directly into live hotel state
+- become a second application layer

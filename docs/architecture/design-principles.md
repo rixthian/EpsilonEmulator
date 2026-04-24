@@ -32,7 +32,7 @@ Every compatibility behavior should be explainable through:
 
 - source evidence
 - test evidence
-- an architectural decision record
+- a concise architecture note when the decision affects runtime behavior
 
 But source provenance should remain outside runtime code paths. Research is necessary; contamination of runtime files is not.
 

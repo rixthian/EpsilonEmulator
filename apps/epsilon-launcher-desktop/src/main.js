@@ -6,7 +6,7 @@ const path = require("node:path");
 const DEFAULT_LOCAL_CONFIG = {
   launcherId: "desktop-main",
   locale: "es-ES",
-  hotelBaseUrl: "http://127.0.0.1:4100",
+  hotelBaseUrl: "http://127.0.0.1:8081",
   launcherApiBaseUrl: "http://127.0.0.1:5001",
   defaultChannel: "stable",
   defaultProfileKey: "loader-desktop",
@@ -16,6 +16,8 @@ const DEFAULT_LOCAL_CONFIG = {
   telemetryEnabled: true,
   rememberLastProfile: true
 };
+
+const HTTP_PROTOCOLS = new Set(["http:", "https:"]);
 
 let mainWindow;
 
@@ -41,34 +43,27 @@ async function readLocalConfig() {
   try {
     const raw = await fs.readFile(configPath, "utf8");
     const parsed = JSON.parse(raw);
-    return {
-      ...DEFAULT_LOCAL_CONFIG,
-      ...parsed,
-      platform: detectPlatformKind()
-    };
+    return normalizeLocalConfig(parsed, { strict: false });
   } catch {
-    return {
-      ...DEFAULT_LOCAL_CONFIG,
-      platform: detectPlatformKind()
-    };
+    return normalizeLocalConfig({}, { strict: false });
   }
 }
 
 async function writeLocalConfig(partialConfig) {
   const configPath = getConfigPath();
   const current = await readLocalConfig();
-  const next = {
+  const next = normalizeLocalConfig({
     ...current,
-    ...partialConfig,
-    platform: detectPlatformKind()
-  };
+    ...pickLocalConfig(partialConfig || {})
+  }, { strict: true });
   await fs.mkdir(path.dirname(configPath), { recursive: true });
   await fs.writeFile(configPath, JSON.stringify(next, null, 2), "utf8");
   return next;
 }
 
 async function fetchJson(baseUrl, pathname, options = {}) {
-  const targetUrl = new URL(pathname, ensureTrailingSlash(baseUrl)).toString();
+  const safeBaseUrl = normalizeHttpUrl(baseUrl, null, "launcher_base_url");
+  const targetUrl = new URL(pathname, ensureTrailingSlash(safeBaseUrl)).toString();
   const response = await fetch(targetUrl, options);
   const text = await response.text();
   let payload = null;
@@ -92,6 +87,88 @@ function ensureTrailingSlash(value) {
   return value.endsWith("/") ? value : `${value}/`;
 }
 
+function pickLocalConfig(value) {
+  if (!value || typeof value !== "object") {
+    return {};
+  }
+
+  const result = {};
+  for (const key of Object.keys(DEFAULT_LOCAL_CONFIG)) {
+    if (Object.prototype.hasOwnProperty.call(value, key)) {
+      result[key] = value[key];
+    }
+  }
+  if (Object.prototype.hasOwnProperty.call(value, "lastProfileKey")) {
+    result.lastProfileKey = value.lastProfileKey;
+  }
+  return result;
+}
+
+function normalizeLocalConfig(value, { strict }) {
+  const raw = {
+    ...DEFAULT_LOCAL_CONFIG,
+    ...pickLocalConfig(value || {})
+  };
+
+  const fallback = normalizeHttpUrl(DEFAULT_LOCAL_CONFIG.launcherApiBaseUrl, null, "launcher_base_url");
+  let hotelBaseUrl;
+  let launcherApiBaseUrl;
+
+  try {
+    hotelBaseUrl = normalizeHttpUrl(raw.hotelBaseUrl, DEFAULT_LOCAL_CONFIG.hotelBaseUrl, "hotel_base_url");
+    launcherApiBaseUrl = normalizeHttpUrl(raw.launcherApiBaseUrl, fallback, "launcher_base_url");
+  } catch (error) {
+    if (strict) {
+      throw error;
+    }
+    hotelBaseUrl = DEFAULT_LOCAL_CONFIG.hotelBaseUrl;
+    launcherApiBaseUrl = fallback;
+  }
+
+  return {
+    ...raw,
+    hotelBaseUrl,
+    launcherApiBaseUrl,
+    autoLaunchOnRedeem: Boolean(raw.autoLaunchOnRedeem),
+    closeCmsOnLaunch: Boolean(raw.closeCmsOnLaunch),
+    hardwareAcceleration: Boolean(raw.hardwareAcceleration),
+    telemetryEnabled: Boolean(raw.telemetryEnabled),
+    rememberLastProfile: Boolean(raw.rememberLastProfile),
+    platform: detectPlatformKind()
+  };
+}
+
+function normalizeHttpUrl(value, fallback, label) {
+  const rawValue = typeof value === "string" && value.trim() ? value.trim() : fallback;
+  if (!rawValue) {
+    throw new Error(`${label}_required`);
+  }
+
+  let url;
+  try {
+    url = new URL(rawValue);
+  } catch {
+    throw new Error(`${label}_invalid`);
+  }
+
+  if (!HTTP_PROTOCOLS.has(url.protocol)) {
+    throw new Error(`${label}_unsupported_scheme`);
+  }
+
+  url.username = "";
+  url.password = "";
+  return url.toString().replace(/\/$/, "");
+}
+
+function isSafeHttpUrl(value) {
+  try {
+    normalizeHttpUrl(value, null, "url");
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 async function resolveLauncherBaseUrl() {
   const localConfig = await readLocalConfig();
   return localConfig.launcherApiBaseUrl || DEFAULT_LOCAL_CONFIG.launcherApiBaseUrl;
@@ -102,6 +179,8 @@ async function openClientWindow({ launchUrl, title }) {
     throw new Error("launch_url_required");
   }
 
+  const safeLaunchUrl = normalizeHttpUrl(launchUrl, null, "launch_url");
+
   const clientWindow = new BrowserWindow({
     width: 1480,
     height: 980,
@@ -109,14 +188,34 @@ async function openClientWindow({ launchUrl, title }) {
     minHeight: 760,
     autoHideMenuBar: true,
     title: title || "Epsilon Hotel",
-    backgroundColor: "#08131e"
+    backgroundColor: "#08131e",
+    webPreferences: {
+      sandbox: true,
+      contextIsolation: true,
+      nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false
+    }
   });
 
-  await clientWindow.loadURL(launchUrl);
+  clientWindow.webContents.setWindowOpenHandler(({ url }) => {
+    if (isSafeHttpUrl(url)) {
+      shell.openExternal(normalizeHttpUrl(url, null, "external_url"));
+    }
+    return { action: "deny" };
+  });
+
+  clientWindow.webContents.on("will-navigate", (event, url) => {
+    if (!isSafeHttpUrl(url)) {
+      event.preventDefault();
+    }
+  });
+
+  await clientWindow.loadURL(safeLaunchUrl);
   return { opened: true };
 }
 
-function createMainWindow() {
+function createLauncherWindow() {
   mainWindow = new BrowserWindow({
     width: 1240,
     height: 900,
@@ -127,8 +226,11 @@ function createMainWindow() {
     backgroundColor: "#08131e",
     webPreferences: {
       preload: path.join(__dirname, "preload.js"),
+      sandbox: true,
       contextIsolation: true,
-      nodeIntegration: false
+      nodeIntegration: false,
+      webSecurity: true,
+      allowRunningInsecureContent: false
     }
   });
 
@@ -224,17 +326,18 @@ ipcMain.handle("launcher:open-url", async (_event, targetUrl) => {
     return { opened: false };
   }
 
-  await shell.openExternal(targetUrl);
+  const safeTargetUrl = normalizeHttpUrl(targetUrl, null, "external_url");
+  await shell.openExternal(safeTargetUrl);
   return { opened: true };
 });
 
 app.whenReady().then(async () => {
   await writeLocalConfig({});
-  createMainWindow();
+  createLauncherWindow();
 
   app.on("activate", () => {
     if (BrowserWindow.getAllWindows().length === 0) {
-      createMainWindow();
+      createLauncherWindow();
     }
   });
 });

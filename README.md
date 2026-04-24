@@ -1,17 +1,17 @@
 <p align="center">
-  <img src="assets/epsilon-logo.png" alt="Epsilon Emulator logo" width="560" />
+  <img src="assets/epsilon-emulator-logo.gif" alt="Epsilon Emulator logo" width="558" />
 </p>
 
 <h1 align="center">Epsilon Emulator</h1>
 
 <p align="center">
-  <strong>Modern hotel emulation focused on compatibility, security, and long-term maintainability.</strong>
+  <strong>A modern social hotel runtime with a clean CMS, launcher handoff, and original long-term architecture.</strong>
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/version-0.4.0--alpha.5-F4B400?style=for-the-badge" alt="Version badge" />
+  <img src="https://img.shields.io/badge/version-0.4.0--alpha.6-F4B400?style=for-the-badge" alt="Version badge" />
   <img src="https://img.shields.io/badge/runtime-.NET%2010-512BD4?style=for-the-badge" alt=".NET 10 badge" />
-  <img src="https://img.shields.io/badge/compatibility-RELEASE63-111111?style=for-the-badge" alt="Compatibility badge" />
+  <img src="https://img.shields.io/badge/web-Epsilon%20CMS-00A878?style=for-the-badge" alt="CMS badge" />
   <img src="https://img.shields.io/badge/status-active%20alpha-0F9D58?style=for-the-badge" alt="Alpha status badge" />
 </p>
 
@@ -20,13 +20,9 @@
   ·
   <a href="docs/compatibility/target-client.md">Compatibility</a>
   ·
-  <a href="docs/architecture/update-automation-brain.md">Update Brain</a>
-  ·
   <a href="CHANGELOG.md">Changelog</a>
   ·
   <a href="docs/roadmap/platform-roadmap.md">Roadmap</a>
-  ·
-  <a href="docs/decisions/0001-modern-runtime.md">Decisions</a>
 </p>
 
 ---
@@ -36,6 +32,10 @@
 Epsilon Emulator is a clean-room hotel emulator project built to preserve classic
 client behavior while replacing fragile legacy runtime assumptions with a modern,
 versioned, testable architecture.
+
+The public web layer now runs as **Epsilon Web Management System**: a modern CMS
+runtime with a retro-inspired 2007 visual skin, official Epsilon pixel branding,
+and a strict launcher handoff boundary.
 
 The target is not an old runtime. The target is the hotel contract:
 
@@ -93,13 +93,14 @@ The mission is one stable hotel platform with:
 | Area | Choice |
 |---|---|
 | Runtime | `.NET 10` |
-| Version | `0.4.0-alpha.5` |
+| Version | `0.4.0-alpha.6` |
 | Architecture | Modular monolith |
 | Primary persistence | `PostgreSQL` |
 | Cache / transient infra | `Redis` |
 | Admin/API | `ASP.NET Core` |
 | Protocol model | External packet and command manifests |
 | Compatibility family | `RELEASE63` |
+| CMS identity | `Epsilon Web Management System` |
 
 ## Compatibility Strategy
 
@@ -127,15 +128,14 @@ Epsilon is already beyond scaffold stage. The repository currently includes:
 - package and asset import pipelines
 - security hardening for current gameplay endpoints
 
-Current release focus in `0.4.0-alpha.5`:
+Current release focus in `0.4.0-alpha.6`:
 
-- public-facing CMS portal with homepage, login, register, launcher choice, and cleaner hotel-facing copy
-- CMS backend + launcher handoff with one-time launcher access codes
-- native desktop launcher source integrated into the repo and packaged as a macOS `.dmg`
-- desktop launcher contract for local config, update channels, launch profiles, and `client-started` telemetry
-- published `game-loader` entry routed through the launcher instead of the CMS
-- first room tick scheduler, room animation slice, and roller runtime support
-- collector platform slice with wallet/link groundwork, progression, emerald accrual, factory/gift/recycle/market loops
+- official Epsilon pixel logo installed for the CMS and repository presentation
+- retro 2007 CMS skin applied on top of the modern CMS runtime
+- language selection narrowed to English, Spanish, Portuguese, French, and Russian
+- CMS runtime sanitization now removes low-value legacy vendor residue from active views/settings
+- CMS entry flow remains separated from launcher, loader, and emulator-confirmed hotel presence
+- release documentation now states requirements, version, risks, and progress clearly for community review
 
 Recent hardening already covered:
 
@@ -161,7 +161,7 @@ issue-count vanity metrics.
 
 | Scope | Progress | Notes |
 |---|---:|---|
-| Global emulator operativity | `98%` | The project now spans gameplay, CMS, launcher, and native app surfaces, but public-facing stability is still not production grade. |
+| Global emulator operativity | `98%` | The project spans gameplay, CMS, launcher, and native app surfaces, but public-facing stability is still not production grade. |
 | Architecture quality | `99%` | Core boundaries between CMS, launcher, client, and emulator are now explicit and defensible. |
 | Repository hygiene | `99%` | Naming, staging discipline, and runtime separation are in strong condition. |
 | `Epsilon.Gateway` | `90%` | Main runtime/API surface is broad and stable, but protocol parity is still incomplete. |
@@ -174,8 +174,8 @@ issue-count vanity metrics.
 | `Epsilon.Games` | `75%` | Game definitions and BattleBall lifecycle exist, but full live loops are still missing. |
 | `Epsilon.Launcher` | `90%` | Client bootstrap, access-code flow, channels, profiles, telemetry, and published client routing are now in place. |
 | `Epsilon.AdminApi` | `74%` | Admin/runtime inspection works, but full moderation and operational tooling is not complete. |
-| CMS platform | `68%` | CMS backend and public portal now exist, but the surface is still unstable and not yet hardened for real production traffic. |
-| Desktop launcher apps | `74%` | Native Avalonia launcher and Electron reference shell exist; final Unity/Nitro launch targets are still pending. |
+| CMS platform | `72%` | CMS backend, public portal, branding, language surface, and launcher access exist; registration/access still needs production hardening. |
+| Desktop launcher apps | `74%` | Native Avalonia launcher and Electron reference shell exist; final launch targets are still pending. |
 | Asset/content ingest pipeline | `94%` | Client roots, builds, avatar bundles, figures, badges, and related manifests are organized and reproducible. |
 | Multi-process runtime integrity | `84%` | Shared sessions improved, but shared room presence/state still needs stronger distributed handling. |
 
@@ -195,7 +195,7 @@ issue-count vanity metrics.
 | Public rooms and hotel world features | `85%` | Public-room definitions, behaviors, bots, and package inventories are strong; more interactive venue logic is still needed. |
 | Games | `75%` | BattleBall lifecycle and game session foundations are in place; deeper live loops for all game families are still pending. |
 | Launcher and connection policy | `90%` | Client profiles, launcher access codes, desktop launcher contracts, and device-aware connection policies are now in place. |
-| CMS, launcher app, and access flow | `70%` | Access logic is now correct, but the CMS and launcher app both need another hardening pass before they can be called stable. |
+| CMS, launcher app, and access flow | `73%` | Access logic is correct, branding is cleaner, and CMS handoff is usable; both CMS and launcher still need another hardening pass. |
 | Configuration platform | `90%` | Root configuration layering and service templates are in place; more feature sections need to be fully bound into runtime. |
 | Multi-version compatibility foundation | `63%` | The adapter strategy, client/build manifests, and launcher profiles are in place; only `RELEASE63` is currently the strong baseline. |
 | Roleplay and original Epsilon features | `22%` | The platform direction is defined, but dedicated roleplay systems are still future work. |
@@ -208,26 +208,48 @@ Current weakest points, in order:
 4. `Epsilon.Games` still needs deeper live round loops beyond lifecycle control.
 5. `Epsilon.Rooms` still needs full furni placement, pickup, and trading-grade mutation paths.
 
+### Development Graph
+
+```mermaid
+xychart-beta
+    title "Epsilon alpha coverage by system"
+    x-axis ["Architecture", "CoreGame", "Launcher", "Content", "Rooms", "CMS", "Persistence", "Protocol"]
+    y-axis "Coverage %" 0 --> 100
+    bar [99, 91, 90, 91, 82, 72, 58, 54]
+```
+
+```text
+Architecture  [################################################# ] 99%
+CoreGame      [##############################################    ] 91%
+Launcher      [#############################################     ] 90%
+Content       [##############################################    ] 91%
+Rooms         [#########################################         ] 82%
+CMS           [####################################              ] 72%
+Persistence   [#############################                     ] 58%
+Protocol      [###########################                       ] 54%
+```
+
+The graph is intentionally conservative. It highlights the important truth for
+contributors: the platform architecture is strong, but the CMS still needs work
+before it should be treated as production ready.
+
 ## Release Snapshot
 
-`0.4.0-alpha.5` is the first release where the public web, launcher, and native app are treated as product surfaces instead of debug shells.
+`0.4.0-alpha.6` is the first release where the Epsilon identity is consistent across the repository and active CMS runtime.
 
 Delivered in this release:
 
 - CMS:
-  - homepage
-  - login/register
-  - authenticated launcher access choice
-  - launcher code generation
+  - official Epsilon CMS logo
+  - Epsilon Web Management System naming
+  - retro 2007 visual skin over the modern runtime
+  - English, Spanish, Portuguese, French, and Russian language selector
+  - sanitized settings, views, and active branding residue
 - launcher backend:
   - desktop config
   - update channels
   - launch profiles
   - client-started telemetry
-- native launcher packaging:
-  - Avalonia/VB launcher imported and adapted
-  - macOS `.app`
-  - macOS `.dmg`
 - access rule:
   - CMS never claims hotel presence
   - launcher never claims hotel presence
@@ -235,8 +257,8 @@ Delivered in this release:
 
 Known instability in this release:
 
-- CMS presentation and access flow were rebuilt quickly and still need hardening
-- launcher native packaging exists, but Unity/Nitro package targets are still not published
+- CMS presentation and registration/access flow still need hardening
+- launcher native packaging exists, but final package targets are still not published
 - `game-loader` is provisional and does not represent the final social/isometric client
 - production durability is still blocked by remaining `InMemory` slices
 
@@ -269,17 +291,15 @@ Each module has a narrow responsibility:
 - [`src/`](src/) — production code
 - [`tests/`](tests/) — automated tests
 - [`apps/`](apps/) — desktop launcher app sources
-- [`cms/`](cms/) — CMS platform and preserved web surfaces
+- [`vendor/cms-runtime-base/`](vendor/cms-runtime-base/) — ignored local CMS/assets/DB base adopted for bootstrap
 - [`configuration/`](configuration/) — shared and per-service configuration templates
 - [`docs/architecture/`](docs/architecture/) — architecture and domain design
 - [`docs/requirements/`](docs/requirements/) — local SDK and project execution requirements
 - [`docs/releases/`](docs/releases/) — release snapshots and alpha release notes
 - [`docs/compatibility/`](docs/compatibility/) — protocol and target-client material
-- [`docs/decisions/`](docs/decisions/) — architectural decisions
 - [`docs/roadmap/`](docs/roadmap/) — execution roadmap
 - [`catalog/`](catalog/) — schemas and generated manifests
-- [`tools/brain/`](tools/brain/) — update-intelligence brain for source watching, diffs, and SWF toolchain policy
-- [`tools/`](tools/) — importers and support tooling
+- [`tools/`](tools/) — maintenance, verification, and local CMS runtime scripts
 - [`references/`](references/) — source handling rules and reference hygiene
 
 ## Key Documents
@@ -287,19 +307,39 @@ Each module has a narrow responsibility:
 - [Architecture Overview](docs/architecture/overview.md)
 - [Module Boundaries](docs/architecture/modules.md)
 - [CMS Platform](docs/architecture/cms-platform.md)
-- [Launcher App Access](docs/architecture/launcher-app-access.md)
-- [Desktop Launcher Spec](docs/architecture/desktop-launcher-spec.md)
+- [Launcher Access](docs/architecture/launcher-access.md)
+- [Desktop Launcher](docs/architecture/launcher-desktop.md)
 - [Project Requirements](docs/requirements/project-requirements.md)
-- [Launcher Popup To Game Loader Flow](docs/architecture/launcher-popup-loader-flow.md)
-- [Local Orchestration Topology](docs/architecture/local-orchestration-topology.md)
-- [Nitro Docker Reference](docs/reference-sources/nitro-docker.md)
+- [Launcher Handoff Flow](docs/architecture/launcher-handoff-flow.md)
+- [Local Runtime](docs/architecture/local-runtime.md)
+- [CMS Runtime Base](docs/architecture/cms-runtime-base.md)
 - [Design Principles](docs/architecture/design-principles.md)
-- [Client Platform Strategy](docs/architecture/client-platform-strategy.md)
-- [Hotel Domain Blueprint](docs/architecture/hotel-domain-blueprint.md)
+- [Client Platform](docs/architecture/client-platform.md)
+- [Hotel Domains](docs/architecture/hotel-domains.md)
 - [Protocol Baseline](docs/compatibility/protocol-baseline.md)
 - [Target Client](docs/compatibility/target-client.md)
-- [Modern Runtime Decision](docs/decisions/0001-modern-runtime.md)
-- [No Hardcoded Protocol And Content Rules](docs/decisions/0002-no-hardcoded-protocol-and-content-rules.md)
+
+## Maintenance Scripts
+
+- [`tools/clean_workspace.sh`](tools/clean_workspace.sh) — removes generated local artifacts.
+- [`tools/verify_workspace.sh`](tools/verify_workspace.sh) — runs hygiene, naming, language scope, tests, launcher build, optional Node check, and optional runtime health check.
+- [`tools/weight_report.sh`](tools/weight_report.sh) — reports the largest local files and folders.
+- [`tools/check_language_scope.sh`](tools/check_language_scope.sh) — keeps non-primary languages limited to their intended layer.
+- [`tools/cms_runtime_start.sh`](tools/cms_runtime_start.sh) — starts the temporary CMS/assets/runtime base.
+- [`tools/cms_runtime_check.sh`](tools/cms_runtime_check.sh) — verifies CMS, client, assets, imager, and realtime health.
+- [`tools/cms_runtime_sanitize.sh`](tools/cms_runtime_sanitize.sh) — applies the Epsilon CMS identity, language surface, and active runtime cleanup.
+- [`tools/cms_runtime_audit.sh`](tools/cms_runtime_audit.sh) — checks the active CMS for runtime health and common residue.
+- [`tools/package_launcher_macos.sh`](tools/package_launcher_macos.sh) — packages the native launcher as a macOS DMG.
+
+## Language Scope
+
+Epsilon should stay conservative with languages:
+
+- C# is the main runtime language for backend, gateway, domain, persistence, protocol, and tests.
+- VB is limited to the native launcher shell until that launcher is replaced or rewritten.
+- JavaScript is limited to the Electron launcher shell and static launcher/client assets.
+- SQL is limited to database schema and seed material.
+- Shell/Python are maintenance-only and must not become product runtime code.
 
 ## Code Structure
 
@@ -308,7 +348,7 @@ to scan and maintain.
 
 - [`src/Epsilon.Auth/`](src/Epsilon.Auth/) — `Abstractions`, `Configuration`, `Contracts`, `Services`, `Storage`, `Startup`
 - [`src/Epsilon.Content/`](src/Epsilon.Content/) — `Badges`, `Catalog`, `Client`, `Collectibles`, `Effects`, `Interfaces`, `Items`, `Localization`, `Navigator`, `Pets`, `PublicRooms`, `Vouchers`
-- [`src/Epsilon.CoreGame/`](src/Epsilon.CoreGame/) — `Access`, `Accounts`, `Badges`, `Bots`, `Chat`, `Commerce`, `Groups`, `Hotel`, `Interface`, `Inventory`, `Moderation`, `Navigator`, `Packets`, `Pets`, `Roles`, `Rooms`, `Subscriptions`, `Support`, `Wallet`
+- [`src/Epsilon.CoreGame/`](src/Epsilon.CoreGame/) — `Access`, `Accounts`, `Badges`, `Bots`, `Chat`, `Commerce`, `Groups`, `Hotel`, `Interface`, `Inventory`, `Moderation`, `Navigator`, `Packets`, `Pets`, `Roles`, `Rooms`, `Studio`, `Subscriptions`, `Support`, `Wallet`
 - [`src/Epsilon.Games/`](src/Epsilon.Games/) — `BattleBall`, `SnowStorm`, `WobbleSquabble`, `Core`, `Runtime`, `Sessions`, `Startup`
 - [`src/Epsilon.Gateway/`](src/Epsilon.Gateway/) — `Configuration`, `Console`, `Contracts`, `Startup`
 - [`src/Epsilon.Launcher/`](src/Epsilon.Launcher/) — `Configuration`, `Models`, `Services`, `Startup`
@@ -353,6 +393,9 @@ Near-term priorities include:
 
 - `.NET SDK 10`
 - Docker or Docker Desktop
+- Node.js and npm for CMS/tooling and launcher shell work
+- Unity Hub / Unity Editor only for the future Unity client package, not for the CMS itself
+- macOS packaging tools only when producing a `.dmg`
 
 ### Infrastructure
 

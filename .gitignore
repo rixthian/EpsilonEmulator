@@ -1,15 +1,25 @@
 bin/
 obj/
+dist/
+node_modules/
+TestResults/
+
 .DS_Store
+Thumbs.db
 .idea/
 .vscode/
+.claude/
 *.user
 *.suo
 *.nupkg
 *.lscache
+*.log
+*.tmp
+
 .env
 catalog/cache/
 references/raw/
+vendor/
 assets/badges/library/*
 !assets/badges/library/.gitkeep
 
