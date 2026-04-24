@@ -332,50 +332,6 @@ body {
         5px 4px 0 #ef6d00;
 }
 
-.epsilon-enter-client {
-    position: absolute;
-    z-index: 6;
-    right: calc(50% - 456px);
-    top: 54px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-width: 158px;
-    min-height: 50px;
-    padding: 0 18px;
-    border: 3px solid #3c9a1d;
-    border-radius: 9px;
-    background:
-        linear-gradient(180deg, #89f35f 0, #27ad31 52%, #087b24 100%);
-    color: #fff !important;
-    font-family: Verdana, Arial, Helvetica, sans-serif;
-    font-size: 14px;
-    font-weight: 900;
-    text-decoration: none !important;
-    text-shadow: 0 1px 0 #063513;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.62), 0 3px 0 rgba(0, 0, 0, 0.45);
-}
-
-.epsilon-enter-client::before {
-    content: "";
-    width: 24px;
-    height: 24px;
-    margin-right: 9px;
-    background:
-        linear-gradient(#ffd33f 0 0) 4px 2px / 16px 5px no-repeat,
-        linear-gradient(#ffd33f 0 0) 2px 7px / 20px 12px no-repeat,
-        linear-gradient(#131313 0 0) 5px 10px / 4px 5px no-repeat,
-        linear-gradient(#131313 0 0) 15px 10px / 4px 5px no-repeat;
-    border: 2px solid #111;
-    border-radius: 3px;
-    box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.16);
-}
-
-.epsilon-enter-client:hover {
-    transform: translateY(-1px);
-    filter: brightness(1.08);
-}
-
 .cms-logo-link {
     margin-top: 15px;
     margin-left: 8px;
@@ -673,12 +629,12 @@ textarea {
     box-shadow: inset 1px 1px 0 rgba(0, 0, 0, 0.16);
 }
 
-.main-content a:not(.epsilon-enter-client) {
+.main-content a {
     color: #f16100;
     font-weight: 700;
 }
 
-.main-content a:not(.epsilon-enter-client):hover {
+.main-content a:hover {
     color: #b74300;
 }
 
@@ -767,8 +723,7 @@ footer {
         min-height: 74px;
     }
 
-    .epsilon-classic-topbar,
-    .epsilon-enter-client {
+    .epsilon-classic-topbar {
         display: none;
     }
 
@@ -1190,12 +1145,6 @@ replace_regex_in_file('/var/www/html/resources/themes/dusk/views/components/navi
         @endauth
     </div>
 
-    @auth
-        <a href="{{ route(\'nitro-client\') }}" class="epsilon-enter-client">{{ __(\'Enter Hotel\') }}</a>
-    @else
-        <a href="{{ route(\'login\') }}" class="epsilon-enter-client">{{ __(\'Login to enter\') }}</a>
-    @endauth
-
     <div class="max-w-7xl w-full flex justify-between items-center h-[120px]">',
 ]);
 
@@ -1227,6 +1176,20 @@ replace_in_file('/var/www/html/resources/themes/dusk/views/components/navigation
 
 replace_in_file('/var/www/html/resources/themes/dusk/views/components/navigation/dropdown.blade.php', [
     "src=\"{{ asset(sprintf('/assets/images/dusk/%s', \$icon)) }}\"" => "src=\"{{ asset('/assets/images/epsilon/classic-icons/' . pathinfo(\$icon, PATHINFO_FILENAME) . '.svg') }}\"",
+]);
+
+replace_regex_in_file('/var/www/html/resources/themes/dusk/views/user/me.blade.php', [
+    '/<div class="self-start lg:ml-14 w-full lg:w-64">\s*<a href="\{\{ route\(\'nitro-client\'\) \}\}">\s*<button type="submit" class="w-full text-white bg-yellow-500 border-2 border-yellow-300 w-full rounded transition duration-300 ease-in-out hover:scale-\[102%\] py-2 px-4">\s*\{\{ __\(\'Go to :hotel\', \[\'hotel\' => setting\(\'hotel_name\'\)\]\) \}\}\s*<\/button>\s*<\/a>\s*<\/div>/' => '<div class="self-start lg:ml-14 w-full lg:w-64">
+               <a data-turbolinks="false" href="{{ route(\'nitro-client\') }}" class="block w-full rounded border-2 border-yellow-300 bg-yellow-500 px-4 py-2 text-center font-bold text-white transition duration-300 ease-in-out hover:scale-[102%]" aria-label="{{ __(\'Launch Epsilon client\') }}">
+                   {{ __(\'Launch :hotel\', [\'hotel\' => setting(\'hotel_name\')]) }}
+               </a>
+           </div>',
+]);
+
+replace_regex_in_file('/var/www/html/resources/themes/dusk/views/components/user/me-backdrop.blade.php', [
+    '/<a data-turbolinks="false" href="\{\{ route\(\'nitro-client\'\) \}\}">\s*<button\s+class="relative rounded-full bg-white bg-opacity-90 px-6 py-2 text-lg font-semibold text-black transition duration-300 ease-in-out hover:bg-opacity-100 dark:bg-gray-900 dark:text-white">\s*\{\{ __\(\'Go to :hotel\', \[\'hotel\' => setting\(\'hotel_name\'\)\]\) \}\}\s*<\/button>\s*<\/a>/' => '<a data-turbolinks="false" href="{{ route(\'nitro-client\') }}" class="relative rounded-full bg-white bg-opacity-90 px-6 py-2 text-lg font-semibold text-black transition duration-300 ease-in-out hover:bg-opacity-100 dark:bg-gray-900 dark:text-white" aria-label="{{ __(\'Launch Epsilon client\') }}">
+        {{ __(\'Launch :hotel\', [\'hotel\' => setting(\'hotel_name\')]) }}
+    </a>',
 ]);
 
 $webManagementName = 'Epsilon Web Management System';

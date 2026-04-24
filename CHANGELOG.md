@@ -4,6 +4,13 @@ All notable changes to Epsilon Emulator should be documented in this file.
 
 The format is intentionally simple while the project is still in alpha.
 
+## [Unreleased]
+
+### Fixed
+
+- removed the duplicate CMS hotel-entry action from the global navigation so the authenticated CMS page exposes one functional launch CTA only
+- changed the user launch CTA to a direct `data-turbolinks=false` link instead of a nested button, avoiding inconsistent client loading behavior
+
 ## [0.4.0-alpha.6] - 2026-04-24
 
 ### Added
