@@ -6,7 +6,7 @@ import { loadSiteRegistry } from "./registry.js";
 const sites = loadSiteRegistry();
 const host = process.env.CMS_HOST ?? "127.0.0.1";
 const port = Number(process.env.CMS_PORT ?? "4100");
-const gatewayBaseUrl = process.env.CMS_GATEWAY_URL ?? "http://127.0.0.1:5000";
+const gatewayBaseUrl = process.env.CMS_GATEWAY_URL ?? "http://127.0.0.1:5100";
 const launcherBaseUrl = process.env.CMS_LAUNCHER_URL ?? "http://127.0.0.1:5001";
 
 const contentTypes: Record<string, string> = {
@@ -95,88 +95,65 @@ type CmsSessionSummary = {
 
 const cmsNews: CmsNewsItem[] = [
   {
-    slug: "collectibles-live",
-    category: "Collectibles",
-    title: "Collector loop integrado dentro del hotel",
-    summary: "Emeralds, collector level, gift boxes, factories y marketplace ya tienen base operativa en el backend.",
-    ctaLabel: "Ver portal",
+    slug: "welcome",
+    category: "Portal",
+    title: "Bienvenido a Epsilon Hotel",
+    summary: "Regístrate o entra para preparar tu acceso a la app de Epsilon desde la CMS.",
+    ctaLabel: "Ir al portal",
     ctaHref: "/sites/epsilon-access/"
   },
   {
-    slug: "launcher-runtime",
+    slug: "launcher-access",
     category: "Launcher",
-    title: "La entrada real al juego vive en el launcher",
-    summary: "La CMS resuelve acceso y perfil. El launcher prepara sesión, loader y runtime paralelo mientras llega el cliente web final.",
-    ctaLabel: "Abrir launcher",
-    ctaHref: `${launcherBaseUrl}/launcher/loader`
+    title: "El juego se abre desde la app de Epsilon",
+    summary: "La CMS autentica tu cuenta y genera tu código. La app instalada ejecuta el launcher y desde ahí corre el loader.",
+    ctaLabel: "Ver acceso",
+    ctaHref: "/sites/epsilon-access/#access"
   },
   {
-    slug: "habbowood-ready",
-    category: "Eventos",
-    title: "Habbowood quedó reconstruido en Epsilon",
-    summary: "Submissions, votos, moderación y activación ya existen como subsistema hotelero nativo.",
-    ctaLabel: "Entrar",
-    ctaHref: "/sites/epsilon-access/login.html"
+    slug: "access-steps",
+    category: "Ayuda",
+    title: "Acceso paso a paso",
+    summary: "1. Entra a tu cuenta. 2. Genera el código. 3. Abre la app. 4. El emulador confirma tu entrada real.",
+    ctaLabel: "Abrir ayuda",
+    ctaHref: "/sites/epsilon-access/#help"
   }
 ];
 
-const cmsPhotos: CmsPhotoItem[] = [
-  {
-    slug: "lido-dusk",
-    roomName: "Lido Deck",
-    caption: "La primera sala operativa para pruebas reales del hotel.",
-    palette: "linear-gradient(135deg, #1f567f 0%, #3fa9d5 48%, #7fd3ff 100%)"
-  },
-  {
-    slug: "habbowood-studio",
-    roomName: "Habbowood Studio",
-    caption: "El revival de Habbowood ya forma parte del backend del hotel.",
-    palette: "linear-gradient(135deg, #3c2352 0%, #6b2c91 50%, #f6a627 100%)"
-  },
-  {
-    slug: "collector-lounge",
-    roomName: "Collector Lounge",
-    caption: "La capa Collectibles ya se integra con launcher, wallet y progreso.",
-    palette: "linear-gradient(135deg, #0d3f3e 0%, #1e6f68 48%, #9be564 100%)"
-  }
-];
+const cmsPhotos: CmsPhotoItem[] = [];
 
-const cmsLeaderboard: CmsLeaderboardEntry[] = [
-  { rank: 1, username: "epsilon", label: "Collector leader", score: "Level 4" },
-  { rank: 2, username: "vector", label: "Room builder", score: "Presidential path" },
-  { rank: 3, username: "pixi", label: "Social runtime", score: "Lido Deck host" }
-];
+const cmsLeaderboard: CmsLeaderboardEntry[] = [];
 
 const cmsSupportTopics: CmsSupportTopic[] = [
   {
     key: "account",
     title: "Cuenta y acceso",
-    summary: "Registro, login, sesión web y salto correcto al launcher.",
+    summary: "Registro, login y gestión de la cuenta web antes de abrir la app.",
     audience: "Todos"
   },
   {
-    key: "hotel",
-    title: "Estado del hotel",
-    summary: "Gateway, launcher, persistencia, realtime y señales del runtime.",
-    audience: "Staff y usuarios técnicos"
+    key: "launcher",
+    title: "Launcher app",
+    summary: "Genera tu código, abre la app instalada y deja que el launcher ejecute el loader.",
+    audience: "Todos"
   },
   {
-    key: "collector",
-    title: "Collectibles y launch access",
-    summary: "Collector profile, launch entitlement y wallet flow de desarrollo.",
-    audience: "Usuarios"
+    key: "security",
+    title: "Seguridad",
+    summary: "No compartas tu código de inicio. Si dudas, genera uno nuevo desde la CMS.",
+    audience: "Todos"
   },
   {
     key: "support",
     title: "Centro de ayuda",
-    summary: "Base lista para tickets, reportes y documentación operativa.",
-    audience: "Usuarios y moderación"
+    summary: "Soporte básico para acceso, launcher y problemas de cuenta.",
+    audience: "Usuarios"
   }
 ];
 
 const launcherPackages: CmsLauncherPackage[] = [
   { platformKey: "windows", label: "Windows", fileKind: ".exe", status: "planned", downloadUrl: null },
-  { platformKey: "macos", label: "macOS", fileKind: ".dmg", status: "planned", downloadUrl: null },
+  { platformKey: "macos", label: "macOS", fileKind: ".dmg", status: "ready", downloadUrl: `${launcherBaseUrl}/launcher/downloads/macos-arm64` },
   { platformKey: "linux", label: "Linux", fileKind: ".AppImage", status: "planned", downloadUrl: null },
   { platformKey: "iphone", label: "iPhone", fileKind: "App Store", status: "planned", downloadUrl: null },
   { platformKey: "android", label: "Android", fileKind: ".apk", status: "planned", downloadUrl: null }
@@ -350,54 +327,6 @@ async function performLoginWithRetry(loginName: unknown, password: unknown): Pro
   return lastResult;
 }
 
-async function prepareCollectorForTicket(sessionTicket: string): Promise<void> {
-  const challenge = await fetchJson(
-    gatewayBaseUrl,
-    "/hotel/collectibles/wallet/challenges",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        walletAddress: "0x1000000000000000000000000000000000000064",
-        walletProvider: "metamask"
-      })
-    },
-    sessionTicket
-  );
-
-  const challengePayload = challenge.payload as Record<string, unknown> | null;
-  const challengeId = typeof challengePayload?.challengeId === "string" ? challengePayload.challengeId : null;
-  const nonce = typeof challengePayload?.nonce === "string" ? challengePayload.nonce : null;
-  if (!challengeId || !nonce) {
-    return;
-  }
-
-  await fetchJson(
-    gatewayBaseUrl,
-    "/hotel/collectibles/wallet/verify",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        challengeId,
-        signature: `devsig:${nonce}`
-      })
-    },
-    sessionTicket
-  );
-
-  await fetchJson(
-    gatewayBaseUrl,
-    "/hotel/collectibles/dev/ownership",
-    {
-      method: "POST",
-      body: JSON.stringify({
-        collectibleKeys: ["habbo_avatar_genesis"],
-        categoryKeys: ["avatar"]
-      })
-    },
-    sessionTicket
-  );
-}
-
 async function resolveCmsSession(request: ServerRequest): Promise<CmsSessionSummary> {
   const cookies = parseCookies(request);
   const ticket = cookies.get("epsilon_ticket")?.trim() ?? "";
@@ -454,8 +383,8 @@ async function resolveCmsSession(request: ServerRequest): Promise<CmsSessionSumm
   const connectionPayload = connectionResult.payload as Record<string, unknown> | null;
   const collectorPayload = collectorResult.payload as Record<string, unknown> | null;
   const launchPayload = launchAccessResult.payload as Record<string, unknown> | null;
-  const launchRequirements = Array.isArray(launchPayload?.requirements)
-    ? launchPayload?.requirements as Array<Record<string, unknown>>
+  const launchRules = Array.isArray(launchPayload?.rules)
+    ? launchPayload?.rules as Array<Record<string, unknown>>
     : [];
 
   return {
@@ -471,9 +400,9 @@ async function resolveCmsSession(request: ServerRequest): Promise<CmsSessionSumm
     canLaunch: Boolean(launchPayload?.canLaunch),
     collectorTier: typeof collectorPayload?.collectorTier === "string" ? collectorPayload.collectorTier : null,
     ownedCollectibleCount: typeof collectorPayload?.ownedCollectibleCount === "number" ? collectorPayload.ownedCollectibleCount : 0,
-    launchMissingKeys: launchRequirements
-      .filter((requirement) => requirement?.isSatisfied === false)
-      .map((requirement) => String(requirement.requirementKey ?? "unknown"))
+    launchMissingKeys: launchRules
+      .filter((rule) => rule?.isSatisfied === false)
+      .map((rule) => String(rule.ruleKey ?? "unknown"))
   };
 }
 
@@ -552,6 +481,21 @@ async function handleCmsApi(request: ServerRequest, response: ServerResponse): P
     const result = await fetchJson(
       launcherBaseUrl,
       `/launcher/telemetry/current?ticket=${encodeURIComponent(session.ticket)}`
+    );
+    sendJson(response, result.status, result.payload);
+    return true;
+  }
+
+  if (pathname === "/cms/api/connection/current" && request.method === "GET") {
+    const session = await resolveCmsSession(request);
+    if (!session.authenticated || !session.ticket) {
+      sendJson(response, 401, { error: "unauthorized" });
+      return true;
+    }
+
+    const result = await fetchJson(
+      launcherBaseUrl,
+      `/launcher/connection-state?ticket=${encodeURIComponent(session.ticket)}`
     );
     sendJson(response, result.status, result.payload);
     return true;
@@ -663,7 +607,6 @@ async function handleCmsApi(request: ServerRequest, response: ServerResponse): P
       return true;
     }
 
-    await prepareCollectorForTicket(sessionTicket);
     response.setHeader("set-cookie", `epsilon_ticket=${encodeURIComponent(sessionTicket)}; Path=/; HttpOnly; SameSite=Lax`);
     sendJson(response, 200, {
       succeeded: true,
@@ -689,7 +632,6 @@ async function handleCmsApi(request: ServerRequest, response: ServerResponse): P
       return true;
     }
 
-    await prepareCollectorForTicket(sessionTicket);
     response.setHeader("set-cookie", `epsilon_ticket=${encodeURIComponent(sessionTicket)}; Path=/; HttpOnly; SameSite=Lax`);
     sendJson(response, 200, {
       succeeded: true,
@@ -724,6 +666,16 @@ async function handleCmsApi(request: ServerRequest, response: ServerResponse): P
     const session = await resolveCmsSession(request);
     if (!session.authenticated || !session.ticket) {
       sendJson(response, 401, { error: "unauthorized" });
+      return true;
+    }
+
+    const currentCode = await fetchJson(
+      launcherBaseUrl,
+      `/launcher/access-codes/current?ticket=${encodeURIComponent(session.ticket)}`
+    );
+
+    if (currentCode.status < 400 && currentCode.payload) {
+      sendJson(response, 200, currentCode.payload);
       return true;
     }
 
@@ -868,20 +820,10 @@ async function handleLegacyEpsilonApi(request: ServerRequest, response: ServerRe
   }
 
   if (pathname === "/api/epsilon/prepare-collector" && request.method === "POST") {
-    const body = await readJsonBody(request) as Record<string, unknown> | null;
-    const sessionTicket =
-      (typeof body?.ticket === "string" ? body.ticket.trim() : "") ||
-      cookies.get("epsilon_ticket") ||
-      "";
-
-    if (!sessionTicket) {
-      sendJson(response, 400, { error: "ticket_required" });
-      return true;
-    }
-
-    await prepareCollectorForTicket(sessionTicket);
-    const bootstrap = await fetchJson(launcherBaseUrl, "/launcher/bootstrap", { method: "GET" }, sessionTicket);
-    sendJson(response, 200, { bootstrap: bootstrap.payload });
+    sendJson(response, 410, {
+      error: "collector_auto_prepare_removed",
+      detail: "Launcher access can no longer be granted from CMS automation. Use wallet verification and explicit access-code flow."
+    });
     return true;
   }
 
@@ -1001,7 +943,6 @@ async function handlePortalActions(request: ServerRequest, response: ServerRespo
       return true;
     }
 
-    await prepareCollectorForTicket(ticket);
     sendRedirect(
       response,
       "/sites/epsilon-access/?welcome=1#access",
@@ -1028,7 +969,6 @@ async function handlePortalActions(request: ServerRequest, response: ServerRespo
       return true;
     }
 
-    await prepareCollectorForTicket(ticket);
     sendRedirect(
       response,
       "/sites/epsilon-access/?welcome=1#access",

@@ -47,6 +47,8 @@ public static class StartupValidationExtensions
         services.AddSingleton<ProtocolCommandExecutionService>();
         services.AddSingleton<HotelRealtimeSocketHandler>();
         services.AddSingleton<IRealtimeConnectionMonitor, RealtimeConnectionMonitor>();
+        // HOTFIX broadcast: singleton hub for real-time room peer notifications.
+        services.AddSingleton<IRoomConnectionHub, RoomConnectionHub>();
         services.AddSingleton<IProtocolHealthMonitor, ProtocolHealthMonitor>();
         services.AddSingleton<IHotelIntelligenceService, HotelIntelligenceService>();
         services.AddHostedService<ProtocolHealthMonitorWorker>();

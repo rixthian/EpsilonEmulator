@@ -1,0 +1,476 @@
+{
+  "manifestVersion": 1,
+  "generatedAtUtc": "2026-04-23T22:13:35.115238+00:00",
+  "rootId": "arcturus-morningstar-default-swf-pack",
+  "layoutKind": "classic_client_asset_root",
+  "sections": {
+    "gamedata": {
+      "files": [
+        "crossdomain.xml",
+        "gamedata/HabboAvatarActions.xml",
+        "gamedata/config_habbo.xml",
+        "gamedata/effectmap.xml",
+        "gamedata/events_list.txt",
+        "gamedata/external_flash_texts.txt",
+        "gamedata/external_variables.txt",
+        "gamedata/figuredata.xml",
+        "gamedata/figuremap.xml",
+        "gamedata/furnidata.xml",
+        "gamedata/habbopages/builders-club/info",
+        "gamedata/habbopages/camera",
+        "gamedata/habbopages/chat/chatting",
+        "gamedata/habbopages/chat/commands",
+        "gamedata/habbopages/chat/options",
+        "gamedata/habbopages/forums",
+        "gamedata/habbopages/habboclub",
+        "gamedata/habbopages/hcpayday",
+        "gamedata/habbopages/help/pets/training",
+        "gamedata/habbopages/navigator",
+        "gamedata/habbopages/wired_addons",
+        "gamedata/habbopages/wired_conditions",
+        "gamedata/habbopages/wired_effects",
+        "gamedata/habbopages/wired_leaderboards",
+        "gamedata/habbopages/wired_triggers",
+        "gamedata/hotlooks.xml",
+        "gamedata/override/external_flash_override_texts.txt",
+        "gamedata/override/external_override_variables.txt",
+        "gamedata/productdata.txt"
+      ],
+      "hasCoreContentMetadata": true,
+      "hasFigurePartConfig": false,
+      "hasSecurityCast": false,
+      "textBundleFiles": [
+        "gamedata/events_list.txt",
+        "gamedata/external_flash_texts.txt",
+        "gamedata/external_variables.txt",
+        "gamedata/override/external_flash_override_texts.txt",
+        "gamedata/override/external_override_variables.txt",
+        "gamedata/productdata.txt"
+      ]
+    },
+    "imageLibrary": {
+      "count": 34045,
+      "topFolders": [
+        {
+          "folder": "album1584",
+          "count": 24550
+        },
+        {
+          "folder": "catalogue",
+          "count": 5442
+        },
+        {
+          "folder": "articles",
+          "count": 1550
+        },
+        {
+          "folder": "web_promo",
+          "count": 684
+        },
+        {
+          "folder": "web_promo_small",
+          "count": 589
+        },
+        {
+          "folder": "catalogue_otherlangs",
+          "count": 561
+        },
+        {
+          "folder": "Badgeparts",
+          "count": 242
+        },
+        {
+          "folder": "Quests",
+          "count": 194
+        },
+        {
+          "folder": "album3606",
+          "count": 87
+        },
+        {
+          "folder": "newroom",
+          "count": 37
+        },
+        {
+          "folder": "guilds",
+          "count": 31
+        },
+        {
+          "folder": "Habbo-Stories",
+          "count": 28
+        },
+        {
+          "folder": "talent",
+          "count": 16
+        },
+        {
+          "folder": "reception",
+          "count": 11
+        },
+        {
+          "folder": "targetedoffers",
+          "count": 8
+        },
+        {
+          "folder": "client_static",
+          "count": 5
+        },
+        {
+          "folder": "playlist",
+          "count": 5
+        },
+        {
+          "folder": "AdWarningsUK",
+          "count": 2
+        },
+        {
+          "folder": "album137",
+          "count": 1
+        },
+        {
+          "folder": "habbopages",
+          "count": 1
+        }
+      ],
+      "badgeAssetCount": 24550,
+      "campaignAssetCount": 18,
+      "sample": [
+        "c_images/AdWarningsUK/ad_warning_L.png",
+        "c_images/AdWarningsUK/ad_warning_R.png",
+        "c_images/Badgeparts/badgepart_base_advanced_1.png",
+        "c_images/Badgeparts/badgepart_base_advanced_2.png",
+        "c_images/Badgeparts/badgepart_base_advanced_3.png",
+        "c_images/Badgeparts/badgepart_base_advanced_4.png",
+        "c_images/Badgeparts/badgepart_base_basic_1.png",
+        "c_images/Badgeparts/badgepart_base_basic_2.png",
+        "c_images/Badgeparts/badgepart_base_basic_3.png",
+        "c_images/Badgeparts/badgepart_base_basic_4.png",
+        "c_images/Badgeparts/badgepart_base_basic_5.png",
+        "c_images/Badgeparts/badgepart_base_beams_part1.png",
+        "c_images/Badgeparts/badgepart_base_beams_part2.png",
+        "c_images/Badgeparts/badgepart_base_book.png",
+        "c_images/Badgeparts/badgepart_base_circles_1.png",
+        "c_images/Badgeparts/badgepart_base_circles_2.png",
+        "c_images/Badgeparts/badgepart_base_egg.png",
+        "c_images/Badgeparts/badgepart_base_gold_1_part1.png",
+        "c_images/Badgeparts/badgepart_base_gold_1_part2.png",
+        "c_images/Badgeparts/badgepart_base_gold_2_part1.png",
+        "c_images/Badgeparts/badgepart_base_gold_2_part2.png",
+        "c_images/Badgeparts/badgepart_base_gradient_1.png",
+        "c_images/Badgeparts/badgepart_base_gradient_2.png",
+        "c_images/Badgeparts/badgepart_base_misc_1_part1.png",
+        "c_images/Badgeparts/badgepart_base_misc_1_part2.png",
+        "c_images/Badgeparts/badgepart_base_misc_2.png",
+        "c_images/Badgeparts/badgepart_base_ornament.png",
+        "c_images/Badgeparts/badgepart_base_ornament_1_part1.png",
+        "c_images/Badgeparts/badgepart_base_ornament_1_part2.png",
+        "c_images/Badgeparts/badgepart_base_ornament_2_part1.png",
+        "c_images/Badgeparts/badgepart_base_ornament_2_part2.png",
+        "c_images/Badgeparts/badgepart_base_pin_part1.png",
+        "c_images/Badgeparts/badgepart_base_pin_part2.png",
+        "c_images/Badgeparts/badgepart_base_ring.png",
+        "c_images/Badgeparts/badgepart_base_shield_part1.png",
+        "c_images/Badgeparts/badgepart_base_shield_part2.png",
+        "c_images/Badgeparts/badgepart_base_simplestar_part1.png",
+        "c_images/Badgeparts/badgepart_base_simplestar_part2.png",
+        "c_images/Badgeparts/badgepart_base_spiral.png",
+        "c_images/Badgeparts/badgepart_symbol_0.png"
+      ]
+    },
+    "dcrFurnitureAssets": {
+      "count": 7879,
+      "adAssetCount": 212,
+      "gameAssetCount": 67,
+      "currencyAssetCount": 46,
+      "topPrefixes": [
+        {
+          "prefix": "clothing",
+          "count": 636
+        },
+        {
+          "prefix": "xmas",
+          "count": 326
+        },
+        {
+          "prefix": "hween",
+          "count": 269
+        },
+        {
+          "prefix": "ads",
+          "count": 212
+        },
+        {
+          "prefix": "easter",
+          "count": 206
+        },
+        {
+          "prefix": "room",
+          "count": 173
+        },
+        {
+          "prefix": "wf",
+          "count": 94
+        },
+        {
+          "prefix": "bazaar",
+          "count": 92
+        },
+        {
+          "prefix": "rare",
+          "count": 81
+        },
+        {
+          "prefix": "sound",
+          "count": 81
+        },
+        {
+          "prefix": "horse",
+          "count": 76
+        },
+        {
+          "prefix": "jungle",
+          "count": 73
+        },
+        {
+          "prefix": "diamond",
+          "count": 67
+        },
+        {
+          "prefix": "pixel",
+          "count": 66
+        },
+        {
+          "prefix": "plushie",
+          "count": 65
+        },
+        {
+          "prefix": "bc",
+          "count": 63
+        },
+        {
+          "prefix": "habbo15",
+          "count": 57
+        },
+        {
+          "prefix": "pirate",
+          "count": 57
+        },
+        {
+          "prefix": "xmas11",
+          "count": 57
+        },
+        {
+          "prefix": "uni",
+          "count": 55
+        }
+      ],
+      "sample": [
+        "CFC_100_coin_gold.swf",
+        "CFC_10_coin_bronze.swf",
+        "CFC_200_moneybag.swf",
+        "CFC_500_goldbar.swf",
+        "CFC_50_coin_silver.swf",
+        "CF_1000_goldenkey.swf",
+        "CF_10_coin_gold.swf",
+        "CF_1200_ny16.swf",
+        "CF_120_sapphire_small.swf",
+        "CF_1500_suitcase.swf",
+        "CF_1500_suitcase2.swf",
+        "CF_1_coin_bronze.swf",
+        "CF_200_ruby.swf",
+        "CF_20_moneybag.swf",
+        "CF_240_sapphire.swf",
+        "CF_250_Hucci.swf",
+        "CF_250_fancywatch.swf",
+        "CF_250_toiletpaper.swf",
+        "CF_300_bricks.swf",
+        "CF_350_duck.swf",
+        "CF_350_giantpearl.swf",
+        "CF_350_jadefish.swf",
+        "CF_350_sceptre.swf",
+        "CF_350_skull.swf",
+        "CF_350_sparklybag.swf",
+        "CF_5000_suitcase.swf",
+        "CF_500_egg.swf",
+        "CF_500_goldenbeetle.swf",
+        "CF_500_moneytree.swf",
+        "CF_500_orb.swf",
+        "CF_500_platinum_bar.swf",
+        "CF_500_vikings.swf",
+        "CF_50_goldbar.swf",
+        "CF_5_coin_silver.swf",
+        "CF_750_duck.swf",
+        "CF_750_evilskull.swf",
+        "CF_750_golddragon.swf",
+        "CF_750_goldenpig.swf",
+        "CF_750_minihabberge.swf",
+        "CF_750_perfume.swf"
+      ]
+    },
+    "gordonPackages": {
+      "count": 1,
+      "packageKeys": [
+        "PRODUCTION"
+      ]
+    },
+    "coreClientPackages": {
+      "count": 2,
+      "sample": [
+        "Habbo.swf",
+        "HabboRoomContent.swf"
+      ]
+    },
+    "gamePackages": {
+      "count": 2,
+      "sample": [
+        "BaseJump.swf",
+        "BasicAssets.swf"
+      ]
+    },
+    "publicRoomPackages": {
+      "count": 0,
+      "brandedVariantCount": 0,
+      "regionalVariantCount": 0,
+      "sample": []
+    },
+    "avatarAssets": {
+      "count": 1881,
+      "figureLibraryCount": 0,
+      "humanLibraryCount": 28,
+      "partVariantCount": 1853,
+      "sample": [
+        "acc_U_antlers15.swf",
+        "acc_chest_M_fish.swf",
+        "acc_chest_U_backpack.swf",
+        "acc_chest_U_bamboobackpack.swf",
+        "acc_chest_U_beads.swf",
+        "acc_chest_U_bear.swf",
+        "acc_chest_U_belv.swf",
+        "acc_chest_U_binoculars.swf",
+        "acc_chest_U_bohobackpack.swf",
+        "acc_chest_U_bohobag.swf",
+        "acc_chest_U_bookbag.swf",
+        "acc_chest_U_bow.swf",
+        "acc_chest_U_bowtie.swf",
+        "acc_chest_U_bscarf.swf",
+        "acc_chest_U_bulletbelt.swf",
+        "acc_chest_U_camera.swf",
+        "acc_chest_U_campingbackpack.swf",
+        "acc_chest_U_catbackpack.swf",
+        "acc_chest_U_catbackpack2.swf",
+        "acc_chest_U_chestbag.swf",
+        "acc_chest_U_choker.swf",
+        "acc_chest_U_croix1.swf",
+        "acc_chest_U_darkelegantbag.swf",
+        "acc_chest_U_demonwings.swf",
+        "acc_chest_U_dogtag.swf",
+        "acc_chest_U_explorersash.swf",
+        "acc_chest_U_floralbag.swf",
+        "acc_chest_U_fruitbag.swf",
+        "acc_chest_U_galaxybackpack.swf",
+        "acc_chest_U_glitzypurse.swf",
+        "acc_chest_U_goldheartbp.swf",
+        "acc_chest_U_guccisac.swf",
+        "acc_chest_U_heartbackpack.swf",
+        "acc_chest_U_heartnecklace.swf",
+        "acc_chest_U_hglasses.swf",
+        "acc_chest_U_intestine.swf",
+        "acc_chest_U_jewels.swf",
+        "acc_chest_U_lanternstaff.swf",
+        "acc_chest_U_lvbackpa.swf",
+        "acc_chest_U_medal1.swf",
+        "acc_chest_U_medal2.swf",
+        "acc_chest_U_medal3.swf",
+        "acc_chest_U_microbag.swf",
+        "acc_chest_U_monsterbackpack.swf",
+        "acc_chest_U_multibadges.swf",
+        "acc_chest_U_necktie.swf",
+        "acc_chest_U_newch1.swf",
+        "acc_chest_U_newcha.swf",
+        "acc_chest_U_newchn.swf",
+        "acc_chest_U_pg2sachb.swf"
+      ]
+    },
+    "petAssets": {
+      "count": 2,
+      "sample": [
+        "hh_pets.swf",
+        "hh_pets_50.swf"
+      ]
+    },
+    "catalogueImages": {
+      "count": 5583,
+      "extensions": {
+        ".gif": 4263,
+        ".png": 1320
+      },
+      "iconCount": 306,
+      "thumbnailCount": 500,
+      "sample": [
+        "2015_header.gif",
+        "2015ny_teaser.gif",
+        "2017_party_hat.gif",
+        "A2_tlp_20.gif",
+        "BCHCBoxes.gif",
+        "Basket.gif",
+        "Battlebanzai.gif",
+        "Betty_the_Sloth.gif",
+        "CCS.png",
+        "CINEMA.gif",
+        "Catalog_Teaser_icetag.gif",
+        "Catalog_arc_tease_hc.gif",
+        "Catalog_arc_tease_hcd.gif",
+        "Catalog_header_freeze.gif",
+        "Catalog_header_icetag.gif",
+        "Catalog_header_roller_skates.gif",
+        "Catalog_teaser_USVA.gif",
+        "Catalog_teaser_freeze.gif",
+        "Catalog_teaser_roller_skates.gif",
+        "Catalogue_Teaser_Castles.gif",
+        "Drago_Article_Image_1.gif",
+        "Edison.gif",
+        "Events.gif",
+        "FBP_header.gif",
+        "FBP_teaser.gif",
+        "Fire_dragon_lamp.gif",
+        "Fountain.gif",
+        "Freze2.gif",
+        "Freze2.png",
+        "Homepage_About_New_Site.gif",
+        "Hween11_teaser.gif",
+        "JETSET.gif",
+        "LT_header_br.gif",
+        "LT_header_ch.gif",
+        "LT_header_da.gif",
+        "LT_header_de.gif",
+        "LT_header_dk.gif",
+        "LT_header_en.gif",
+        "LT_header_en_001.gif",
+        "LT_header_es.gif"
+      ]
+    },
+    "catalogSql": {
+      "count": 15,
+      "hasCatalogPages": true,
+      "hasCatalogItems": true,
+      "hasItemBase": true,
+      "sample": [
+        "General_Updates.sql",
+        "heights.sql",
+        "interaction_modes_count.sql",
+        "vending_ids.sql",
+        "catalog_clothing.sql",
+        "catalog_featured_pages.sql",
+        "catalog_items.sql",
+        "catalog_pages.sql",
+        "crafting_altars_recipes.sql",
+        "crafting_recipes.sql",
+        "crafting_recipes_ingredients.sql",
+        "emulator_settings.sql",
+        "emulator_texts.sql",
+        "items_base.sql",
+        "items_crackable.sql"
+      ]
+    }
+  }
+}

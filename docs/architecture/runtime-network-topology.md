@@ -1,5 +1,9 @@
 # Runtime Network Topology
 
+For the broader emulator authority model, see [emulator-reference-model.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/emulator-reference-model.md).
+
+For the local multiprocess topology derived from reference stacks, see [local-orchestration-topology.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/local-orchestration-topology.md).
+
 Epsilon has three runtime-facing application surfaces:
 
 - `Gateway`

@@ -57,6 +57,10 @@ public sealed class RoomRollerService : IRoomRollerService
             .OrderBy(snapshot => snapshot.Item.ItemId.Value)
             .ToArray();
 
+        // HOTFIX performance: split the heightmap once for the entire roller pass
+        // instead of once per IsWalkable call (which re-split on every roller tile check).
+        string[] heightmapRows = RoomNavigationLogic.SplitHeightmap(room.Layout.Heightmap);
+
         foreach (RoomItemSnapshot roller in rollers)
         {
             FloorPosition rollerPosition = roller.Item.Placement.FloorPosition!.Value;
@@ -67,7 +71,7 @@ public sealed class RoomRollerService : IRoomRollerService
 
             int targetX = rollerPosition.X + deltaX;
             int targetY = rollerPosition.Y + deltaY;
-            if (!RoomNavigationLogic.IsWalkable(room.Layout, targetX, targetY, out double floorHeight))
+            if (!RoomNavigationLogic.IsWalkable(heightmapRows, targetX, targetY, out double floorHeight))
             {
                 continue;
             }

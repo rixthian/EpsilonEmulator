@@ -472,19 +472,23 @@ public sealed class ProtocolCommandExecutionService
             : argument.ToString();
     }
 
+    // HOTFIX: The original implementation read the dictionary key up to three times
+    // using a deeply nested ternary.  When the value was JsonValueKind.False it returned
+    // false — indistinguishable from "key not present", so spectatorMode: false was
+    // never forwarded correctly.  Replaced with a single lookup and a switch.
     public static bool TryReadBoolean(
         IReadOnlyDictionary<string, JsonElement> arguments,
         string key)
     {
-        return arguments.TryGetValue(key, out JsonElement argument) &&
-               argument.ValueKind == JsonValueKind.True
-            ? true
-            : arguments.TryGetValue(key, out argument) &&
-              argument.ValueKind == JsonValueKind.False
-                ? false
-                : arguments.TryGetValue(key, out argument) &&
-                  argument.ValueKind == JsonValueKind.String &&
-                  bool.TryParse(argument.GetString(), out bool parsed) &&
-                  parsed;
+        if (!arguments.TryGetValue(key, out JsonElement argument))
+            return false;
+
+        return argument.ValueKind switch
+        {
+            JsonValueKind.True => true,
+            JsonValueKind.False => false,
+            JsonValueKind.String => bool.TryParse(argument.GetString(), out bool parsed) && parsed,
+            _ => false
+        };
     }
 }

@@ -4,12 +4,12 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Register | Epsilon Hotel</title>
-  <link rel="stylesheet" href="./assets/portal.css?v=7">
+  <link rel="stylesheet" href="./assets/portal.css?v=9">
 </head>
 <body data-page="register">
   <header class="masthead compact">
     <div class="masthead-overlay">
-      <div class="masthead-inner">
+      <div class="site-shell masthead-top compact-top">
         <a class="brand" href="/sites/epsilon-access/">
           <span class="brand-mark">EPSILON</span>
           <span class="brand-copy">Hotel</span>
@@ -24,31 +24,38 @@
   <nav class="nav-bar">
     <div class="site-shell nav-row">
       <div class="topnav">
-        <a href="/sites/epsilon-access/">Homepage</a>
-        <a href="/sites/epsilon-access/#community">Community</a>
-        <a href="/sites/epsilon-access/#photos">Fotos</a>
+        <a href="/sites/epsilon-access/">Inicio</a>
+        <a href="/sites/epsilon-access/#community">Comunidad</a>
         <a href="/sites/epsilon-access/#news">Noticias</a>
+        <a href="/sites/epsilon-access/#help">Ayuda</a>
       </div>
     </div>
   </nav>
 
   <main class="auth-page">
-    <section class="auth-card">
-      <div class="card-title">
-        <h2>Register</h2>
-      </div>
-      <div id="status-banner" class="notice hidden"></div>
-      <form class="stack" method="post" action="/portal/register">
-        <label>Username<input name="username" required minlength="3" maxlength="24" autocomplete="username" placeholder="Nombre Habbo"></label>
-        <label>Email<input name="email" type="email" required autocomplete="email" placeholder="Email"></label>
-        <label>Password<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="Contraseña"></label>
-        <div class="actions stacked-actions">
-          <button type="submit">Join now!</button>
-          <a class="button-link soft" href="/sites/epsilon-access/login.html">Login</a>
+    <section class="auth-layout">
+      <article class="auth-info-card">
+        <p class="hero-eyebrow">Registro</p>
+        <h1>Crea tu Habbo.</h1>
+        <p>Regístrate en la CMS, entra a tu cuenta y después usa el launcher para acceder al hotel.</p>
+      </article>
+      <section class="auth-card">
+        <div class="card-title">
+          <h2>Register</h2>
         </div>
-      </form>
+        <div id="status-banner" class="notice hidden"></div>
+        <form class="stack" method="post" action="/portal/register">
+          <label>Username<input name="username" required minlength="3" maxlength="24" autocomplete="username" placeholder="Nombre Habbo"></label>
+          <label>Email<input name="email" type="email" required autocomplete="email" placeholder="Email"></label>
+          <label>Password<input name="password" type="password" required minlength="8" autocomplete="new-password" placeholder="Contraseña"></label>
+          <div class="actions stacked-actions">
+            <button type="submit">Crear cuenta</button>
+            <a class="button-link soft" href="/sites/epsilon-access/login.html">Login</a>
+          </div>
+        </form>
+      </section>
     </section>
   </main>
-  <script src="./assets/site.js?v=3" defer></script>
+  <script src="./assets/site.js?v=6" defer></script>
 </body>
 </html>

@@ -1,0 +1,15 @@
+{
+  "manifestVersion": 1,
+  "profileKey": "arcturus-morningstar-default-swf-pack",
+  "sourceKind": "local",
+  "clientFamily": "flash-classic",
+  "eraKey": "morningstar-default",
+  "domain": "git.krews.org/morningstar/arcturus-morningstar-default-swf-pack",
+  "revisionKey": "a7cea19c8877fb31fa53108655e96d94e4ce7e8e",
+  "roots": [
+    {
+      "rootKey": "client-root",
+      "path": "/Users/yasminluengo/Documents/Playground/reference-sources/arcturus-morningstar-default-swf-pack"
+    }
+  ]
+}

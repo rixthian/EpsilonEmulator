@@ -4,6 +4,8 @@ Epsilon's catalog can be broader than any single historical client version.
 
 That is valid, but it requires an adaptation layer.
 
+Staff editing rules and operational safety are defined in [catalog-admin-tooling.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/catalog-admin-tooling.md). Visual catalog editors are useful, but the canonical catalog must be mutated through Epsilon admin commands rather than direct database tools.
+
 ## Canonical Catalog
 
 The canonical catalog should support:
@@ -46,3 +48,4 @@ This lets Epsilon:
 - preserve older compatibility targets
 - support richer future portal and client experiences
 - avoid building separate hotel catalogs per era
+- protect catalog changes with draft, publish, audit, and rollback workflows

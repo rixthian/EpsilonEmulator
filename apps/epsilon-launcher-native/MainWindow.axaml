@@ -10,7 +10,7 @@
         Height="720"
         MinWidth="820"
         MinHeight="680"
-        CanResize="False"
+        CanResize="True"
         Title="Epsilon Launcher"
         WindowStartupLocation="CenterScreen"
         Background="#08131E"
@@ -31,11 +31,15 @@
       </Grid>
     </Border>
 
-    <Grid Grid.Row="1" Margin="24" ColumnDefinitions="1.2*,0.9*" RowDefinitions="Auto,Auto,*,Auto">
+    <ScrollViewer Grid.Row="1"
+                  Margin="24"
+                  VerticalScrollBarVisibility="Auto"
+                  HorizontalScrollBarVisibility="Disabled">
+    <Grid ColumnDefinitions="1.2*,0.9*" RowDefinitions="Auto,Auto,*,Auto">
       <Border Grid.Row="0" Grid.ColumnSpan="2" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
         <StackPanel Spacing="12">
           <TextBlock Text="Acceso por código único" Foreground="#EEF4FB" FontSize="26" FontWeight="Bold"/>
-          <TextBlock Text="La CMS genera el código. Esta app lo canjea contra el launcher y abre el cliente correcto. El usuario no está dentro del hotel hasta que el emulador confirme presencia real." Foreground="#9FC0D8" TextWrapping="Wrap" FontSize="16"/>
+          <TextBlock Text="La CMS genera el código. Esta app lo canjea, inicia el juego y lanza el loader correcto. El usuario no está dentro del hotel hasta que el emulador confirme presencia real." Foreground="#9FC0D8" TextWrapping="Wrap" FontSize="16"/>
           <Grid ColumnDefinitions="*,Auto">
             <TextBox x:Name="AccessCodeTextBox"
                      Watermark="88D4-CA17-2F06"
@@ -55,14 +59,14 @@
 
       <Border Grid.Row="1" Grid.Column="0" Background="#122C44" BorderBrush="#35536D" BorderThickness="1" CornerRadius="18" Padding="20">
         <StackPanel Spacing="12">
-          <TextBlock Text="Perfil de lanzamiento" Foreground="#EEF4FB" FontSize="22" FontWeight="Bold"/>
-          <TextBlock Text="El launcher selecciona qué cliente abrir. Eso no equivale a presencia dentro del hotel." Foreground="#9FC0D8" TextWrapping="Wrap" FontSize="15"/>
+          <TextBlock Text="Modo de inicio" Foreground="#EEF4FB" FontSize="22" FontWeight="Bold"/>
+          <TextBlock Text="La app decide cómo iniciar el juego y lanzar el loader. Eso no equivale a presencia dentro del hotel." Foreground="#9FC0D8" TextWrapping="Wrap" FontSize="15"/>
           <ComboBox x:Name="ProfileComboBox" Height="42" Background="#08131E" Foreground="#EEF4FB"/>
           <Border Background="#08131E" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Padding="14">
             <TextBlock x:Name="ProfileSummaryTextBlock" Foreground="#D8E6F2" TextWrapping="Wrap" FontSize="15"/>
           </Border>
           <StackPanel Orientation="Horizontal" Spacing="10">
-            <local:CustomButton x:Name="LaunchClientButton" Text="Abrir cliente" BackColor="#1F9D5B" Height="44" Width="160" IsButtonDisabled="True"/>
+            <local:CustomButton x:Name="LaunchClientButton" Text="Iniciar juego" BackColor="#1F9D5B" Height="44" Width="160" IsButtonDisabled="True"/>
             <local:CustomButton x:Name="SaveConfigButton" Text="Guardar config" BackColor="#35536D" Height="44" Width="150"/>
           </StackPanel>
         </StackPanel>
@@ -97,13 +101,13 @@
             </Border>
             <Border Background="#1A3D5D" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Margin="0,0,10,0" Padding="14">
               <StackPanel>
-                <TextBlock Text="Perfil por defecto" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+                <TextBlock Text="Modo por defecto" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
                 <TextBlock x:Name="DefaultProfileValueTextBlock" Foreground="#EEF4FB" FontSize="20" FontWeight="Bold" TextWrapping="Wrap"/>
               </StackPanel>
             </Border>
             <Border Background="#1A3D5D" BorderBrush="#2E597B" BorderThickness="1" CornerRadius="12" Padding="14">
               <StackPanel>
-                <TextBlock Text="Código canjeado" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
+                <TextBlock Text="Conexión real" Foreground="#9FC0D8" FontSize="12" FontWeight="Bold"/>
                 <TextBlock x:Name="RedeemedValueTextBlock" Foreground="#EEF4FB" FontSize="20" FontWeight="Bold"/>
               </StackPanel>
             </Border>
@@ -127,6 +131,7 @@
         </StackPanel>
       </Border>
     </Grid>
+    </ScrollViewer>
 
     <Grid Grid.Row="2">
       <Grid Background="Black" Opacity="0.5"/>

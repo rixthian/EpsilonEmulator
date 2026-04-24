@@ -11,13 +11,16 @@ from pathlib import Path
 from typing import Iterable
 
 
-GAME_DATA_FILES = {
-    "external_flash_texts.txt",
-    "external_variables.txt",
-    "figuredata.xml",
-    "furnidata.txt",
-    "productdata.txt",
-}
+CORE_GAME_DATA_FILE_GROUPS = (
+    {"external_flash_texts.txt"},
+    {"external_variables.txt"},
+    {"figuredata.xml"},
+    {"furnidata.xml", "furnidata.txt"},
+    {"productdata.txt"},
+)
+
+IGNORED_PATH_PARTS = {".git", "__MACOSX"}
+IGNORED_FILE_NAMES = {".DS_Store", "Thumbs.db", ".gitkeep"}
 
 
 def parse_args() -> argparse.Namespace:
@@ -34,7 +37,15 @@ def list_relative_files(root: Path) -> list[str]:
     return sorted(
         str(path.relative_to(root)).replace("\\", "/")
         for path in root.rglob("*")
-        if path.is_file()
+        if path.is_file() and not _should_ignore(path, root)
+    )
+
+
+def _should_ignore(candidate: Path, root: Path) -> bool:
+    relative_parts = candidate.relative_to(root).parts
+    return (
+        any(part in IGNORED_PATH_PARTS for part in relative_parts)
+        or candidate.name in IGNORED_FILE_NAMES
     )
 
 
@@ -54,7 +65,10 @@ def classify_gamedata_files(files: list[str]) -> dict:
     file_set = set(files)
     return {
         "files": files,
-        "hasCoreContentMetadata": all(any(path.endswith(name) for path in files) for name in GAME_DATA_FILES),
+        "hasCoreContentMetadata": all(
+            any(path.endswith(name) for path in files for name in group)
+            for group in CORE_GAME_DATA_FILE_GROUPS
+        ),
         "hasFigurePartConfig": any(
             path.startswith("gamedata/figurepartconfig/") or Path(path).name in {"animation.xml", "draworder.xml", "partsets.xml"}
             for path in files
@@ -169,6 +183,31 @@ def classify_core_client_packages(files: list[str]) -> dict:
     }
 
 
+def classify_catalogue_images(files: list[str]) -> dict:
+    names = [Path(path).name for path in files]
+    extensions = Counter(Path(name).suffix.lower() or "<none>" for name in names)
+
+    return {
+        "count": len(names),
+        "extensions": dict(sorted(extensions.items())),
+        "iconCount": sum(1 for name in names if name.startswith("icon_")),
+        "thumbnailCount": sum(1 for name in names if name.startswith(("th_floor_", "th_landscape_", "th_wall_"))),
+        "sample": names[:40],
+    }
+
+
+def classify_catalog_sql(files: list[str]) -> dict:
+    names = [Path(path).name for path in files]
+
+    return {
+        "count": len(names),
+        "hasCatalogPages": any(name == "catalog_pages.sql" for name in names),
+        "hasCatalogItems": any(name == "catalog_items.sql" for name in names),
+        "hasItemBase": any(name == "items_base.sql" for name in names),
+        "sample": names[:30],
+    }
+
+
 def build_manifest(source_root: Path, root_id: str) -> dict:
     all_files = list_relative_files(source_root)
 
@@ -226,6 +265,9 @@ def build_manifest(source_root: Path, root_id: str) -> dict:
         all_files,
         {"Habbo.swf", "HabboRoomContent.swf", "Habbo10.swf", "TileCursor.swf", "SelectionArrow.swf", "PlaceHolderFurniture.swf", "PlaceHolderWallItem.swf", "PlaceHolderPet.swf"},
     )
+    game_package_files = collect_prefixed_files(all_files, ("game/",))
+    catalogue_image_files = collect_prefixed_files(all_files, ("catalogue/",))
+    catalog_sql_files = collect_prefixed_files(all_files, ("Catalog-SQLS/",))
     gordon_public_room_files = [
         path for path in gordon_files if Path(path).name.startswith("hh_room") and path.endswith(".swf")
     ]
@@ -298,9 +340,12 @@ def build_manifest(source_root: Path, root_id: str) -> dict:
                 "packageKeys": gordon_package_roots,
             },
             "coreClientPackages": classify_core_client_packages(gordon_core_client_files or root_core_client_files),
+            "gamePackages": classify_core_client_packages(game_package_files),
             "publicRoomPackages": classify_public_rooms(gordon_public_room_files or dcr_public_room_files),
             "avatarAssets": classify_avatar_assets(gordon_avatar_files or root_avatar_files),
             "petAssets": classify_pet_assets(gordon_pet_files or root_pet_files),
+            "catalogueImages": classify_catalogue_images(catalogue_image_files),
+            "catalogSql": classify_catalog_sql(catalog_sql_files),
         },
     }
 

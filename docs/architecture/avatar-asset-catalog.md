@@ -68,3 +68,12 @@ They must not be mistaken for:
 - room content roots
 
 They can be mapped to those systems later, but their catalog identity stays independent.
+
+## Imaging Relationship
+
+Avatar imaging is a derived-output layer on top of this catalog. It may use avatar asset manifests to render profile thumbnails and launcher identity cards, but it must not own avatar state or wearable ownership.
+
+See:
+
+- [avatar-imaging-service.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/avatar-imaging-service.md)
+- [nitro-imager.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/reference-sources/nitro-imager.md)

@@ -1,14 +1,14 @@
 {
   "Launcher": {
     "ServiceName": "Epsilon.Launcher",
-    "GatewayBaseUrl": "http://localhost:5000",
+    "GatewayBaseUrl": "http://127.0.0.1:5100",
     "GatewayRealtimePath": "/realtime",
     "AssetsBaseUrl": "/assets",
     "DesktopLauncher": {
       "HotelBaseUrl": "http://localhost:4100",
       "LauncherApiBaseUrl": "http://localhost:5001",
       "DefaultChannel": "stable",
-      "DefaultProfileKey": "web-alpha",
+      "DefaultProfileKey": "loader-desktop",
       "LocalConfigDefaults": {
         "AutoLaunchOnRedeem": true,
         "CloseCmsOnLaunch": false,
@@ -44,13 +44,13 @@
       ],
       "LaunchProfiles": [
         {
-          "ProfileKey": "web-alpha",
-          "DisplayName": "Web Alpha",
+          "ProfileKey": "loader-desktop",
+          "DisplayName": "Loader del juego",
           "Channel": "stable",
           "Platforms": [ "Windows", "macOS", "Linux", "iPhone", "Android" ],
-          "ClientKind": "web",
-          "PackageKey": "modern_web_runtime_alpha",
-          "EntryExecutable": "browser",
+          "ClientKind": "loader",
+          "PackageKey": "game_loader_desktop",
+          "EntryExecutable": "Loader",
           "Arguments": [ "{entryAssetUrl}" ],
           "RequiresRedeemCode": false,
           "SupportsSafeReconnect": true,
@@ -101,10 +101,10 @@
         "Tags": [ "compatibility", "release63", "classic" ]
       },
       {
-        "ProfileKey": "web-alpha",
-        "DisplayName": "Modern Web Runtime Alpha",
-        "PackageKey": "modern_web_runtime_alpha",
-        "RendererKind": "modern_web_runtime",
+        "ProfileKey": "game-loader",
+        "DisplayName": "Loader del juego",
+        "PackageKey": "game_loader_desktop",
+        "RendererKind": "epsilon_loader",
         "TransportKind": "epsilon_realtime_wss",
         "SupportsSso": true,
         "SupportsDirectLogin": true,

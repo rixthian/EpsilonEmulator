@@ -3,6 +3,7 @@
   const page = document.body.dataset.page || "home";
   const banner = document.getElementById("status-banner");
   let currentLauncherCode = "";
+  let currentLauncherPackages = [];
 
   const messages = {
     username_taken: "Ese nombre Habbo ya existe.",
@@ -18,7 +19,13 @@
   };
 
   function setBanner(text, mode) {
-    if (!banner || !text) {
+    if (!banner) {
+      return;
+    }
+
+    if (!text) {
+      banner.className = "notice hidden";
+      banner.textContent = "";
       return;
     }
 
@@ -29,6 +36,10 @@
   if (params.get("error")) {
     const key = params.get("error");
     setBanner(messages[key] || ("Error: " + key), "error");
+  }
+
+  if (params.get("welcome")) {
+    setBanner("Tu cuenta web está lista. Cuando quieras jugar, abre la app de Epsilon.", "success");
   }
 
   const loginName = document.getElementById("login-name");
@@ -68,38 +79,21 @@
     if (session && session.authenticated) {
       guestOnly.forEach((node) => node.classList.add("hidden"));
       authedOnly.forEach((node) => node.classList.remove("hidden"));
-      if (accessGuest) {
-        accessGuest.classList.add("hidden");
-      }
-      if (accessAuthed) {
-        accessAuthed.classList.remove("hidden");
-      }
+      accessGuest?.classList.add("hidden");
+      accessAuthed?.classList.remove("hidden");
+
       if (sessionPill) {
-        sessionPill.textContent = "Sesión lista";
+        sessionPill.textContent = "Cuenta conectada";
         sessionPill.className = "session-pill ok";
       }
 
       const username = session.username || "Habbo";
-      const launcherUrl = "http://127.0.0.1:5001/launcher/loader?ticket=" + encodeURIComponent(session.ticket || "");
-      const launcherCtas = document.querySelectorAll("#launcher-cta-access, #launcher-cta-top, #account-launcher-link");
-      launcherCtas.forEach((node) => {
-        node.setAttribute("href", launcherUrl);
-      });
-
-      const accountGuest = document.getElementById("account-guest");
-      const accountAuthed = document.getElementById("account-authed");
-      if (accountGuest) {
-        accountGuest.classList.add("hidden");
-      }
-      if (accountAuthed) {
-        accountAuthed.classList.remove("hidden");
-      }
+      const launcherLinks = document.querySelectorAll("#launcher-cta-top, #account-launcher-link, #hero-launcher-link");
+      launcherLinks.forEach((node) => node.setAttribute("href", "#access"));
 
       const initials = document.getElementById("account-initials");
       const accountUsername = document.getElementById("account-username");
-      const accountPublicId = document.getElementById("account-public-id");
       const accountMotto = document.getElementById("account-motto");
-      const accountRoom = document.getElementById("account-room");
       const accountCollector = document.getElementById("account-collector");
       const accountLaunch = document.getElementById("account-launch");
 
@@ -109,32 +103,24 @@
       if (accountUsername) {
         accountUsername.textContent = username;
       }
-      if (accountPublicId) {
-        accountPublicId.textContent = session.publicId ? "ID " + session.publicId : "Sin PublicId";
-      }
       if (accountMotto) {
-        accountMotto.textContent = session.motto || "Sin misión todavía.";
-      }
-      if (accountRoom) {
-        accountRoom.textContent = session.roomId ? "Sala " + session.roomId : "Fuera de sala";
+        accountMotto.textContent = session.motto || "Tu cuenta web está lista para preparar el acceso.";
       }
       if (accountCollector) {
-        accountCollector.textContent = session.collectorTier
-          ? session.collectorTier + " / " + session.ownedCollectibleCount + " items"
-          : "Jugador estándar";
+        accountCollector.textContent = "Cuenta web conectada";
       }
       if (accountLaunch) {
-        accountLaunch.textContent = session.canLaunch ? "Lista para jugar" : "Acceso bloqueado";
+        accountLaunch.textContent = session.canLaunch
+          ? "Puedes generar código para la app"
+          : "Tu acceso al launcher todavía no está habilitado";
       }
-    } else if (sessionPill) {
-      sessionPill.textContent = "Invitado";
-      sessionPill.className = "session-pill neutral";
-      if (accessGuest) {
-        accessGuest.classList.remove("hidden");
+    } else {
+      if (sessionPill) {
+        sessionPill.textContent = "Invitado";
+        sessionPill.className = "session-pill neutral";
       }
-      if (accessAuthed) {
-        accessAuthed.classList.add("hidden");
-      }
+      accessGuest?.classList.remove("hidden");
+      accessAuthed?.classList.add("hidden");
     }
   }
 
@@ -144,13 +130,25 @@
       return;
     }
 
-    root.innerHTML = (items || []).map((item) => `
+    currentLauncherPackages = Array.isArray(items) ? items : [];
+
+    if (currentLauncherPackages.length === 0) {
+      root.innerHTML = `
+        <article class="support-card package-card">
+          <strong>Launcher</strong>
+          <p>La descarga pública todavía no está publicada.</p>
+        </article>
+      `;
+      return;
+    }
+
+    root.innerHTML = currentLauncherPackages.map((item) => `
       <article class="support-card package-card">
         <strong>${item.label}</strong>
-        <p>${item.fileKind} / ${item.status === "ready" ? "listo" : "pendiente"}</p>
+        <p>${item.status === "ready" ? "Descarga disponible" : "Disponible más adelante"}</p>
         ${item.downloadUrl
-          ? `<a class="button-link secondary small" href="${item.downloadUrl}">Descargar</a>`
-          : `<span class="audience-pill">Próximamente</span>`}
+          ? `<a class="button-link soft" href="${item.downloadUrl}">Descargar</a>`
+          : `<span class="category-pill">Próximamente</span>`}
       </article>
     `).join("");
   }
@@ -167,8 +165,8 @@
     }
     if (codeMeta) {
       codeMeta.textContent = currentLauncherCode
-        ? "Expira en pocos minutos. La app/launcher debe canjearlo contra el emulador."
-        : "Genera un código temporal para la app.";
+        ? "Abre la app de Epsilon y usa este código para iniciar sesión."
+        : "Genera un código temporal para usarlo en la app.";
     }
     if (copyButton) {
       copyButton.disabled = !currentLauncherCode;
@@ -181,17 +179,75 @@
     applyLauncherCode(access.appLaunchCode);
   }
 
-  function renderNews(items) {
-    const root = document.getElementById("news-list");
-    const featured = document.getElementById("featured-news");
-    if (!root) {
-      return;
+  function getReadyLauncherPackage() {
+    return currentLauncherPackages.find((item) => item && item.status === "ready" && item.downloadUrl) || null;
+  }
+
+  function buildLauncherDeepLink(code) {
+    return "epsilonlauncher://open";
+  }
+
+  async function ensureLauncherCode() {
+    if (currentLauncherCode) {
+      return currentLauncherCode;
     }
 
-    const first = items[0];
+    const payload = await request("/cms/api/launcher/code", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ platformKind: "native_app" })
+    });
+
+    applyLauncherCode(payload);
+    return currentLauncherCode;
+  }
+
+  async function openInstalledLauncher() {
+    const launchButton = document.getElementById("launcher-cta-access");
+
+    try {
+      if (launchButton) {
+        launchButton.disabled = true;
+        launchButton.textContent = "Abriendo app…";
+      }
+
+      if (!currentLauncherCode) {
+        setBanner("Primero obtén y copia tu código de inicio desde la CMS.", "error");
+        return;
+      }
+
+      setBanner("La app debe abrirse ahora. Después pega tu código dentro del launcher.", "success");
+      window.location.href = buildLauncherDeepLink(currentLauncherCode);
+    } catch (error) {
+      const requestError = error && typeof error === "object" ? error : null;
+      const payload = requestError && "payload" in requestError ? requestError.payload : null;
+      const rawError = payload && typeof payload === "object" && payload && "error" in payload ? String(payload.error) : "";
+
+      if (rawError === "launch_not_available") {
+        setBanner("Tu cuenta web todavía no tiene acceso habilitado para el launcher.", "error");
+      } else {
+        setBanner("No se pudo abrir la app instalada. Usa la descarga de tu plataforma si hace falta.", "error");
+      }
+    } finally {
+      if (launchButton) {
+        window.setTimeout(() => {
+          launchButton.disabled = false;
+          launchButton.textContent = "Abrir app instalada";
+        }, 800);
+      }
+    }
+  }
+
+  function renderNews(items) {
+    const featured = document.getElementById("featured-news");
+    const root = document.getElementById("news-list");
+    const list = Array.isArray(items) ? items : [];
+    const first = list[0];
+    const rest = list.slice(1, 4);
+
     if (featured && first) {
       featured.innerHTML = `
-        <div class="featured-art" style="background:${first.palette || "linear-gradient(135deg, #2e55a9 0%, #1d3e7b 45%, #71c7ef 100%)"}"></div>
+        <div class="featured-art" style="background:${first.palette || "linear-gradient(135deg, #2d5ca8 0%, #194372 48%, #52b3d9 100%)"}"></div>
         <div class="featured-copy">
           <strong>${first.title}</strong>
           <p>${first.summary}</p>
@@ -200,14 +256,16 @@
       `;
     }
 
-    root.innerHTML = items.map((item) => `
-      <article class="news-card">
-        <p class="category-pill">${item.category}</p>
-        <h3>${item.title}</h3>
-        <p>${item.summary}</p>
-        <a href="${item.ctaHref}">${item.ctaLabel}</a>
-      </article>
-    `).join("");
+    if (root) {
+      root.innerHTML = rest.map((item) => `
+        <article class="news-card">
+          <p class="category-pill">${item.category}</p>
+          <h3>${item.title}</h3>
+          <p>${item.summary}</p>
+          <a href="${item.ctaHref}">${item.ctaLabel}</a>
+        </article>
+      `).join("");
+    }
   }
 
   function renderPhotos(items) {
@@ -216,7 +274,19 @@
       return;
     }
 
-    root.innerHTML = items.map((item) => `
+    if (!items || items.length === 0) {
+      root.innerHTML = `
+        <article class="photo-card empty-card">
+          <div class="photo-copy">
+            <strong>Sin fotos públicas todavía</strong>
+            <p>Cuando el hotel publique capturas reales, aparecerán aquí.</p>
+          </div>
+        </article>
+      `;
+      return;
+    }
+
+    root.innerHTML = (items || []).map((item) => `
       <article class="photo-card">
         <div class="photo-art" style="background:${item.palette}"></div>
         <div class="photo-copy">
@@ -232,11 +302,10 @@
       document.getElementById("leaderboard-list"),
       document.getElementById("leaderboard-repeat")
     ].filter(Boolean);
-    if (!roots.length) {
-      return;
-    }
 
-    const html = items.map((item) => `
+    const list = Array.isArray(items) ? items : [];
+    const html = list.length > 0
+      ? list.map((item) => `
       <article class="leader-row">
         <div class="rank-badge">#${item.rank}</div>
         <div>
@@ -245,7 +314,13 @@
         </div>
         <span class="score-pill">${item.score}</span>
       </article>
-    `).join("");
+    `).join("")
+      : `
+        <article class="support-card">
+          <strong>Sin actividad pública todavía</strong>
+          <p>La CMS no inventa rankings. Aquí solo aparecerán datos reales cuando existan.</p>
+        </article>
+      `;
 
     roots.forEach((root) => {
       root.innerHTML = html;
@@ -258,85 +333,60 @@
       return;
     }
 
-    root.innerHTML = items.map((item) => `
-      <article class="support-card">
-        <strong>${item.title}</strong>
-        <p>${item.summary}</p>
-        <span class="audience-pill">${item.audience}</span>
-      </article>
-    `).join("");
-  }
-
-  function renderHotelCore(hotel) {
-    const root = document.getElementById("hotel-core");
-    if (!root) {
+    if (!items || items.length === 0) {
+      root.innerHTML = `
+        <article class="support-card">
+          <strong>Ayuda del hotel</strong>
+          <p>La guía pública aparecerá aquí cuando esté publicada.</p>
+        </article>
+      `;
       return;
     }
 
-    root.innerHTML = `
+    root.innerHTML = (items || []).map((item) => `
       <article class="support-card">
-        <strong>Datos del hotel</strong>
-        <p>${hotel.persistenceProvider} / ${hotel.persistenceReady ? "listo" : "pendiente"}</p>
+        <strong>${item.title}</strong>
+        <p>${item.summary}</p>
       </article>
-      <article class="support-card">
-        <strong>Conexión</strong>
-        <p>${hotel.realtimeTransport}</p>
-      </article>
-      <article class="support-card">
-        <strong>Salas activas</strong>
-        <p>${hotel.activeRoomCount}</p>
-      </article>
-      <article class="support-card">
-        <strong>Partidas activas</strong>
-        <p>${hotel.activeGameSessionCount}</p>
-      </article>
-      <article class="support-card">
-        <strong>Estado general</strong>
-        <p>${hotel.totalScore}%</p>
-      </article>
-    `;
+    `).join("");
   }
 
   async function hydrateHome() {
     try {
       const payload = await request("/cms/api/home");
-      const gatewayPill = document.getElementById("gateway-pill");
-      const launcherPill = document.getElementById("launcher-pill");
       const hotelStatus = document.getElementById("hotel-status-copy");
 
-      if (gatewayPill) {
-        gatewayPill.textContent = payload.hotel.gatewayUp ? "Gateway listo" : "Gateway caído";
-        gatewayPill.className = "service-pill " + (payload.hotel.gatewayUp ? "ok" : "warn");
-      }
-      if (launcherPill) {
-        launcherPill.textContent = payload.hotel.launcherUp ? "Launcher listo" : "Launcher caído";
-        launcherPill.className = "service-pill " + (payload.hotel.launcherUp ? "ok" : "warn");
-      }
       if (hotelStatus) {
         hotelStatus.textContent = payload.hotel.gatewayUp && payload.hotel.launcherUp
-          ? "Hotel abierto"
-          : "Hotel en preparación";
+          ? "Portal y launcher disponibles"
+          : "Portal en preparación";
       }
 
       applySession(payload.session);
-      renderLauncherPackages(payload.settings?.launcherPackages || []);
       renderNews(payload.news || []);
       renderPhotos(payload.photos || []);
       renderLeaderboard(payload.leaderboard || []);
       renderSupport(payload.support || []);
-      renderHotelCore(payload.hotel || {});
+      renderLauncherPackages(payload.settings?.launcherPackages || []);
 
       if (payload.session && payload.session.authenticated) {
         await hydrateLauncherAccess();
       }
-    } catch (error) {
-      setBanner("La portada no pudo cargar el backend CMS.", "error");
+    } catch {
+      setBanner("La CMS no pudo cargar la portada.", "error");
     }
   }
 
   if (page === "home") {
     const codeButton = document.getElementById("launcher-code-button");
     const codeCopy = document.getElementById("launcher-code-copy");
+    const accessButton = document.getElementById("launcher-cta-access");
+
+    if (accessButton) {
+      accessButton.addEventListener("click", async function () {
+        await openInstalledLauncher();
+      });
+    }
 
     if (codeButton) {
       codeButton.addEventListener("click", async function () {
@@ -349,9 +399,11 @@
             body: JSON.stringify({ platformKind: "native_app" })
           });
           applyLauncherCode(payload);
-          codeButton.textContent = "Regenerar código";
+          codeButton.textContent = "Obtener código";
+          setBanner("Código listo. Cópialo y úsalo dentro de la app.", "success");
         } catch {
-          codeButton.textContent = "Generar código";
+          setBanner("No se pudo generar el código de inicio.", "error");
+          codeButton.textContent = "Obtener código";
         } finally {
           codeButton.disabled = false;
         }

@@ -60,11 +60,17 @@ public sealed class RoomRuntimeCoordinatorTests
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         ServiceProvider services = BuildServices();
         IRoomInteractionService roomInteractionService = services.GetRequiredService<IRoomInteractionService>();
+        IRoomTickScheduler roomTickScheduler = services.GetRequiredService<IRoomTickScheduler>();
         IRoomRuntimeRepository roomRuntimeRepository = services.GetRequiredService<IRoomRuntimeRepository>();
 
         RoomActorMovementResult result = await roomInteractionService.MoveActorAsync(
             new RoomActorMovementRequest(new CharacterId(1), new RoomId(1), 10, 6),
             cancellationToken);
+
+        for (int i = 0; i < 8; i++)
+        {
+            await roomTickScheduler.TickAsync(999, cancellationToken);
+        }
 
         RoomActorState? actor = await roomRuntimeRepository.GetActorByIdAsync(new RoomId(1), 1, cancellationToken);
 
@@ -72,10 +78,12 @@ public sealed class RoomRuntimeCoordinatorTests
         Assert.NotNull(actor);
         Assert.Equal(10, actor!.Position.X);
         Assert.Equal(6, actor.Position.Y);
+        Assert.False(actor.IsWalking);
+        Assert.Null(actor.Goal);
     }
 
     [Fact]
-    public async Task MoveActor_CompletesImmediatelyAndClearsTransientWalkingState()
+    public async Task MoveActor_QueuesTransientWalkingStateUntilTicksAdvance()
     {
         CancellationToken cancellationToken = TestContext.Current.CancellationToken;
         ServiceProvider services = BuildServices();
@@ -90,8 +98,11 @@ public sealed class RoomRuntimeCoordinatorTests
 
         Assert.True(result.Succeeded);
         Assert.NotNull(actor);
-        Assert.False(actor!.IsWalking);
-        Assert.Null(actor.Goal);
+        Assert.True(actor!.IsWalking);
+        Assert.NotNull(actor.Goal);
+        Assert.Equal(10, actor.Goal!.DestinationX);
+        Assert.Equal(6, actor.Goal.DestinationY);
+        Assert.NotEmpty(actor.Goal.PendingSteps);
         Assert.DoesNotContain(actor.StatusEntries, entry => entry.Key == "mv");
     }
 

@@ -29,7 +29,13 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
             RoomActorState? actor = null;
             if (_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
             {
-                actor = actors.FirstOrDefault(candidate => candidate.ActorId == actorId);
+                actor = actors.FirstOrDefault(candidate =>
+                    candidate.ActorKind == RoomActorKind.Player && candidate.ActorId == actorId);
+
+                if (actor is null && actorId < 0)
+                {
+                    actor = actors.FirstOrDefault(candidate => candidate.ActorId == actorId);
+                }
             }
 
             return ValueTask.FromResult(actor);
@@ -81,27 +87,30 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         RoomActorState actorState,
         CancellationToken cancellationToken = default)
     {
+        // HOTFIX deadlock: The original code nested _storeKeysLock INSIDE shard.SyncRoot,
+        // while RemoveActorFromAllRoomsAsync takes the opposite order (_storeKeysLock first,
+        // then shard.SyncRoot). Classic lock-order inversion → deadlock under concurrency.
+        // Fix: ensure the backing list exists under _storeKeysLock BEFORE acquiring the shard lock.
+        lock (_storeKeysLock)
+        {
+            if (!_store.RoomActors.ContainsKey(roomId))
+                _store.RoomActors[roomId] = [];
+        }
+
         RoomRuntimeShardState shard = GetShard(roomId);
         lock (shard.SyncRoot)
         {
+            // List is guaranteed to exist at this point.
             if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
-            {
-                actors = [];
-                lock (_storeKeysLock)
-                {
-                    _store.RoomActors[roomId] = actors;
-                }
-            }
+                return ValueTask.CompletedTask;
 
-            int index = actors.FindIndex(candidate => candidate.ActorId == actorState.ActorId);
+            int index = actors.FindIndex(candidate =>
+                candidate.ActorKind == actorState.ActorKind &&
+                candidate.ActorId == actorState.ActorId);
             if (index >= 0)
-            {
                 actors[index] = actorState;
-            }
             else
-            {
                 actors.Add(actorState);
-            }
 
             return ValueTask.CompletedTask;
         }
@@ -112,6 +121,12 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
         CancellationToken cancellationToken = default)
     {
         List<RoomId> removedRoomIds = [];
+        // HOTFIX deadlock: Collect rooms that become empty in a side list and prune their
+        // keys in a second pass AFTER all shard locks are released.  The original code
+        // re-acquired _storeKeysLock while still holding shard.SyncRoot — the exact
+        // opposite of the lock order used in StoreActorStateAsync → deadlock.
+        List<RoomId> emptyRoomIds = [];
+
         RoomId[] roomIds;
         lock (_storeKeysLock)
         {
@@ -126,25 +141,33 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
             lock (shard.SyncRoot)
             {
                 if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
-                {
                     continue;
-                }
 
-                int removedCount = actors.RemoveAll(candidate => candidate.ActorId == actorId);
+                int removedCount = actors.RemoveAll(candidate =>
+                    candidate.ActorKind == RoomActorKind.Player &&
+                    candidate.ActorId == actorId);
                 if (removedCount == 0)
-                {
                     continue;
-                }
-
-                if (actors.Count == 0)
-                {
-                    lock (_storeKeysLock)
-                    {
-                        _store.RoomActors.Remove(roomId);
-                    }
-                }
 
                 removedRoomIds.Add(roomId);
+                if (actors.Count == 0)
+                    emptyRoomIds.Add(roomId);
+            }
+        }
+
+        // Second pass: prune empty-room keys under _storeKeysLock with no shard lock held.
+        if (emptyRoomIds.Count > 0)
+        {
+            lock (_storeKeysLock)
+            {
+                foreach (RoomId emptyRoomId in emptyRoomIds)
+                {
+                    if (_store.RoomActors.TryGetValue(emptyRoomId, out List<RoomActorState>? remaining) &&
+                        remaining.Count == 0)
+                    {
+                        _store.RoomActors.Remove(emptyRoomId);
+                    }
+                }
             }
         }
 
@@ -229,6 +252,12 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
                 SentAtUtc: DateTime.UtcNow);
 
             messages.Add(chatMessage);
+
+            // HOTFIX memory leak: cap chat history so rooms with heavy traffic don't grow unboundedly.
+            const int MaxChatHistory = 200;
+            if (messages.Count > MaxChatHistory)
+                messages.RemoveRange(0, messages.Count - MaxChatHistory);
+
             return ValueTask.FromResult(chatMessage);
         }
     }
@@ -264,6 +293,13 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
                 SentAtUtc: DateTime.UtcNow);
 
             messages.Add(chatMessage);
+
+            // HOTFIX memory leak: cap private chat history per room for the same
+            // reason as public chat — whisper-heavy rooms would otherwise grow without bound.
+            const int MaxPrivateChatHistory = 500;
+            if (messages.Count > MaxPrivateChatHistory)
+                messages.RemoveRange(0, messages.Count - MaxPrivateChatHistory);
+
             return ValueTask.FromResult(chatMessage);
         }
     }
@@ -282,25 +318,33 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
 
     public ValueTask<int> EvictAllPlayersFromRoomAsync(RoomId roomId, CancellationToken cancellationToken = default)
     {
+        // HOTFIX deadlock: same pattern — never acquire _storeKeysLock while shard.SyncRoot is held.
         RoomRuntimeShardState shard = GetShard(roomId);
+        int removed;
+        bool pruneKey;
+
         lock (shard.SyncRoot)
         {
             if (!_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors))
-            {
                 return ValueTask.FromResult(0);
-            }
 
-            int removed = actors.RemoveAll(static actor => actor.ActorKind == RoomActorKind.Player);
-            if (actors.Count == 0)
+            removed = actors.RemoveAll(static actor => actor.ActorKind == RoomActorKind.Player);
+            pruneKey = actors.Count == 0;
+        }
+
+        if (pruneKey)
+        {
+            lock (_storeKeysLock)
             {
-                lock (_storeKeysLock)
+                if (_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? remaining) &&
+                    remaining.Count == 0)
                 {
                     _store.RoomActors.Remove(roomId);
                 }
             }
-
-            return ValueTask.FromResult(removed);
         }
+
+        return ValueTask.FromResult(removed);
     }
 
     public ValueTask<RoomId?> FindRoomForActorAsync(long actorId, CancellationToken cancellationToken = default)
@@ -319,7 +363,9 @@ internal sealed class InMemoryRoomRuntimeRepository : IRoomRuntimeRepository
             lock (shard.SyncRoot)
             {
                 if (_store.RoomActors.TryGetValue(roomId, out List<RoomActorState>? actors) &&
-                    actors.Any(actor => actor.ActorId == actorId))
+                    actors.Any(actor =>
+                        actor.ActorKind == RoomActorKind.Player &&
+                        actor.ActorId == actorId))
                 {
                     return ValueTask.FromResult<RoomId?>(roomId);
                 }

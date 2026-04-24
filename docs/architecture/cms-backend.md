@@ -2,6 +2,8 @@
 
 La CMS de Epsilon ya no se modela como "unas páginas antes del cliente". Se modela como una capa web propia, conectada al emulador y separada del launcher.
 
+La regla modular completa queda fijada en [modular-cms-launcher-loader.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modular-cms-launcher-loader.md): CMS, Launcher App y Game Loader son componentes separados.
+
 ## Estructura obligatoria
 
 Las referencias revisadas (`RetroCMS`, `DevCMS`, `Hylib`, `ReactCMS-V2`, `Chocolatey`) coinciden en estas zonas:

@@ -9,7 +9,7 @@ const DEFAULT_LOCAL_CONFIG = {
   hotelBaseUrl: "http://127.0.0.1:4100",
   launcherApiBaseUrl: "http://127.0.0.1:5001",
   defaultChannel: "stable",
-  defaultProfileKey: "web-alpha",
+  defaultProfileKey: "loader-desktop",
   autoLaunchOnRedeem: true,
   closeCmsOnLaunch: false,
   hardwareAcceleration: true,
@@ -244,4 +244,3 @@ app.on("window-all-closed", () => {
     app.quit();
   }
 });
-

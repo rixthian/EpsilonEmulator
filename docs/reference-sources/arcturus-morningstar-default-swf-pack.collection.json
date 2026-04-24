@@ -1,0 +1,186 @@
+{
+  "manifestVersion": 1,
+  "generatedAtUtc": "2026-04-23T21:57:25.129148+00:00",
+  "profileKey": "arcturus_morningstar_default_swf_pack",
+  "clientFamily": "flash_swf_reference",
+  "eraKey": "modern_flash_pack_reference",
+  "sourceKind": "local",
+  "domain": "git.krews.org/morningstar/arcturus-morningstar-default-swf-pack",
+  "revisionKey": "a7cea19c8877fb31fa53108655e96d94e4ce7e8e",
+  "totalFileCount": 61591,
+  "roots": [
+    {
+      "rootKey": "arcturus_morningstar_default_swf_pack",
+      "path": "/Users/yasminluengo/Documents/Playground/reference-sources/arcturus-morningstar-default-swf-pack",
+      "fileCount": 61591,
+      "counts": {
+        "badgeparts": 242,
+        "badges": 24550,
+        "catalog_sql": 15,
+        "catalogue": 5582,
+        "furnitures": 19542,
+        "game_packages": 2,
+        "gamedata": 27,
+        "gordon": 2372,
+        "hotelview": 2,
+        "icons": 5442,
+        "image_library": 3802,
+        "pets": 1,
+        "promo": 8,
+        "security_policy": 1,
+        "source_notes": 3
+      }
+    }
+  ],
+  "artifacts": [
+    {
+      "artifactKey": "badgeparts",
+      "count": 242,
+      "samples": [
+        "c_images/Badgeparts/badgepart_base_advanced_1.png",
+        "c_images/Badgeparts/badgepart_base_advanced_2.png",
+        "c_images/Badgeparts/badgepart_base_advanced_3.png",
+        "c_images/Badgeparts/badgepart_base_advanced_4.png",
+        "c_images/Badgeparts/badgepart_base_basic_1.png"
+      ]
+    },
+    {
+      "artifactKey": "badges",
+      "count": 24550,
+      "samples": [
+        "c_images/album1584/001IT.gif",
+        "c_images/album1584/01GOTW.gif",
+        "c_images/album1584/02gotw.gif",
+        "c_images/album1584/03gotw.gif",
+        "c_images/album1584/0404C.gif"
+      ]
+    },
+    {
+      "artifactKey": "catalog_sql",
+      "count": 15,
+      "samples": [
+        "Catalog-SQLS/UPDATES/General_Updates.sql",
+        "Catalog-SQLS/UPDATES/heights.sql",
+        "Catalog-SQLS/UPDATES/interaction_modes_count.sql",
+        "Catalog-SQLS/UPDATES/vending_ids.sql",
+        "Catalog-SQLS/catalog_clothing.sql"
+      ]
+    },
+    {
+      "artifactKey": "catalogue",
+      "count": 5582,
+      "samples": [
+        "catalogue/2015_header.gif",
+        "catalogue/2015ny_teaser.gif",
+        "catalogue/2017_party_hat.gif",
+        "catalogue/A2_tlp_20.gif",
+        "catalogue/BCHCBoxes.gif"
+      ]
+    },
+    {
+      "artifactKey": "furnitures",
+      "count": 19542,
+      "samples": [
+        "dcr/hof_furni/CFC_100_coin_gold.swf",
+        "dcr/hof_furni/CFC_10_coin_bronze.swf",
+        "dcr/hof_furni/CFC_200_moneybag.swf",
+        "dcr/hof_furni/CFC_500_goldbar.swf",
+        "dcr/hof_furni/CFC_50_coin_silver.swf"
+      ]
+    },
+    {
+      "artifactKey": "game_packages",
+      "count": 2,
+      "samples": [
+        "game/BaseJump.swf",
+        "game/BasicAssets.swf"
+      ]
+    },
+    {
+      "artifactKey": "gamedata",
+      "count": 27,
+      "samples": [
+        "gamedata/HabboAvatarActions.xml",
+        "gamedata/config_habbo.xml",
+        "gamedata/effectmap.xml",
+        "gamedata/events_list.txt",
+        "gamedata/external_flash_texts.txt"
+      ]
+    },
+    {
+      "artifactKey": "gordon",
+      "count": 2372,
+      "samples": [
+        "gordon/PRODUCTION/AlienMask.swf",
+        "gordon/PRODUCTION/Ambassador.swf",
+        "gordon/PRODUCTION/BBRed.swf",
+        "gordon/PRODUCTION/BBblue.swf",
+        "gordon/PRODUCTION/BBgreen.swf"
+      ]
+    },
+    {
+      "artifactKey": "hotelview",
+      "count": 2,
+      "samples": [
+        "c_images/web_promo_small/spromo_Hotel_View.png",
+        "catalogue/hotelview_teaser.gif"
+      ]
+    },
+    {
+      "artifactKey": "icons",
+      "count": 5442,
+      "samples": [
+        "c_images/catalogue/2015_header.gif",
+        "c_images/catalogue/2017_party_hat.gif",
+        "c_images/catalogue/A2_tlp_20.gif",
+        "c_images/catalogue/BCHCBoxes.gif",
+        "c_images/catalogue/Basket.gif"
+      ]
+    },
+    {
+      "artifactKey": "image_library",
+      "count": 3802,
+      "samples": [
+        "c_images/AdWarningsUK/ad_warning_L.png",
+        "c_images/AdWarningsUK/ad_warning_R.png",
+        "c_images/Habbo-Stories/alien_hrd.png",
+        "c_images/Habbo-Stories/bluemood_mpl.png",
+        "c_images/Habbo-Stories/coffee_mpl.png"
+      ]
+    },
+    {
+      "artifactKey": "pets",
+      "count": 1,
+      "samples": [
+        "gamedata/habbopages/help/pets/training"
+      ]
+    },
+    {
+      "artifactKey": "promo",
+      "count": 8,
+      "samples": [
+        "c_images/articles/lpromo_JanuarySafetyCampaign.png",
+        "c_images/articles/lpromo_JanuarySafetyCampaign_thumb.png",
+        "c_images/articles/lpromo_SafetyCampaign_IT.png",
+        "c_images/articles/lpromo_SafetyCampaign_IT_thumb.png",
+        "c_images/articles/lpromo_hallofhabbocampaign1.png"
+      ]
+    },
+    {
+      "artifactKey": "security_policy",
+      "count": 1,
+      "samples": [
+        "crossdomain.xml"
+      ]
+    },
+    {
+      "artifactKey": "source_notes",
+      "count": 3,
+      "samples": [
+        "Note.txt",
+        "README.md",
+        "missing-queries"
+      ]
+    }
+  ]
+}

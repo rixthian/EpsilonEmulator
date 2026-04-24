@@ -130,11 +130,15 @@ public sealed class RoomInteractionService : IRoomInteractionService
             request.RoomId,
             cancellationToken);
 
+        // HOTFIX: Build item snapshots once and pass to both IsTileBlocked and FindPath
+        // to avoid the original double GroupBy that happened in each call independently.
+        Dictionary<ItemId, RoomItemSnapshot> itemSnapshots = room.Items
+            .GroupBy(snapshot => snapshot.Item.ItemId)
+            .ToDictionary(group => group.Key, group => group.Last());
+
         if (RoomNavigationLogic.IsTileBlocked(
                 actors,
-                room.Items
-                    .GroupBy(snapshot => snapshot.Item.ItemId)
-                    .ToDictionary(group => group.Key, group => group.Last()),
+                itemSnapshots,
                 actor.ActorKind,
                 actor.ActorId,
                 request.DestinationX,
@@ -143,8 +147,10 @@ public sealed class RoomInteractionService : IRoomInteractionService
             return new RoomActorMovementResult(false, "Destination tile is blocked by another actor or furniture.", actor);
         }
 
-        IReadOnlyList<RoomCoordinate>? path = RoomNavigationLogic.FindPath(room, actors, actor, request.DestinationX, request.DestinationY);
-        if (path is null)
+        IReadOnlyList<RoomCoordinate>? path = RoomNavigationLogic.FindPath(
+            room, actors, actor, request.DestinationX, request.DestinationY, itemSnapshots);
+
+        if (path is null || path.Count <= 1)
         {
             return new RoomActorMovementResult(
                 false,
@@ -152,19 +158,26 @@ public sealed class RoomInteractionService : IRoomInteractionService
                 actor);
         }
 
-        RoomCoordinate finalStep = path[^1];
-        int movementRotation = RoomNavigationLogic.ResolveMovementRotation(actor.Position, finalStep);
+        // HOTFIX step-by-step movement: store the full A* path in Goal so the
+        // RoomTickScheduler can advance the actor exactly one tile per tick (~410 ms).
+        // The original code teleported directly to path[^1] and set IsWalking = false,
+        // making movement completely invisible to all other players in the room.
+        IReadOnlyList<RoomCoordinate> pendingSteps = path.Skip(1).ToArray(); // path[0] = current position
+
+        // Clear posture entries so the walk animation plays correctly.
         IReadOnlyList<ActorStatusEntry> statusEntries = actor.StatusEntries
-            .Where(entry => !string.Equals(entry.Key, "mv", StringComparison.OrdinalIgnoreCase))
+            .Where(entry =>
+                !string.Equals(entry.Key, "mv", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(entry.Key, "sit", StringComparison.OrdinalIgnoreCase) &&
+                !string.Equals(entry.Key, "lay", StringComparison.OrdinalIgnoreCase))
             .ToArray();
 
         RoomActorState updatedActor = actor with
         {
-            Position = finalStep,
-            Goal = null,
-            IsWalking = false,
-            BodyRotation = movementRotation,
-            HeadRotation = movementRotation,
+            Goal = new MovementGoal(request.DestinationX, request.DestinationY, pendingSteps),
+            IsWalking = true,
+            IsSitting = false,
+            IsLaying = false,
             StatusEntries = statusEntries
         };
 
@@ -180,14 +193,14 @@ public sealed class RoomInteractionService : IRoomInteractionService
                 actor.DisplayName,
                 request.RoomId,
                 previousPosition,
-                finalStep),
+                path[^1]),
             request.CharacterId,
             request.RoomId,
             cancellationToken);
 
         return new RoomActorMovementResult(
             true,
-            $"Actor moved to {finalStep.X},{finalStep.Y} via {path.Count - 1} step(s).",
+            $"Movement queued toward {request.DestinationX},{request.DestinationY} via {path.Count - 1} step(s).",
             updatedActor);
     }
 

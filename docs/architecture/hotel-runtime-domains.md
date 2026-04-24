@@ -1,5 +1,7 @@
 # Hotel Runtime Domains
 
+Reference emulator domain mapping is tracked in [emulator-reference-model.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/emulator-reference-model.md).
+
 This document defines the runtime surfaces that sit above raw packet handling and below delivery-specific APIs.
 
 ## Session Surface

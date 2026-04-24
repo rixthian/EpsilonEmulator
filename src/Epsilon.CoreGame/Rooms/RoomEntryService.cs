@@ -174,9 +174,9 @@ public sealed class RoomEntryService : IRoomEntryService
                 RoomRuntimeMutationKind.ActorPresenceChanged,
                 cancellationToken);
 
-            if (publicRoomEntry is not null)
-            {
-            }
+            // HOTFIX: Removed empty block — was a stub left over from a planned
+            // public-room navigation counter update that was never implemented.
+            // Bots are spawned below; no other public-room-specific action is needed here.
 
             IReadOnlyList<RoomActorState> spawnedBots = await _roomBotRuntimeService.EnsureRoomBotsAsync(
                 room,

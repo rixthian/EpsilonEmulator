@@ -4,24 +4,57 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Epsilon Hotel</title>
-  <link rel="stylesheet" href="./assets/portal.css?v=7">
+  <link rel="stylesheet" href="./assets/portal.css?v=9">
 </head>
 <body data-page="home">
   <header class="masthead">
     <div class="masthead-overlay">
-      <div class="masthead-inner">
-        <a class="brand" href="/sites/epsilon-access/">
-          <span class="brand-mark">EPSILON</span>
-          <span class="brand-copy">Hotel</span>
-        </a>
-        <div class="masthead-status">
-          <span id="hotel-status-copy">Cargando hotel...</span>
+      <div class="site-shell masthead-shell">
+        <div class="masthead-top">
+          <a class="brand" href="/sites/epsilon-access/">
+            <span class="brand-mark">EPSILON</span>
+            <span class="brand-copy">Hotel</span>
+          </a>
+          <div class="masthead-top-actions guest-only">
+            <a class="button-link primary" href="/sites/epsilon-access/register.html">Regístrate</a>
+          </div>
+          <div class="masthead-top-actions authed-only hidden">
+            <span id="session-pill" class="session-pill neutral">Sesión</span>
+            <a id="launcher-cta-top" class="button-link primary" href="#access">Jugar</a>
+          </div>
         </div>
-        <div class="masthead-actions guest-only">
-          <a class="button-link primary" href="/sites/epsilon-access/register.html">Regístrate</a>
-        </div>
-        <div class="masthead-actions authed-only hidden">
-          <a id="launcher-cta-top" class="button-link primary" href="#access">Jugar</a>
+        <div class="masthead-content">
+          <div class="hero-copy">
+            <p class="hero-eyebrow">Mundo virtual social</p>
+            <h1>Tu portal, tu cuenta y tu acceso al hotel.</h1>
+            <p class="hero-text">
+              La CMS presenta el hotel, la comunidad y tu cuenta. El juego se abre desde la app o launcher, nunca desde la web.
+            </p>
+            <div class="hero-actions guest-only">
+              <a class="button-link primary" href="/sites/epsilon-access/register.html">Crear cuenta</a>
+              <a class="button-link soft" href="/sites/epsilon-access/login.html">Entrar</a>
+            </div>
+            <div class="hero-actions authed-only hidden">
+              <a id="hero-launcher-link" class="button-link primary" href="#access">Abrir acceso</a>
+              <form method="post" action="/portal/logout">
+                <button type="submit" class="button-link soft button-reset">Salir</button>
+              </form>
+            </div>
+          </div>
+          <aside class="hero-side">
+            <div class="hero-side-card">
+              <strong id="hotel-status-copy">Cargando hotel...</strong>
+              <p>Noticias, comunidad y acceso desde la app.</p>
+            </div>
+            <div class="hero-side-card guest-only">
+              <strong>Únete a Epsilon</strong>
+              <p>Regístrate, entra a la CMS y después abre el launcher para acceder al juego.</p>
+            </div>
+            <div class="hero-side-card authed-only hidden">
+              <strong>Acceso listo</strong>
+              <p>Tu cuenta web está preparada. El siguiente paso es abrir la app de Epsilon.</p>
+            </div>
+          </aside>
         </div>
       </div>
     </div>
@@ -30,17 +63,17 @@
   <nav class="nav-bar">
     <div class="site-shell nav-row">
       <div class="topnav">
-        <a href="/">Inicio</a>
+        <a href="/sites/epsilon-access/">Inicio</a>
         <a href="#community">Comunidad</a>
-        <a href="#photos">Fotos</a>
         <a href="#news">Noticias</a>
+        <a href="#photos">Fotos</a>
+        <a href="#help">Ayuda</a>
         <a href="#access">Jugar</a>
       </div>
       <div class="topbar-actions guest-only">
         <a class="button-link soft" href="/sites/epsilon-access/login.html">Login</a>
       </div>
       <div class="topbar-actions authed-only hidden">
-        <span id="session-pill" class="session-pill neutral">Sesión</span>
         <form method="post" action="/portal/logout">
           <button type="submit" class="button-link soft button-reset">Salir</button>
         </form>
@@ -49,8 +82,8 @@
   </nav>
 
   <main class="site-shell portal-shell">
-    <section class="home-grid">
-      <article id="news" class="card article-card">
+    <section class="portal-grid">
+      <article id="news" class="card spotlight-card">
         <div class="card-title">
           <h2>Última noticia</h2>
         </div>
@@ -61,12 +94,12 @@
             <p>La CMS está cargando la última noticia del hotel.</p>
           </div>
         </div>
-        <div id="news-list" class="news-list compact-news"></div>
+        <div id="news-list" class="news-list"></div>
       </article>
 
-      <article class="card login-card guest-only">
+      <article class="card auth-home-card guest-only">
         <div class="card-title">
-          <h2>Login</h2>
+          <h2>Entrar</h2>
         </div>
         <form class="stack" method="post" action="/portal/login">
           <label>Username<input id="login-name" name="loginName" required autocomplete="username" placeholder="Nombre Habbo"></label>
@@ -79,14 +112,7 @@
         </form>
       </article>
 
-      <article id="account-guest" class="card side-card guest-only">
-        <div class="card-title">
-          <h2>Comunidad</h2>
-        </div>
-        <div id="leaderboard-list" class="leaderboard-list compact-list"></div>
-      </article>
-
-      <article id="account-authed" class="card login-card authed-only hidden">
+      <article id="account-authed" class="card auth-home-card authed-only hidden">
         <div class="card-title">
           <h2>Bienvenido</h2>
         </div>
@@ -96,39 +122,34 @@
           </div>
           <div>
             <strong id="account-username">Cargando...</strong>
-            <p id="account-public-id" class="muted-line"></p>
             <p id="account-motto" class="muted-line"></p>
           </div>
         </div>
-        <dl class="stat-list">
-          <div><dt>Última sala</dt><dd id="account-room">-</dd></div>
-          <div><dt>Cuenta</dt><dd id="account-launch">-</dd></div>
-          <div><dt>Perfil</dt><dd id="account-collector">-</dd></div>
+        <dl class="welcome-list">
+          <div><dt>Acceso</dt><dd id="account-launch">Preparando...</dd></div>
+          <div><dt>Cuenta</dt><dd id="account-collector">Cuenta web</dd></div>
         </dl>
         <div class="actions stacked-actions">
-          <a id="account-launcher-link" class="button-link primary" href="#access">Jugar</a>
-          <form method="post" action="/portal/logout">
-            <button type="submit" class="button-link soft button-reset">Cerrar sesión</button>
-          </form>
+          <a id="account-launcher-link" class="button-link primary" href="#access">Abrir acceso</a>
         </div>
       </article>
 
       <article class="card side-card">
         <div class="card-title">
-          <h2>Ayuda</h2>
+          <h2>Comunidad</h2>
         </div>
-        <div id="support-list" class="support-list compact-list"></div>
+        <div id="leaderboard-list" class="leaderboard-list compact-list"></div>
       </article>
     </section>
 
     <section id="access" class="section-card">
       <div class="section-head">
         <h2>Juega con la app de Epsilon</h2>
-        <p>La web autentica tu cuenta. El juego se abre desde el launcher o la app.</p>
+        <p>La web autentica tu cuenta. El juego se abre desde la app o el launcher, no desde la CMS.</p>
       </div>
 
       <div id="access-guest" class="access-empty">
-        <p>Primero entra con tu cuenta para generar tu acceso al launcher.</p>
+        <p>Primero entra con tu cuenta para generar tu código de inicio y descargar la app.</p>
         <div class="actions">
           <a class="button-link primary" href="/sites/epsilon-access/login.html">Entrar</a>
           <a class="button-link soft" href="/sites/epsilon-access/register.html">Registrarme</a>
@@ -137,21 +158,22 @@
 
       <div id="access-authed" class="hidden access-stack">
         <article class="access-box hero-launch">
-          <a id="launcher-cta-access" class="launcher-open" href="http://127.0.0.1:5001/launcher/loader">Lanzar e iniciar sesión</a>
+          <button id="launcher-cta-access" class="launcher-open button-reset" type="button">Abrir app instalada</button>
+          <p class="muted-line centered-copy">Primero obtén y copia tu código aquí. Después abre la app para pegarlo e iniciar el juego.</p>
         </article>
 
         <article class="access-box">
           <p class="access-copy">
-            Si tu app pide un código de inicio, puedes generarlo aquí y copiarlo para entrar.
+            La CMS genera un único código vigente. Cópialo y úsalo dentro de la app o launcher.
           </p>
           <div class="code-box">
             <div>
               <span class="code-label">Código de inicio</span>
               <strong id="launcher-code-value">Sin generar</strong>
-              <p id="launcher-code-meta" class="muted-line">Código temporal para la app.</p>
+              <p id="launcher-code-meta" class="muted-line">Código temporal único para la app de Epsilon.</p>
             </div>
             <div class="actions">
-              <button id="launcher-code-button" type="button">Generar código</button>
+              <button id="launcher-code-button" type="button">Obtener código</button>
               <button id="launcher-code-copy" type="button" class="button-link soft button-reset" disabled>Copiar</button>
             </div>
           </div>
@@ -175,24 +197,24 @@
     <section id="community" class="section-card">
       <div class="section-head">
         <h2>Comunidad</h2>
-        <p>Actividad del hotel y estado general del servidor.</p>
+        <p>Actividad de la comunidad, ayuda y últimas novedades del hotel.</p>
       </div>
       <div class="bottom-grid">
-        <div class="community-column">
-          <div class="subcard">
-            <h3>Ranking</h3>
-            <div id="leaderboard-repeat" class="leaderboard-list compact-list"></div>
+          <div class="community-column">
+            <div class="subcard">
+              <h3>Actividad pública</h3>
+              <div id="leaderboard-repeat" class="leaderboard-list compact-list"></div>
+            </div>
           </div>
-        </div>
         <div class="community-column">
-          <div class="subcard">
-            <h3>Estado del hotel</h3>
-            <div id="hotel-core" class="support-list compact-list"></div>
+          <div id="help" class="subcard">
+            <h3>Ayuda</h3>
+            <div id="support-list" class="support-list compact-list"></div>
           </div>
         </div>
       </div>
     </section>
   </main>
-  <script src="./assets/site.js?v=3" defer></script>
+  <script src="./assets/site.js?v=6" defer></script>
 </body>
 </html>

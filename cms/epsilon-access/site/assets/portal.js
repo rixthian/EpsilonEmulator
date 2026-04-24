@@ -146,20 +146,6 @@ async function refreshState() {
   }
 }
 
-async function prepareCollectorAccess() {
-  const ticket = getTicket();
-  if (!ticket) {
-    return;
-  }
-
-  const payload = await request("/api/epsilon/prepare-collector", {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({ ticket })
-  });
-  appendLog("collector_prepared", payload);
-}
-
 registerForm.addEventListener("submit", async (event) => {
   event.preventDefault();
   const formData = new FormData(registerForm);
@@ -185,7 +171,6 @@ registerForm.addEventListener("submit", async (event) => {
     const sessionTicket = result.login?.session?.ticket;
     setTicket(sessionTicket);
     appendLog("login_ok", result.login ?? result);
-    await prepareCollectorAccess();
     await refreshState();
     showWelcome();
   } catch (error) {

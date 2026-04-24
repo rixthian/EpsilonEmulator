@@ -27,9 +27,12 @@
         "dcrFurnitureAssets": { "type": "object" },
         "gordonPackages": { "type": "object" },
         "coreClientPackages": { "type": "object" },
+        "gamePackages": { "type": "object" },
         "publicRoomPackages": { "type": "object" },
         "avatarAssets": { "type": "object" },
-        "petAssets": { "type": "object" }
+        "petAssets": { "type": "object" },
+        "catalogueImages": { "type": "object" },
+        "catalogSql": { "type": "object" }
       }
     }
   }

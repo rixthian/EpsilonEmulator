@@ -1,5 +1,7 @@
 # Desktop Launcher Spec
 
+The full modular boundary between CMS, Launcher App, Game Loader, Launcher Backend, Runtime Gateway, and Emulator is defined in [modular-cms-launcher-loader.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modular-cms-launcher-loader.md).
+
 ## Scope
 
 This document defines the `desktop launcher` contract for Epsilon.
@@ -222,7 +224,7 @@ Suggested first profiles for Epsilon:
 
 - `unity-desktop`
 - `nitro-desktop`
-- `web-alpha`
+- `game-loader`
 - `flash-compat`
 
 Rules:

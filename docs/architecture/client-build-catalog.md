@@ -80,6 +80,16 @@ python3 tools/importers/client_build_manifest_builder.py \
   --output catalog/client-builds/flash-classic/release63-201412101357-983561993.manifest.json
 ```
 
+## Registered Compatibility Builds
+
+| Build Key | Source | Client Family | Era Key | Policy |
+| --- | --- | --- | --- | --- |
+| `release63-201401301855-255051757` | `RELEASE63-201401301855-255051757.swf` | `flash-classic` | `release63` | Historical compatibility analysis. |
+| `release63-201412101357-983561993` | `Habbo.swf` | `flash-classic` | `release63` | Historical compatibility analysis. |
+| `arcturus-morningstar-default-swf-pack-habbo` | `gordon/PRODUCTION/Habbo.swf` from the Arcturus Morningstar default SWF pack | `flash-classic` | `morningstar-default` | Canonical source SWF for reference-only client analysis. |
+
+The Arcturus Morningstar entry identifies the SWF pack the launcher/client work should study. It does not mean the web CMS runs the game, and it does not mean raw SWF assets are mounted directly in the runtime. The loader still needs an Epsilon-owned compatibility or modern-client runtime layer.
+
 ## Versioning
 
 Client builds are versioned independently from notation and content specifications.

@@ -4,6 +4,10 @@ Date: 2026-04-21
 
 This document fixes the boundary between hotel runtime, public website, and staff surfaces. The reference audits consistently show that trying to collapse all three into one application produces coupling and operational drift.
 
+The CMS/launcher/game-loader access split is defined in [modular-cms-launcher-loader.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modular-cms-launcher-loader.md).
+
+Catalog staff tooling is defined separately in [catalog-admin-tooling.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/catalog-admin-tooling.md). It belongs to `Epsilon.AdminApi`, not the public CMS.
+
 ## Required Split
 
 Epsilon should keep three separate web-facing surfaces:
@@ -44,5 +48,6 @@ When adding a feature, place it by responsibility first:
 - if it mutates or reads active hotel runtime state, it belongs in the gateway or protocol surface
 - if it is user-facing community or account experience, it belongs in the public portal/community surface
 - if it is staff-controlled, privileged, or operational, it belongs in the admin surface
+- if it mutates catalog content, it belongs in the admin surface and must use audited catalog commands
 
 This keeps Epsilon modern, maintainable, and compatible across multiple client/runtime families.

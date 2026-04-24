@@ -14,6 +14,7 @@ Imports Avalonia.Markup.Xaml
 Imports Avalonia.Media
 Imports Avalonia.Media.Imaging
 Imports Avalonia.Platform
+Imports Avalonia.Threading
 
 Partial Public Class MainWindow : Inherits Window
     Private WithEvents Window As Window
@@ -48,9 +49,15 @@ Partial Public Class MainWindow : Inherits Window
     Private CurrentLocalConfig As LauncherLocalConfig
     Private CurrentRedeemResult As LauncherRedeemResult
     Private CurrentProfileSelection As LauncherProfileSelectionResult
+    Private CurrentConnectionState As LauncherConnectionStateSnapshot
     Private CurrentProfiles As List(Of LauncherDesktopProfileSnapshot) = New List(Of LauncherDesktopProfileSnapshot)()
     Private CurrentChannels As List(Of LauncherUpdateChannelSnapshot) = New List(Of LauncherUpdateChannelSnapshot)()
+    Private ReadOnly ConnectionTimer As New DispatcherTimer()
     Private IsBootstrapLoaded As Boolean
+    Private IsRefreshingConnectionState As Boolean
+    Private IsLaunchingClient As Boolean
+    Private LastConnectionPhaseKey As String
+    Private LastStartupAccessCode As String
 
     Sub New()
         InitializeComponent()
@@ -87,6 +94,8 @@ Partial Public Class MainWindow : Inherits Window
 
         FooterButton.Text = "Launcher desktop for Epsilon Hotel"
         LaunchClientButton.IsButtonDisabled = True
+        ConnectionTimer.Interval = TimeSpan.FromSeconds(3)
+        AddHandler ConnectionTimer.Tick, AddressOf ConnectionTimer_Tick
         SetStatus("Cargando launcher desktop…")
         AddLog("Launcher iniciado.")
     End Sub
@@ -116,6 +125,7 @@ Partial Public Class MainWindow : Inherits Window
             RenderState()
             SetStatus("Launcher listo. Falta canjear un código único emitido por la CMS.")
             AddLog("Contrato desktop cargado desde el launcher backend.")
+            Await TryRedeemStartupCodeAsync()
         Catch ex As Exception
             SetStatus("No se pudo cargar el contrato del launcher: " & ex.Message)
             AddLog("Error cargando launcher: " & ex.Message)
@@ -272,7 +282,13 @@ Partial Public Class MainWindow : Inherits Window
         PlatformValueTextBlock.Text = DetectPlatformKind()
         ChannelValueTextBlock.Text = If(CurrentLocalConfig?.DefaultChannel, "-")
         DefaultProfileValueTextBlock.Text = If(CurrentLocalConfig?.DefaultProfileKey, "-")
-        RedeemedValueTextBlock.Text = If(CurrentRedeemResult Is Nothing, "no", "sí")
+        If CurrentConnectionState IsNot Nothing AndAlso String.IsNullOrWhiteSpace(CurrentConnectionState.PhaseDisplayName) = False Then
+            RedeemedValueTextBlock.Text = CurrentConnectionState.PhaseDisplayName
+        ElseIf CurrentRedeemResult IsNot Nothing Then
+            RedeemedValueTextBlock.Text = "Código canjeado"
+        Else
+            RedeemedValueTextBlock.Text = "Pendiente"
+        End If
     End Sub
 
     Private Sub RenderChannels()
@@ -316,15 +332,18 @@ Partial Public Class MainWindow : Inherits Window
         End If
 
         If CurrentProfileSelection Is Nothing Then
-            ProfileSummaryTextBlock.Text = "Selecciona un perfil. El launcher aún no ha decidido qué cliente abrir."
+            ProfileSummaryTextBlock.Text = "Selecciona un modo. La app todavía no ha decidido cómo iniciar el juego."
             LaunchClientButton.IsButtonDisabled = True
             Return
         End If
 
-        Dim message = "Perfil: " & CurrentProfileSelection.Profile.DisplayName & Environment.NewLine &
-            "Cliente: " & CurrentProfileSelection.Profile.ClientKind & Environment.NewLine &
+        Dim message = "Modo: " & CurrentProfileSelection.Profile.DisplayName & Environment.NewLine &
             "Estrategia: " & CurrentProfileSelection.LaunchStrategy & Environment.NewLine &
             "Arranque inmediato: " & If(CurrentProfileSelection.CanStartNow, "sí", "no")
+
+        If CurrentConnectionState IsNot Nothing AndAlso String.IsNullOrWhiteSpace(CurrentConnectionState.PhaseDisplayName) = False Then
+            message &= Environment.NewLine & "Conexión real: " & CurrentConnectionState.PhaseDisplayName
+        End If
 
         If String.IsNullOrWhiteSpace(CurrentProfileSelection.BlockingReason) = False Then
             message &= Environment.NewLine & "Bloqueo: " & CurrentProfileSelection.BlockingReason
@@ -354,6 +373,14 @@ Partial Public Class MainWindow : Inherits Window
             Return
         End If
 
+        Await RedeemAccessCodeAsync(accessCode, False)
+    End Sub
+
+    Private Async Function RedeemAccessCodeAsync(accessCode As String, automatic As Boolean) As Task
+        If String.IsNullOrWhiteSpace(accessCode) Then
+            Return
+        End If
+
         Try
             SetStatus("Canjeando código…")
             CurrentRedeemResult = Await PostJsonAsync(Of LauncherRedeemResult)(
@@ -363,20 +390,29 @@ Partial Public Class MainWindow : Inherits Window
                     .DeviceLabel = Environment.MachineName & " (" & DetectPlatformKind() & ")",
                     .PlatformKind = DetectPlatformKind()
                 })
-            SetStatus("Código canjeado. El launcher recibió el handoff. El usuario todavía no está dentro del hotel.")
-            AddLog("Código canjeado correctamente.")
+            CurrentConnectionState = Nothing
+            ConnectionTimer.Stop()
+            SetStatus("Código canjeado. Ya puedes iniciar el juego desde esta app.")
+            AddLog(If(automatic, "Código aplicado automáticamente al abrir la app.", "Código canjeado correctamente."))
             RenderState()
             Await SelectCurrentProfileAsync()
+            Await RefreshConnectionStateAsync(True)
+
+            If automatic AndAlso CurrentProfileSelection IsNot Nothing AndAlso CurrentProfileSelection.CanStartNow Then
+                Await LaunchSelectedClientAsync(True)
+            End If
         Catch ex As Exception
             CurrentRedeemResult = Nothing
             CurrentProfileSelection = Nothing
+            CurrentConnectionState = Nothing
+            ConnectionTimer.Stop()
             LaunchClientButton.IsButtonDisabled = True
             RenderState()
             RenderSelectedProfileState()
             SetStatus("No se pudo canjear el código: " & ex.Message)
             AddLog("Error canjeando código: " & ex.Message)
         End Try
-    End Sub
+    End Function
 
     Private Async Function SelectCurrentProfileAsync() As Task
         Dim selectedProfile = TryCast(ProfileComboBox.SelectedItem, LauncherDesktopProfileSnapshot)
@@ -397,7 +433,7 @@ Partial Public Class MainWindow : Inherits Window
         CurrentLocalConfig.LastProfileKey = selectedProfile.ProfileKey
         Await SaveLocalConfigAsync()
         RenderSelectedProfileState()
-        AddLog("Perfil seleccionado: " & selectedProfile.DisplayName)
+        AddLog("Modo seleccionado: " & selectedProfile.DisplayName)
     End Function
 
     Private Async Sub ProfileComboBox_SelectionChanged(sender As Object, e As SelectionChangedEventArgs) Handles ProfileComboBox.SelectionChanged
@@ -408,22 +444,54 @@ Partial Public Class MainWindow : Inherits Window
         Try
             Await SelectCurrentProfileAsync()
         Catch ex As Exception
-            SetStatus("No se pudo seleccionar el perfil: " & ex.Message)
-            AddLog("Error seleccionando perfil: " & ex.Message)
+            SetStatus("No se pudo seleccionar el modo: " & ex.Message)
+            AddLog("Error seleccionando modo: " & ex.Message)
         End Try
     End Sub
 
     Private Async Sub LaunchClientButton_Click(sender As Object, e As EventArgs) Handles LaunchClientButton.Click
+        Await LaunchSelectedClientAsync(False)
+    End Sub
+
+    Private Async Function LaunchSelectedClientAsync(automatic As Boolean) As Task
         If CurrentProfileSelection Is Nothing OrElse CurrentRedeemResult Is Nothing Then
+            If automatic = False Then
+                SetStatus("Primero debes canjear un código y seleccionar un modo.")
+            End If
             Return
         End If
 
         If CurrentProfileSelection.CanStartNow = False Then
-            SetStatus("Ese perfil todavía no tiene cliente publicado.")
+            SetStatus("Ese modo todavía no tiene un juego publicado para iniciar.")
             Return
         End If
 
+        If IsLaunchingClient Then
+            Return
+        End If
+
+        Dim launchUrl As String = String.Empty
         Try
+            IsLaunchingClient = True
+            If automatic Then
+                Await Task.Delay(1000)
+            End If
+            launchUrl = ToAbsoluteUrl(CurrentProfileSelection.LaunchUrl)
+            Await PostJsonAsync(Of LauncherTelemetryAck)(
+                BuildLauncherApiUrl("/launcher/telemetry"),
+                New With {
+                    .Ticket = CurrentRedeemResult.Ticket,
+                    .EventKey = "launcher_client_launch_requested",
+                    .Detail = "El launcher desktop intenta ejecutar el loader del juego.",
+                    .Data = New Dictionary(Of String, String) From {
+                        {"profileKey", CurrentProfileSelection.Profile.ProfileKey},
+                        {"clientKind", CurrentProfileSelection.Profile.ClientKind},
+                        {"platformKind", DetectPlatformKind()},
+                        {"launchUrl", launchUrl},
+                        {"automatic", If(automatic, "true", "false")}
+                    }
+                })
+            OpenLaunchTarget(launchUrl)
             Await PostJsonAsync(Of LauncherClientStartedResponse)(
                 BuildLauncherApiUrl("/launcher/client-started"),
                 New With {
@@ -432,15 +500,108 @@ Partial Public Class MainWindow : Inherits Window
                     .ClientKind = CurrentProfileSelection.Profile.ClientKind,
                     .PlatformKind = DetectPlatformKind()
                 })
-
-            Dim launchUrl = ToAbsoluteUrl(CurrentProfileSelection.LaunchUrl)
-            Process.Start(New ProcessStartInfo(launchUrl) With {.UseShellExecute = True})
-            SetStatus("Cliente abierto. La presencia real ahora depende del emulador.")
-            AddLog("Cliente abierto: " & CurrentProfileSelection.Profile.DisplayName)
+            ConnectionTimer.Start()
+            SetStatus(If(automatic,
+                "Juego iniciado automáticamente. Esperando confirmación real del emulador.",
+                "Juego iniciado. Esperando confirmación real del emulador."))
+            AddLog(If(automatic,
+                "Juego iniciado automáticamente: " & CurrentProfileSelection.Profile.DisplayName,
+                "Juego iniciado: " & CurrentProfileSelection.Profile.DisplayName))
+            Await RefreshConnectionStateAsync(True)
+            If automatic Then
+                ScheduleAutomaticLaunchRetry(launchUrl)
+            End If
         Catch ex As Exception
-            SetStatus("No se pudo abrir el cliente: " & ex.Message)
-            AddLog("Error abriendo cliente: " & ex.Message)
+            Try
+                PostJsonAsync(Of LauncherTelemetryAck)(
+                    BuildLauncherApiUrl("/launcher/telemetry"),
+                    New With {
+                        .Ticket = CurrentRedeemResult.Ticket,
+                        .EventKey = "launcher_client_launch_failed",
+                        .Detail = ex.Message,
+                        .Data = New Dictionary(Of String, String) From {
+                            {"profileKey", CurrentProfileSelection.Profile.ProfileKey},
+                            {"clientKind", CurrentProfileSelection.Profile.ClientKind},
+                            {"platformKind", DetectPlatformKind()},
+                            {"launchUrl", launchUrl},
+                            {"automatic", If(automatic, "true", "false")}
+                        }
+                    }).GetAwaiter().GetResult()
+            Catch
+            End Try
+            SetStatus("No se pudo iniciar el juego: " & ex.Message)
+            AddLog("Error iniciando juego: " & ex.Message)
+        Finally
+            IsLaunchingClient = False
         End Try
+    End Function
+
+    Private Async Sub ScheduleAutomaticLaunchRetry(launchUrl As String)
+        Try
+            Await Task.Delay(3000)
+            Await RefreshConnectionStateAsync(False)
+
+            If CurrentConnectionState Is Nothing OrElse CurrentConnectionState.PresenceConfirmed Then
+                Return
+            End If
+
+            If CurrentConnectionState.ClientStarted = False Then
+                Return
+            End If
+
+            OpenLaunchTarget(launchUrl)
+            AddLog("Reintento de inicio del juego tras arranque automático sin presencia confirmada.")
+            Await Task.Delay(3000)
+            Await RefreshConnectionStateAsync(True)
+        Catch ex As Exception
+            AddLog("Error en reintento automático del juego: " & ex.Message)
+        End Try
+    End Sub
+
+    Private Sub OpenLaunchTarget(launchUrl As String)
+        If String.IsNullOrWhiteSpace(launchUrl) Then
+            Throw New Exception("launch_url_missing")
+        End If
+
+        If RuntimeInformation.IsOSPlatform(OSPlatform.OSX) Then
+            If Directory.Exists("/Applications/Safari.app") Then
+                RunCommand("/usr/bin/open", "-a", "Safari", launchUrl)
+            Else
+                RunCommand("/usr/bin/open", launchUrl)
+            End If
+            Return
+        End If
+
+        If RuntimeInformation.IsOSPlatform(OSPlatform.Linux) Then
+            RunCommand("/usr/bin/xdg-open", launchUrl)
+            Return
+        End If
+
+        Process.Start(New ProcessStartInfo(launchUrl) With {.UseShellExecute = True})
+    End Sub
+
+    Private Sub RunCommand(fileName As String, ParamArray arguments() As String)
+        Dim startInfo As New ProcessStartInfo(fileName) With {
+            .UseShellExecute = False
+        }
+
+        For Each argument In arguments
+            startInfo.ArgumentList.Add(argument)
+        Next
+
+        Using process As Process = Process.Start(startInfo)
+            If process Is Nothing Then
+                Throw New Exception("process_start_failed")
+            End If
+
+            If process.WaitForExit(10000) = False Then
+                Throw New Exception(fileName & "_timeout")
+            End If
+
+            If process.ExitCode <> 0 Then
+                Throw New Exception(fileName & "_failed_exit_" & process.ExitCode)
+            End If
+        End Using
     End Sub
 
     Private Function ToAbsoluteUrl(rawValue As String) As String
@@ -448,8 +609,11 @@ Partial Public Class MainWindow : Inherits Window
             Return ""
         End If
 
-        If Uri.TryCreate(rawValue, UriKind.Absolute, Nothing) Then
-            Return rawValue
+        Dim absoluteUri As Uri = Nothing
+        If Uri.TryCreate(rawValue, UriKind.Absolute, absoluteUri) AndAlso
+            (String.Equals(absoluteUri.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) OrElse
+             String.Equals(absoluteUri.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase)) Then
+            Return absoluteUri.ToString()
         End If
 
         Return New Uri(New Uri(EnsureEndsWithSlash(CurrentLocalConfig.LauncherApiBaseUrl)), rawValue.TrimStart("/"c)).ToString()
@@ -476,6 +640,101 @@ Partial Public Class MainWindow : Inherits Window
     Private Async Sub RefreshButton_Click(sender As Object, e As EventArgs) Handles RefreshButton.Click
         Await BootstrapAsync()
     End Sub
+
+    Private Async Sub ConnectionTimer_Tick(sender As Object, e As EventArgs)
+        Await RefreshConnectionStateAsync(True)
+    End Sub
+
+    Private Async Function RefreshConnectionStateAsync(logChanges As Boolean) As Task
+        If CurrentRedeemResult Is Nothing OrElse String.IsNullOrWhiteSpace(CurrentRedeemResult.Ticket) Then
+            Return
+        End If
+
+        If IsRefreshingConnectionState Then
+            Return
+        End If
+
+        Try
+            IsRefreshingConnectionState = True
+            Dim state = Await GetJsonAsync(Of LauncherConnectionStateSnapshot)(
+                BuildLauncherApiUrl("/launcher/connection-state?ticket=" & Uri.EscapeDataString(CurrentRedeemResult.Ticket)))
+            Dim previousPhaseKey = If(CurrentConnectionState?.PhaseKey, String.Empty)
+
+            CurrentConnectionState = state
+            RenderState()
+            RenderSelectedProfileState()
+
+            If logChanges AndAlso String.Equals(previousPhaseKey, state.PhaseKey, StringComparison.OrdinalIgnoreCase) = False Then
+                AddLog("Estado real: " & state.PhaseDisplayName)
+            End If
+
+            LastConnectionPhaseKey = state.PhaseKey
+
+            If state.PresenceConfirmed Then
+                ConnectionTimer.Stop()
+                SetStatus("Presencia confirmada por el emulador en sala " & state.CurrentRoomId & ".")
+            ElseIf state.ClientStarted Then
+                SetStatus("Loader ejecutado. Esperando presencia real del emulador.")
+            ElseIf state.CodeRedeemed Then
+                SetStatus("Código canjeado. La app espera que inicies el juego.")
+            End If
+        Catch ex As Exception
+            If logChanges Then
+                AddLog("Error leyendo conexión real: " & ex.Message)
+            End If
+        Finally
+            IsRefreshingConnectionState = False
+        End Try
+    End Function
+
+    Private Async Function TryRedeemStartupCodeAsync() As Task
+        Dim startupCode = ResolveStartupAccessCode()
+        If String.IsNullOrWhiteSpace(startupCode) Then
+            Return
+        End If
+
+        If String.Equals(LastStartupAccessCode, startupCode, StringComparison.OrdinalIgnoreCase) Then
+            Return
+        End If
+
+        LastStartupAccessCode = startupCode
+        AccessCodeTextBox.Text = startupCode
+        Await RedeemAccessCodeAsync(startupCode, True)
+    End Function
+
+    Private Function ResolveStartupAccessCode() As String
+        Dim arguments = Environment.GetCommandLineArgs()
+        For index = 0 To arguments.Length - 1
+            Dim argument = arguments(index)
+            If String.IsNullOrWhiteSpace(argument) Then
+                Continue For
+            End If
+
+            If argument.StartsWith("--code=", StringComparison.OrdinalIgnoreCase) Then
+                Return argument.Substring("--code=".Length).Trim()
+            End If
+
+            If String.Equals(argument, "--code", StringComparison.OrdinalIgnoreCase) AndAlso index + 1 < arguments.Length Then
+                Return arguments(index + 1).Trim()
+            End If
+
+            If argument.StartsWith("epsilonlauncher://", StringComparison.OrdinalIgnoreCase) Then
+                Try
+                    Dim startupUri As New Uri(argument)
+                    Dim query = startupUri.Query.TrimStart("?"c).Split("&"c, StringSplitOptions.RemoveEmptyEntries)
+                    For Each pair In query
+                        Dim parts = pair.Split("="c, 2)
+                        If parts.Length = 2 AndAlso String.Equals(parts(0), "code", StringComparison.OrdinalIgnoreCase) Then
+                            Return Uri.UnescapeDataString(parts(1)).Trim()
+                        End If
+                    Next
+                Catch
+                End Try
+            End If
+        Next
+
+        Return String.Empty
+    End Function
 
     Private Sub FooterButton_Click(sender As Object, e As EventArgs) Handles FooterButton.Click
         Try
@@ -583,6 +842,24 @@ End Class
 
 Public Class LauncherClientStartedResponse
     Public Property Succeeded As Boolean
+End Class
+
+Public Class LauncherTelemetryAck
+    Public Property Succeeded As Boolean
+End Class
+
+Public Class LauncherConnectionStateSnapshot
+    Public Property SessionValid As Boolean
+    Public Property LaunchPermitted As Boolean
+    Public Property CodeIssued As Boolean
+    Public Property CodeRedeemed As Boolean
+    Public Property ClientStarted As Boolean
+    Public Property PresenceConfirmed As Boolean
+    Public Property CurrentRoomId As Nullable(Of Long)
+    Public Property PhaseKey As String
+    Public Property PhaseDisplayName As String
+    Public Property LastEventKey As String
+    Public Property LastEventAtUtc As Nullable(Of DateTime)
 End Class
 
 Public Class LauncherLocalConfig

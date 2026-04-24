@@ -879,14 +879,14 @@ internal static class InMemoryHotelSeedBuilder
             PublicRoomAssetPackageKeys: ["welcome_lobby_core"],
             FeatureFlags: ["catalog", "messenger", "navigator", "room_runtime"]);
 
-        store.ClientPackages["modern_web_runtime_alpha"] = new ClientPackageManifest(
-            PackageKey: "modern_web_runtime_alpha",
-            PackageFamily: "modern_web_runtime",
+        store.ClientPackages["game_loader_desktop"] = new ClientPackageManifest(
+            PackageKey: "game_loader_desktop",
+            PackageFamily: "game_loader",
             VersionKey: "alpha1",
-            EntryAssetPath: "clients/web-alpha/index.html",
-            AssetBasePath: "clients/web-alpha/assets",
-            ExternalVariableKeys: ["web-alpha.variables.core"],
-            ExternalTextKeys: ["web-alpha.texts.core"],
+            EntryAssetPath: "clients/game-loader/index.html",
+            AssetBasePath: "clients/game-loader/assets",
+            ExternalVariableKeys: ["game-loader.variables.core"],
+            ExternalTextKeys: ["game-loader.texts.core"],
             PublicRoomAssetPackageKeys: ["welcome_lobby_core"],
             FeatureFlags: ["catalog", "messenger", "navigator", "room_runtime", "activity_runtime"]);
 
@@ -1266,7 +1266,7 @@ internal static class InMemoryHotelSeedBuilder
                 IsSitting: false,
                 IsLaying: false,
                 CarryItem: new CarryItemState(4, "Coffee", DateTime.UtcNow.AddMinutes(2)),
-                Goal: new MovementGoal(8, 4),
+                Goal: new MovementGoal(8, 4, []),
                 StatusEntries:
                 [
                     new ActorStatusEntry("mv", "8,4,0"),
@@ -1284,7 +1284,7 @@ internal static class InMemoryHotelSeedBuilder
                 IsSitting: false,
                 IsLaying: false,
                 CarryItem: null,
-                Goal: new MovementGoal(9, 5),
+                Goal: new MovementGoal(9, 5, []),
                 StatusEntries:
                 [
                     new ActorStatusEntry("mv", "9,5,0")

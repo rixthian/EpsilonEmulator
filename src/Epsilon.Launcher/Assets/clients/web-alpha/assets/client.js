@@ -199,7 +199,7 @@
       collectorLabel.textContent = collector ? (collector.collectorTier + " / " + collector.ownedCollectibleCount + " items") : "No collector";
       mottoLabel.textContent = bootstrap.interfacePreferences && bootstrap.interfacePreferences.chatStylePreference
         ? ("Chat " + bootstrap.interfacePreferences.chatStylePreference)
-        : "Hotel web alpha";
+        : "Preparando sesión del hotel";
       await sendTelemetry("bootstrap_validated", "Bootstrap del launcher resuelto.", {
         canLaunch: String(Boolean(bootstrap.launchEntitlement && bootstrap.launchEntitlement.canLaunch)),
         entryAssetUrl: bootstrap.entryAssetUrl || ""

@@ -61,6 +61,19 @@ cat > "$APP_DIR/Contents/Info.plist" <<PLIST
   <string>APPL</string>
   <key>CFBundleShortVersionString</key>
   <string>${VERSION}</string>
+  <key>CFBundleURLTypes</key>
+  <array>
+    <dict>
+      <key>CFBundleTypeRole</key>
+      <string>Viewer</string>
+      <key>CFBundleURLName</key>
+      <string>com.epsilon.hotel.launcher</string>
+      <key>CFBundleURLSchemes</key>
+      <array>
+        <string>epsilonlauncher</string>
+      </array>
+    </dict>
+  </array>
   <key>CFBundleVersion</key>
   <string>${VERSION}</string>
   <key>LSMinimumSystemVersion</key>

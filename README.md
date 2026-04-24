@@ -133,7 +133,7 @@ Current release focus in `0.4.0-alpha.5`:
 - CMS backend + launcher handoff with one-time launcher access codes
 - native desktop launcher source integrated into the repo and packaged as a macOS `.dmg`
 - desktop launcher contract for local config, update channels, launch profiles, and `client-started` telemetry
-- published `web-alpha` client entry routed through the launcher instead of the CMS
+- published `game-loader` entry routed through the launcher instead of the CMS
 - first room tick scheduler, room animation slice, and roller runtime support
 - collector platform slice with wallet/link groundwork, progression, emerald accrual, factory/gift/recycle/market loops
 
@@ -237,7 +237,7 @@ Known instability in this release:
 
 - CMS presentation and access flow were rebuilt quickly and still need hardening
 - launcher native packaging exists, but Unity/Nitro package targets are still not published
-- `web-alpha` is provisional and does not represent the final social/isometric client
+- `game-loader` is provisional and does not represent the final social/isometric client
 - production durability is still blocked by remaining `InMemory` slices
 
 ## Architecture Shape
@@ -272,6 +272,7 @@ Each module has a narrow responsibility:
 - [`cms/`](cms/) — CMS platform and preserved web surfaces
 - [`configuration/`](configuration/) — shared and per-service configuration templates
 - [`docs/architecture/`](docs/architecture/) — architecture and domain design
+- [`docs/requirements/`](docs/requirements/) — local SDK and project execution requirements
 - [`docs/releases/`](docs/releases/) — release snapshots and alpha release notes
 - [`docs/compatibility/`](docs/compatibility/) — protocol and target-client material
 - [`docs/decisions/`](docs/decisions/) — architectural decisions
@@ -288,6 +289,10 @@ Each module has a narrow responsibility:
 - [CMS Platform](docs/architecture/cms-platform.md)
 - [Launcher App Access](docs/architecture/launcher-app-access.md)
 - [Desktop Launcher Spec](docs/architecture/desktop-launcher-spec.md)
+- [Project Requirements](docs/requirements/project-requirements.md)
+- [Launcher Popup To Game Loader Flow](docs/architecture/launcher-popup-loader-flow.md)
+- [Local Orchestration Topology](docs/architecture/local-orchestration-topology.md)
+- [Nitro Docker Reference](docs/reference-sources/nitro-docker.md)
 - [Design Principles](docs/architecture/design-principles.md)
 - [Client Platform Strategy](docs/architecture/client-platform-strategy.md)
 - [Hotel Domain Blueprint](docs/architecture/hotel-domain-blueprint.md)
@@ -372,7 +377,7 @@ dotnet run --project src/Epsilon.Gateway/Epsilon.Gateway.csproj
 ### Health Check
 
 ```bash
-curl http://127.0.0.1:5000/health
+curl http://127.0.0.1:5100/health
 ```
 
 ## Roadmap

@@ -228,8 +228,15 @@ public sealed class RoomBotRuntimeService : IRoomBotRuntimeService
         int spawnY = roomLayout.DoorPosition.Y + bot.SpawnOffsetY;
         double spawnZ = roomLayout.DoorPosition.Z;
 
+        // HOTFIX patrol: PendingSteps left empty — the tick scheduler computes the
+        // actual A* path on the first tick.  PatrolWaypoints embeds the full route
+        // so the scheduler can cycle bots indefinitely without re-reading definitions.
         MovementGoal? initialGoal = bot.Waypoints.Count > 0
-            ? new MovementGoal(bot.Waypoints[0].X, bot.Waypoints[0].Y)
+            ? new MovementGoal(bot.Waypoints[0].X, bot.Waypoints[0].Y, [])
+              {
+                  PatrolWaypoints = bot.Waypoints,
+                  PatrolWaypointIndex = 0
+              }
             : null;
 
         return new RoomActorState(

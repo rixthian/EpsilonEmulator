@@ -18,6 +18,8 @@ public sealed class HotelRealtimeSocketHandler
     private readonly IRoomRuntimeCoordinator _roomRuntimeCoordinator;
     private readonly IRoomRuntimeSnapshotService _roomRuntimeSnapshotService;
     private readonly IRealtimeConnectionMonitor _realtimeConnectionMonitor;
+    // HOTFIX broadcast: hub that maps rooms → active WebSocket send delegates.
+    private readonly IRoomConnectionHub _roomConnectionHub;
     private readonly ILogger<HotelRealtimeSocketHandler> _logger;
 
     public HotelRealtimeSocketHandler(
@@ -27,6 +29,7 @@ public sealed class HotelRealtimeSocketHandler
         IRoomRuntimeCoordinator roomRuntimeCoordinator,
         IRoomRuntimeSnapshotService roomRuntimeSnapshotService,
         IRealtimeConnectionMonitor realtimeConnectionMonitor,
+        IRoomConnectionHub roomConnectionHub,
         ILogger<HotelRealtimeSocketHandler> logger)
     {
         _gatewayRuntimeOptions = gatewayRuntimeOptions.Value;
@@ -35,6 +38,7 @@ public sealed class HotelRealtimeSocketHandler
         _roomRuntimeCoordinator = roomRuntimeCoordinator;
         _roomRuntimeSnapshotService = roomRuntimeSnapshotService;
         _realtimeConnectionMonitor = realtimeConnectionMonitor;
+        _roomConnectionHub = roomConnectionHub;
         _logger = logger;
     }
 
@@ -59,6 +63,12 @@ public sealed class HotelRealtimeSocketHandler
 
         string remoteAddress = httpContext.Connection.RemoteIpAddress?.ToString() ?? "unknown";
         SessionTicket? boundSession = null;
+
+        // HOTFIX broadcast: per-connection state tracking for the room hub.
+        // registeredRoomId  — the room this connection is currently subscribed to.
+        // hubConnectionId   — the opaque token used to unregister from the hub.
+        RoomId? registeredRoomId = null;
+        Guid hubConnectionId = Guid.Empty;
 
         await SendResponseAsync(
             socket,
@@ -152,11 +162,28 @@ public sealed class HotelRealtimeSocketHandler
                     request.Arguments,
                     result,
                     cancellationToken);
+
+                // HOTFIX broadcast: after any successful room-mutating command, push
+                // the updated room snapshot to every other connection in the same room.
+                // Without this, movement and chat were completely invisible to peers.
+                (registeredRoomId, hubConnectionId) = await TryBroadcastRoomEventAsync(
+                    socket,
+                    request.Command,
+                    request.Arguments,
+                    result,
+                    registeredRoomId,
+                    hubConnectionId,
+                    cancellationToken);
             }
         }
         finally
         {
             _realtimeConnectionMonitor.RecordClosedConnection();
+
+            // HOTFIX broadcast: always unregister this connection from the hub,
+            // even when disconnect happens via cancellation or socket error.
+            if (registeredRoomId.HasValue && hubConnectionId != Guid.Empty)
+                _roomConnectionHub.Unregister(registeredRoomId.Value, hubConnectionId);
 
             if (boundSession is not null)
             {
@@ -170,6 +197,17 @@ public sealed class HotelRealtimeSocketHandler
                         roomId,
                         RoomRuntimeMutationKind.ActorPresenceChanged,
                         cancellationToken);
+
+                    // Notify remaining peers in each room that this actor left.
+                    RoomRuntimeSnapshot? leaveSnapshot =
+                        await _roomRuntimeSnapshotService.BuildAsync(roomId, CancellationToken.None);
+                    if (leaveSnapshot is not null)
+                    {
+                        string leaveJson = JsonSerializer.Serialize(
+                            new RealtimeServerEvent("room.runtime_snapshot", leaveSnapshot), JsonOptions);
+                        await _roomConnectionHub.BroadcastToRoomAsync(
+                            roomId, leaveJson, Guid.Empty, CancellationToken.None);
+                    }
                 }
             }
 
@@ -212,6 +250,54 @@ public sealed class HotelRealtimeSocketHandler
             socket,
             new RealtimeServerEvent("room.runtime_snapshot", snapshot),
             cancellationToken);
+    }
+
+    // HOTFIX broadcast: registers/migrates the connection in the hub and pushes the
+    // current room snapshot to all other players in the room.
+    private async Task<(RoomId? registeredRoomId, Guid hubConnectionId)> TryBroadcastRoomEventAsync(
+        WebSocket socket,
+        string commandName,
+        IReadOnlyDictionary<string, JsonElement>? arguments,
+        ProtocolCommandExecutionResult result,
+        RoomId? currentRegisteredRoomId,
+        Guid currentHubConnectionId,
+        CancellationToken cancellationToken)
+    {
+        if (result.StatusCode is < 200 or >= 300 || arguments is null)
+            return (currentRegisteredRoomId, currentHubConnectionId);
+
+        if (commandName is not ("rooms.enter_room" or "rooms.move_avatar" or "rooms.chat"))
+            return (currentRegisteredRoomId, currentHubConnectionId);
+
+        if (!ProtocolCommandExecutionService.TryReadInt64(arguments, "roomId", out long rawRoomId))
+            return (currentRegisteredRoomId, currentHubConnectionId);
+
+        RoomId roomId = new(rawRoomId);
+
+        // If the player entered a different room, migrate the hub registration.
+        if (commandName is "rooms.enter_room")
+        {
+            if (currentRegisteredRoomId.HasValue && currentHubConnectionId != Guid.Empty)
+                _roomConnectionHub.Unregister(currentRegisteredRoomId.Value, currentHubConnectionId);
+
+            // Register a send delegate that serialises straight to the socket.
+            currentHubConnectionId = _roomConnectionHub.Register(
+                roomId,
+                (json, ct) => SendRawTextAsync(socket, json, ct));
+            currentRegisteredRoomId = roomId;
+        }
+
+        // Build and broadcast the snapshot to every other connection in the room.
+        RoomRuntimeSnapshot? snapshot = await _roomRuntimeSnapshotService.BuildAsync(roomId, cancellationToken);
+        if (snapshot is not null)
+        {
+            string snapshotJson = JsonSerializer.Serialize(
+                new RealtimeServerEvent("room.runtime_snapshot", snapshot), JsonOptions);
+            await _roomConnectionHub.BroadcastToRoomAsync(
+                roomId, snapshotJson, currentHubConnectionId, cancellationToken);
+        }
+
+        return (currentRegisteredRoomId, currentHubConnectionId);
     }
 
     private bool IsRealtimeTransportAllowed(HttpContext httpContext)

@@ -1,0 +1,515 @@
+{
+  "summaryVersion": 1,
+  "source": {
+    "name": "arcturus-morningstar-default-swf-pack",
+    "url": "https://git.krews.org/morningstar/arcturus-morningstar-default-swf-pack.git",
+    "requestedSshUrl": "git@git.krews.org:morningstar/arcturus-morningstar-default-swf-pack.git",
+    "revision": "a7cea19c8877fb31fa53108655e96d94e4ce7e8e",
+    "localPath": "/Users/yasminluengo/Documents/Playground/reference-sources/arcturus-morningstar-default-swf-pack",
+    "runtimePolicy": "reference_only_no_raw_asset_runtime_dependency"
+  },
+  "gamedata": {
+    "furnidataXml": {
+      "furnitype": 10793,
+      "roomitemtype": 0,
+      "wallitemtype": 0
+    },
+    "figuredataXml": {
+      "palette": 3,
+      "color": 543,
+      "settype": 13,
+      "set": 2350,
+      "part": 6469
+    },
+    "figuremapXml": {
+      "lib": 2069,
+      "part": 5806
+    },
+    "effectmapXml": {
+      "effect": 203,
+      "lib": 0
+    },
+    "productdataEntries": 165,
+    "externalVariableEntries": 4107,
+    "externalFlashTextEntries": 31582
+  },
+  "catalogSql": {
+    "fileCount": 15,
+    "files": [
+      "Catalog-SQLS/UPDATES/General_Updates.sql",
+      "Catalog-SQLS/UPDATES/heights.sql",
+      "Catalog-SQLS/UPDATES/interaction_modes_count.sql",
+      "Catalog-SQLS/UPDATES/vending_ids.sql",
+      "Catalog-SQLS/catalog_clothing.sql",
+      "Catalog-SQLS/catalog_featured_pages.sql",
+      "Catalog-SQLS/catalog_items.sql",
+      "Catalog-SQLS/catalog_pages.sql",
+      "Catalog-SQLS/crafting_altars_recipes.sql",
+      "Catalog-SQLS/crafting_recipes.sql",
+      "Catalog-SQLS/crafting_recipes_ingredients.sql",
+      "Catalog-SQLS/emulator_settings.sql",
+      "Catalog-SQLS/emulator_texts.sql",
+      "Catalog-SQLS/items_base.sql",
+      "Catalog-SQLS/items_crackable.sql"
+    ]
+  },
+  "swfPackages": [
+    {
+      "sourceFile": "gordon/PRODUCTION/Habbo.swf",
+      "header": {
+        "signature": "CWS",
+        "version": 14,
+        "declared_file_length": 14411925,
+        "frame_size": {
+          "x_min": 0,
+          "x_max": 25600,
+          "y_min": 0,
+          "y_max": 16000,
+          "width_pixels": 1280.0,
+          "height_pixels": 800.0
+        },
+        "frame_rate": 24.0,
+        "frame_count": 2
+      },
+      "tagCount": 2528,
+      "tagSummaries": [
+        {
+          "code": 0,
+          "name": "End",
+          "count": 1
+        },
+        {
+          "code": 1,
+          "name": "ShowFrame",
+          "count": 2
+        },
+        {
+          "code": 9,
+          "name": "SetBackgroundColor",
+          "count": 1
+        },
+        {
+          "code": 14,
+          "name": "Tag14",
+          "count": 13
+        },
+        {
+          "code": 36,
+          "name": "DefineBitsLossless2",
+          "count": 1469
+        },
+        {
+          "code": 41,
+          "name": "Tag41",
+          "count": 1
+        },
+        {
+          "code": 43,
+          "name": "FrameLabel",
+          "count": 2
+        },
+        {
+          "code": 56,
+          "name": "ExportAssets",
+          "count": 1
+        },
+        {
+          "code": 65,
+          "name": "Tag65",
+          "count": 1
+        },
+        {
+          "code": 69,
+          "name": "FileAttributes",
+          "count": 1
+        },
+        {
+          "code": 73,
+          "name": "Tag73",
+          "count": 10
+        },
+        {
+          "code": 75,
+          "name": "Tag75",
+          "count": 10
+        },
+        {
+          "code": 76,
+          "name": "SymbolClass",
+          "count": 2
+        },
+        {
+          "code": 82,
+          "name": "DoABC",
+          "count": 3
+        },
+        {
+          "code": 87,
+          "name": "DefineBinaryData",
+          "count": 1000
+        },
+        {
+          "code": 88,
+          "name": "DefineFontName",
+          "count": 10
+        },
+        {
+          "code": 255,
+          "name": "Tag255",
+          "count": 1
+        }
+      ],
+      "exportedAssetCount": 13,
+      "symbolClassCount": 2661,
+      "spriteCount": 0,
+      "shapeTagCount": 0,
+      "bitmapTagCount": 1469,
+      "actionTagCount": 3,
+      "habboComponentSymbolCounts": {
+        "HabboInventoryCom": 154,
+        "HabboAvatarRenderLib": 111,
+        "HabboWindowManagerCom": 91,
+        "HabboUserDefinedRoomEventsCom": 43,
+        "HabboCatalogCom": 17,
+        "HabboSoundManagerFlash10Com": 14,
+        "HabboRoomUICom": 12,
+        "HabboToolbarCom": 11,
+        "HabboFriendBarCom": 8,
+        "HabboNavigatorCom": 3,
+        "HabboRoomObjectVisualizationLib": 3,
+        "Habbo": 1
+      },
+      "roomContentSymbolCounts": {},
+      "fullSymbolNamesOmitted": true,
+      "warnings": []
+    },
+    {
+      "sourceFile": "gordon/PRODUCTION/HabboRoomContent.swf",
+      "header": {
+        "signature": "CWS",
+        "version": 14,
+        "declared_file_length": 745117,
+        "frame_size": {
+          "x_min": 0,
+          "x_max": 10000,
+          "y_min": 0,
+          "y_max": 7500,
+          "width_pixels": 500.0,
+          "height_pixels": 375.0
+        },
+        "frame_rate": 24.0,
+        "frame_count": 1
+      },
+      "tagCount": 265,
+      "tagSummaries": [
+        {
+          "code": 0,
+          "name": "End",
+          "count": 1
+        },
+        {
+          "code": 1,
+          "name": "ShowFrame",
+          "count": 1
+        },
+        {
+          "code": 9,
+          "name": "SetBackgroundColor",
+          "count": 1
+        },
+        {
+          "code": 36,
+          "name": "DefineBitsLossless2",
+          "count": 251
+        },
+        {
+          "code": 41,
+          "name": "Tag41",
+          "count": 1
+        },
+        {
+          "code": 43,
+          "name": "FrameLabel",
+          "count": 1
+        },
+        {
+          "code": 65,
+          "name": "Tag65",
+          "count": 1
+        },
+        {
+          "code": 69,
+          "name": "FileAttributes",
+          "count": 1
+        },
+        {
+          "code": 76,
+          "name": "SymbolClass",
+          "count": 1
+        },
+        {
+          "code": 77,
+          "name": "Tag77",
+          "count": 1
+        },
+        {
+          "code": 82,
+          "name": "DoABC",
+          "count": 1
+        },
+        {
+          "code": 87,
+          "name": "DefineBinaryData",
+          "count": 4
+        }
+      ],
+      "exportedAssetCount": 0,
+      "symbolClassCount": 263,
+      "spriteCount": 0,
+      "shapeTagCount": 0,
+      "bitmapTagCount": 251,
+      "actionTagCount": 1,
+      "habboComponentSymbolCounts": {
+        "HabboRoomContent": 263
+      },
+      "roomContentSymbolCounts": {
+        "wall_texture": 104,
+        "landscape": 84,
+        "window": 34,
+        "floor_texture": 12,
+        "lc": 4,
+        "hween08": 4,
+        "hween09": 2,
+        "sf": 2,
+        "bolly": 2,
+        "door": 2,
+        "easter13": 2,
+        "jp": 2,
+        "ads": 2,
+        "room": 2,
+        "noob": 2,
+        "index": 1,
+        "manifest": 1
+      },
+      "fullSymbolNamesOmitted": true,
+      "warnings": []
+    },
+    {
+      "sourceFile": "game/BasicAssets.swf",
+      "header": {
+        "signature": "CWS",
+        "version": 10,
+        "declared_file_length": 4655043,
+        "frame_size": {
+          "x_min": 0,
+          "x_max": 10000,
+          "y_min": 0,
+          "y_max": 7500,
+          "width_pixels": 500.0,
+          "height_pixels": 375.0
+        },
+        "frame_rate": 24.0,
+        "frame_count": 1
+      },
+      "tagCount": 244,
+      "tagSummaries": [
+        {
+          "code": 0,
+          "name": "End",
+          "count": 1
+        },
+        {
+          "code": 1,
+          "name": "ShowFrame",
+          "count": 1
+        },
+        {
+          "code": 9,
+          "name": "SetBackgroundColor",
+          "count": 1
+        },
+        {
+          "code": 14,
+          "name": "Tag14",
+          "count": 21
+        },
+        {
+          "code": 21,
+          "name": "DefineBitsJPEG2",
+          "count": 2
+        },
+        {
+          "code": 36,
+          "name": "DefineBitsLossless2",
+          "count": 200
+        },
+        {
+          "code": 41,
+          "name": "Tag41",
+          "count": 1
+        },
+        {
+          "code": 43,
+          "name": "FrameLabel",
+          "count": 1
+        },
+        {
+          "code": 56,
+          "name": "ExportAssets",
+          "count": 1
+        },
+        {
+          "code": 65,
+          "name": "Tag65",
+          "count": 1
+        },
+        {
+          "code": 69,
+          "name": "FileAttributes",
+          "count": 1
+        },
+        {
+          "code": 73,
+          "name": "Tag73",
+          "count": 3
+        },
+        {
+          "code": 75,
+          "name": "Tag75",
+          "count": 3
+        },
+        {
+          "code": 76,
+          "name": "SymbolClass",
+          "count": 1
+        },
+        {
+          "code": 77,
+          "name": "Tag77",
+          "count": 1
+        },
+        {
+          "code": 82,
+          "name": "DoABC",
+          "count": 1
+        },
+        {
+          "code": 87,
+          "name": "DefineBinaryData",
+          "count": 1
+        },
+        {
+          "code": 88,
+          "name": "DefineFontName",
+          "count": 3
+        }
+      ],
+      "exportedAssetCount": 21,
+      "symbolClassCount": 242,
+      "spriteCount": 0,
+      "shapeTagCount": 0,
+      "bitmapTagCount": 202,
+      "actionTagCount": 1,
+      "habboComponentSymbolCounts": {},
+      "roomContentSymbolCounts": {},
+      "fullSymbolNamesOmitted": true,
+      "warnings": []
+    },
+    {
+      "sourceFile": "game/BaseJump.swf",
+      "header": {
+        "signature": "CWS",
+        "version": 10,
+        "declared_file_length": 388995,
+        "frame_size": {
+          "x_min": 0,
+          "x_max": 20000,
+          "y_min": 0,
+          "y_max": 10000,
+          "width_pixels": 1000.0,
+          "height_pixels": 500.0
+        },
+        "frame_rate": 60.0,
+        "frame_count": 2
+      },
+      "tagCount": 19,
+      "tagSummaries": [
+        {
+          "code": 0,
+          "name": "End",
+          "count": 1
+        },
+        {
+          "code": 1,
+          "name": "ShowFrame",
+          "count": 2
+        },
+        {
+          "code": 9,
+          "name": "SetBackgroundColor",
+          "count": 1
+        },
+        {
+          "code": 21,
+          "name": "DefineBitsJPEG2",
+          "count": 3
+        },
+        {
+          "code": 41,
+          "name": "Tag41",
+          "count": 1
+        },
+        {
+          "code": 43,
+          "name": "FrameLabel",
+          "count": 2
+        },
+        {
+          "code": 56,
+          "name": "ExportAssets",
+          "count": 1
+        },
+        {
+          "code": 65,
+          "name": "Tag65",
+          "count": 1
+        },
+        {
+          "code": 69,
+          "name": "FileAttributes",
+          "count": 1
+        },
+        {
+          "code": 76,
+          "name": "SymbolClass",
+          "count": 1
+        },
+        {
+          "code": 82,
+          "name": "DoABC",
+          "count": 2
+        },
+        {
+          "code": 87,
+          "name": "DefineBinaryData",
+          "count": 2
+        },
+        {
+          "code": 255,
+          "name": "Tag255",
+          "count": 1
+        }
+      ],
+      "exportedAssetCount": 1,
+      "symbolClassCount": 6,
+      "spriteCount": 0,
+      "shapeTagCount": 0,
+      "bitmapTagCount": 3,
+      "actionTagCount": 2,
+      "habboComponentSymbolCounts": {},
+      "roomContentSymbolCounts": {},
+      "fullSymbolNamesOmitted": true,
+      "warnings": []
+    }
+  ]
+}

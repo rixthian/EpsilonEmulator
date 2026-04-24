@@ -50,3 +50,11 @@ python3 tools/importers/figure_data_manifest_builder.py \
 Avatar asset bundles are render/runtime content families.
 
 Epsilon uses both, but it catalogs them independently so compatibility work stays explicit.
+
+## Imaging Relationship
+
+Server-side avatar imaging consumes figure data as validation and composition input. The imaging layer must not rewrite figure ownership or entitlement rules; it only renders validated snapshots.
+
+See:
+
+- [avatar-imaging-service.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/avatar-imaging-service.md)

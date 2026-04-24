@@ -26,7 +26,7 @@ The format is intentionally simple while the project is still in alpha.
   - `POST /launcher/launch-profiles/select`
   - `POST /launcher/client-started`
 - one-time launcher access-code issue/redeem flow and launcher telemetry tracking
-- published `web-alpha` client asset under the launcher-controlled asset root
+- published `game-loader` loader asset under the launcher-controlled asset root
 - native desktop launcher app under `apps/epsilon-launcher-native`
 - reference Electron launcher shell under `apps/epsilon-launcher-desktop`
 - macOS launcher packaging pipeline producing:
@@ -58,7 +58,7 @@ The format is intentionally simple while the project is still in alpha.
 
 - CMS and launcher app surfaces are functional but still unstable
 - final Unity/Nitro desktop package targets are not published yet
-- `web-alpha` remains a provisional client surface
+- `game-loader` remains a provisional loader surface until the final Unity/Nitro desktop package is published
 - live durability is still limited by remaining `InMemory` dependencies
 - no production-grade release signing/notarization is in place for the macOS launcher package
 

@@ -12,6 +12,7 @@ from typing import Any
 
 
 ROOT_FILE_KEYS = {
+    "crossdomain.xml": "security_policy",
     "external_variables.txt": "gamedata",
     "external_flash_texts.txt": "gamedata",
     "flash_texts.txt": "gamedata",
@@ -24,6 +25,9 @@ ROOT_FILE_KEYS = {
     "Habbo.swf": "habboswf",
     "HabboRoomContent.swf": "roomcontent",
 }
+
+IGNORED_PATH_PARTS = {".git", "__MACOSX"}
+IGNORED_FILE_NAMES = {".DS_Store", "Thumbs.db", ".gitkeep"}
 
 FLAT_CLOTHES_PREFIXES = (
     "hair_",
@@ -114,8 +118,18 @@ def classify_artifact(relative_path: str) -> str:
             return "clothes"
     if "/c_images/" in marked_path and ("/album1581/" in marked_path or "/catalogue/" in marked_path or "/icons/" in marked_path):
         return "icons"
+    if marked_path.startswith("/c_images/"):
+        return "image_library"
     if "/gamedata/" in marked_path:
         return "gamedata"
+    if "/catalogue/" in marked_path:
+        return "catalogue"
+    if "/catalog-sqls/" in marked_path or lower_name.endswith(".sql"):
+        return "catalog_sql"
+    if "/game/" in marked_path:
+        return "game_packages"
+    if lower_name in {"readme.md", "note.txt", "missing-queries"}:
+        return "source_notes"
 
     return "unclassified"
 
@@ -125,6 +139,8 @@ def collect_root(root_path: Path) -> tuple[list[dict[str, Any]], Counter[str]]:
     counts: Counter[str] = Counter()
 
     for candidate in sorted(path for path in root_path.rglob("*") if path.is_file()):
+        if _should_ignore(candidate, root_path):
+            continue
         relative_path = candidate.relative_to(root_path).as_posix()
         artifact_key = classify_artifact(relative_path)
         counts[artifact_key] += 1
@@ -137,6 +153,14 @@ def collect_root(root_path: Path) -> tuple[list[dict[str, Any]], Counter[str]]:
         )
 
     return files, counts
+
+
+def _should_ignore(candidate: Path, root_path: Path) -> bool:
+    relative_parts = candidate.relative_to(root_path).parts
+    return (
+        any(part in IGNORED_PATH_PARTS for part in relative_parts)
+        or candidate.name in IGNORED_FILE_NAMES
+    )
 
 
 def build_manifest(profile: dict[str, Any]) -> dict[str, Any]:

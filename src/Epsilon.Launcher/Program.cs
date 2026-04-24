@@ -1,5 +1,6 @@
 using Epsilon.Auth;
 using Epsilon.CoreGame;
+using Epsilon.Games;
 using Epsilon.Launcher;
 using Epsilon.Persistence;
 using Microsoft.Extensions.FileProviders;
@@ -7,6 +8,7 @@ using System.Reflection;
 using System.Net.Http.Json;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 
 const string SessionTicketHeaderName = "X-Epsilon-Session-Ticket";
 
@@ -22,6 +24,7 @@ builder.Configuration.AddEnvironmentVariables(prefix: "EPSILON_");
 builder.Services.AddLauncherRuntime(builder.Configuration);
 builder.Services.AddPersistenceRuntime(builder.Configuration);
 builder.Services.AddAuthRuntime(builder.Configuration);
+builder.Services.AddGameRuntime();
 builder.Services.AddCoreGameRuntime();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSingleton<LauncherTelemetryStore>();
@@ -47,9 +50,10 @@ if (Directory.Exists(launcherAssetsRoot))
 app.MapGet("/launcher/loader", (HttpContext httpContext, string? ticket) =>
 {
     string safeTicket = string.IsNullOrWhiteSpace(ticket) ? string.Empty : ticket.Trim();
+    bool macLauncherReady = File.Exists(ResolveNativeLauncherMacDmgPath(app.Environment.ContentRootPath));
     httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
     httpContext.Response.Headers.Pragma = "no-cache";
-    return Results.Content(RenderLauncherLoaderPage(safeTicket), "text/html; charset=utf-8", Encoding.UTF8);
+    return Results.Content(RenderLauncherLoaderPage(safeTicket, macLauncherReady), "text/html; charset=utf-8", Encoding.UTF8);
 });
 
 app.MapGet("/launcher/play", (HttpContext httpContext, string? ticket, long? roomId) =>
@@ -59,6 +63,21 @@ app.MapGet("/launcher/play", (HttpContext httpContext, string? ticket, long? roo
     httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
     httpContext.Response.Headers.Pragma = "no-cache";
     return Results.Redirect(location, permanent: false);
+});
+
+app.MapGet("/launcher/downloads/macos-arm64", (HttpContext httpContext) =>
+{
+    string dmgPath = ResolveNativeLauncherMacDmgPath(app.Environment.ContentRootPath);
+    if (!File.Exists(dmgPath))
+    {
+        httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+        httpContext.Response.Headers.Pragma = "no-cache";
+        return Results.NotFound(new { error = "launcher_package_not_found" });
+    }
+
+    httpContext.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+    httpContext.Response.Headers.Pragma = "no-cache";
+    return Results.File(dmgPath, "application/x-apple-diskimage", "EpsilonLauncher-macOS-arm64.dmg");
 });
 
 app.MapGet("/health", (Microsoft.Extensions.Options.IOptions<LauncherRuntimeOptions> launcherOptions) => Results.Ok(new
@@ -219,6 +238,11 @@ app.MapPost("/launcher/access-codes", async (
     if (bootstrap?.Session is null)
     {
         return Results.Unauthorized();
+    }
+
+    if (bootstrap.LaunchEntitlement is not null && !bootstrap.LaunchEntitlement.CanLaunch)
+    {
+        return Results.StatusCode(StatusCodes.Status403Forbidden);
     }
 
     LauncherAccessCodeSnapshot snapshot = accessCodeStore.Issue(bootstrap.Session.Ticket, input.PlatformKind);
@@ -401,17 +425,27 @@ app.MapPost("/launcher/launch-profiles/select", async (
         return Results.NotFound(new { error = "profile_not_found" });
     }
 
+    bool canLaunchFromDesktopApp =
+        string.Equals(profile.ClientKind, "loader", StringComparison.OrdinalIgnoreCase)
+        || string.Equals(profile.ClientKind, "web", StringComparison.OrdinalIgnoreCase);
+
     string launchUrl = string.Empty;
-    if (string.Equals(profile.ClientKind, "web", StringComparison.OrdinalIgnoreCase)
+    if (canLaunchFromDesktopApp
         && !string.IsNullOrWhiteSpace(bootstrap.EntryAssetUrl))
     {
         launchUrl = $"{bootstrap.EntryAssetUrl}{(bootstrap.EntryAssetUrl.Contains('?') ? '&' : '?')}ticket={Uri.EscapeDataString(bootstrap.Session.Ticket)}";
     }
 
+    string launchStrategy = string.Equals(profile.ClientKind, "loader", StringComparison.OrdinalIgnoreCase)
+        ? "app_loader"
+        : string.Equals(profile.ClientKind, "web", StringComparison.OrdinalIgnoreCase)
+            ? "web_url"
+            : "native_package";
+
     telemetryStore.Append(new LauncherTelemetryEvent(
         Ticket: bootstrap.Session.Ticket,
         EventKey: "launcher_profile_selected",
-        Detail: "El launcher desktop seleccionó un perfil de arranque.",
+        Detail: "El launcher desktop seleccionó un modo de inicio.",
         OccurredAtUtc: DateTime.UtcNow,
         Data: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -426,7 +460,7 @@ app.MapPost("/launcher/launch-profiles/select", async (
         succeeded = true,
         platformKind = resolvedPlatform,
         profile = profile,
-        launchStrategy = string.Equals(profile.ClientKind, "web", StringComparison.OrdinalIgnoreCase) ? "web_url" : "native_package",
+        launchStrategy,
         canStartNow = !string.IsNullOrWhiteSpace(launchUrl),
         blockingReason = string.IsNullOrWhiteSpace(launchUrl) ? "native_client_not_published_yet" : null,
         launchUrl,
@@ -461,7 +495,7 @@ app.MapPost("/launcher/client-started", async (
     telemetryStore.Append(new LauncherTelemetryEvent(
         Ticket: bootstrap.Session.Ticket,
         EventKey: "launcher_client_started",
-        Detail: "El launcher desktop abrió el cliente del hotel.",
+        Detail: "El launcher desktop ejecutó el loader del juego.",
         OccurredAtUtc: DateTime.UtcNow,
         Data: new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
         {
@@ -489,6 +523,69 @@ app.MapGet("/launcher/connection", async (
         "/hotel/connection",
         ticket,
         cancellationToken);
+});
+
+app.MapGet("/launcher/connection-state", async (
+    string? ticket,
+    ILauncherBootstrapService launcherBootstrapService,
+    IHttpClientFactory httpClientFactory,
+    Microsoft.Extensions.Options.IOptions<LauncherRuntimeOptions> launcherOptions,
+    LauncherTelemetryStore telemetryStore,
+    CancellationToken cancellationToken) =>
+{
+    if (string.IsNullOrWhiteSpace(ticket))
+    {
+        return Results.BadRequest(new { error = "ticket_required" });
+    }
+
+    LauncherBootstrapSnapshot? bootstrap = await launcherBootstrapService.BuildAsync(
+        string.Empty,
+        ticket,
+        null,
+        null,
+        cancellationToken);
+
+    if (bootstrap?.Session is null)
+    {
+        return Results.Unauthorized();
+    }
+
+    long? currentRoomId = await ResolveGatewayCurrentRoomIdAsync(
+        httpClientFactory,
+        launcherOptions.Value,
+        bootstrap.Session.Ticket,
+        cancellationToken);
+
+    IReadOnlyList<LauncherTelemetryEvent> telemetryEvents = telemetryStore.GetByTicket(bootstrap.Session.Ticket);
+    bool launchPermitted = bootstrap.LaunchEntitlement?.CanLaunch != false;
+    bool codeIssued = HasTelemetryEvent(telemetryEvents, "launcher_code_issued");
+    bool codeRedeemed = HasTelemetryEvent(telemetryEvents, "launcher_code_redeemed");
+    bool clientStarted = HasTelemetryEvent(telemetryEvents, "launcher_client_started");
+    bool presenceConfirmed = currentRoomId is not null;
+    string phaseKey = ResolveLauncherConnectionPhaseKey(
+        launchPermitted,
+        codeIssued,
+        codeRedeemed,
+        clientStarted,
+        presenceConfirmed);
+
+    LauncherTelemetryEvent? lastEvent = telemetryEvents.LastOrDefault();
+
+    return Results.Ok(new
+    {
+        sessionValid = true,
+        launchPermitted,
+        codeIssued,
+        codeRedeemed,
+        clientStarted,
+        presenceConfirmed,
+        currentRoomId,
+        phaseKey,
+        phaseDisplayName = ResolveLauncherConnectionPhaseDisplayName(phaseKey),
+        lastEventKey = lastEvent?.EventKey,
+        lastEventAtUtc = lastEvent?.OccurredAtUtc,
+        observedAtUtc = DateTime.UtcNow
+    });
 });
 
 app.MapGet("/launcher/runtime/room/{roomId:long}", async (
@@ -625,6 +722,59 @@ static string ResolveDesktopPlatform(string? rawPlatform)
     };
 }
 
+static bool HasTelemetryEvent(IReadOnlyList<LauncherTelemetryEvent> events, string eventKey)
+{
+    return events.Any(candidate => string.Equals(candidate.EventKey, eventKey, StringComparison.OrdinalIgnoreCase));
+}
+
+static string ResolveLauncherConnectionPhaseKey(
+    bool launchPermitted,
+    bool codeIssued,
+    bool codeRedeemed,
+    bool clientStarted,
+    bool presenceConfirmed)
+{
+    if (!launchPermitted)
+    {
+        return "launch_blocked";
+    }
+
+    if (presenceConfirmed)
+    {
+        return "presence_confirmed";
+    }
+
+    if (clientStarted)
+    {
+        return "client_started";
+    }
+
+    if (codeRedeemed)
+    {
+        return "code_redeemed";
+    }
+
+    if (codeIssued)
+    {
+        return "code_issued";
+    }
+
+    return "cms_authenticated";
+}
+
+static string ResolveLauncherConnectionPhaseDisplayName(string phaseKey)
+{
+    return phaseKey switch
+    {
+        "launch_blocked" => "Acceso bloqueado",
+        "presence_confirmed" => "Dentro del hotel",
+        "client_started" => "Cliente abierto",
+        "code_redeemed" => "Código canjeado",
+        "code_issued" => "Código emitido",
+        _ => "Sesión web activa"
+    };
+}
+
 static IReadOnlyList<string> ResolveLaunchArguments(
     LauncherDesktopProfileOptions profile,
     LauncherDesktopOptions desktopOptions,
@@ -641,6 +791,37 @@ static IReadOnlyList<string> ResolveLaunchArguments(
             .Replace("{launcherApiBaseUrl}", desktopOptions.LauncherApiBaseUrl, StringComparison.OrdinalIgnoreCase)
             .Replace("{hotelBaseUrl}", desktopOptions.HotelBaseUrl, StringComparison.OrdinalIgnoreCase))
         .ToArray();
+}
+
+static async Task<long?> ResolveGatewayCurrentRoomIdAsync(
+    IHttpClientFactory httpClientFactory,
+    LauncherRuntimeOptions launcherOptions,
+    string sessionTicket,
+    CancellationToken cancellationToken)
+{
+    using HttpClient httpClient = httpClientFactory.CreateClient();
+    httpClient.BaseAddress = new Uri(launcherOptions.GatewayBaseUrl, UriKind.Absolute);
+    httpClient.DefaultRequestHeaders.TryAddWithoutValidation(SessionTicketHeaderName, sessionTicket.Trim());
+
+    HttpResponseMessage response = await httpClient.GetAsync("/hotel/connection", cancellationToken);
+    if (!response.IsSuccessStatusCode)
+    {
+        return null;
+    }
+
+    await using Stream payload = await response.Content.ReadAsStreamAsync(cancellationToken);
+    using JsonDocument document = await JsonDocument.ParseAsync(payload, cancellationToken: cancellationToken);
+    if (!document.RootElement.TryGetProperty("currentRoomId", out JsonElement currentRoomElement))
+    {
+        return null;
+    }
+
+    if (currentRoomElement.ValueKind != JsonValueKind.Number)
+    {
+        return null;
+    }
+
+    return currentRoomElement.TryGetInt64(out long roomId) ? roomId : null;
 }
 
 static async Task<IResult> ProxyGatewayGetAsync(
@@ -684,9 +865,10 @@ static async Task<IResult> ProxyGatewayPostAsync(
     return Results.Content(body, contentType, Encoding.UTF8, (int)response.StatusCode);
 }
 
-static string RenderLauncherLoaderPage(string ticket)
+static string RenderLauncherLoaderPage(string ticket, bool macLauncherReady)
 {
-    string escapedTicket = System.Net.WebUtility.HtmlEncode(ticket);
+    string macLauncherHref = macLauncherReady ? "/launcher/downloads/macos-arm64" : "#";
+
     return $$"""
 <!DOCTYPE html>
 <html lang="es">
@@ -699,244 +881,190 @@ static string RenderLauncherLoaderPage(string ticket)
     * { box-sizing: border-box; }
     body {
       margin: 0;
+      min-height: 100vh;
       font-family: "Trebuchet MS", Verdana, sans-serif;
       color: #eef4fb;
       background:
-        radial-gradient(circle at top left, rgba(255, 200, 87, 0.18), transparent 25%),
-        radial-gradient(circle at top right, rgba(64, 191, 255, 0.14), transparent 28%),
-        linear-gradient(180deg, #17324d 0%, #0b1c2c 44%, #08131e 100%);
+        linear-gradient(rgba(11, 39, 60, 0.18), rgba(11, 39, 60, 0.28)),
+        linear-gradient(180deg, #2f83b0 0%, #1f6896 45%, #19557d 100%);
     }
     main {
-      max-width: 1180px;
-      margin: 0 auto;
-      padding: 28px 20px 40px;
-    }
-    .shell { display: grid; gap: 20px; }
-    .hero {
+      min-height: 100vh;
       display: grid;
-      gap: 20px;
-      grid-template-columns: minmax(0, 1.4fr) minmax(320px, .9fr);
-      align-items: stretch;
+      place-items: center;
+      padding: 24px;
     }
-    .panel {
-      background: rgba(18,44,68,.92);
-      border: 1px solid rgba(255,255,255,.12);
-      border-radius: 26px;
-      box-shadow: 0 18px 50px rgba(0,0,0,.28);
+    .launcher-modal {
+      width: min(760px, 100%);
+      background: linear-gradient(180deg, #0f5f8a 0%, #0d5a83 100%);
+      border: 1px solid rgba(255,255,255,.16);
+      border-radius: 24px;
+      box-shadow: 0 26px 80px rgba(0,0,0,.3);
       overflow: hidden;
     }
-    .hero-copy {
-      position: relative;
-      padding: 28px;
-      min-height: 360px;
-      background:
-        linear-gradient(160deg, rgba(255,255,255,.05), rgba(255,255,255,0) 35%),
-        linear-gradient(135deg, rgba(255, 200, 87, 0.14), transparent 32%),
-        linear-gradient(180deg, rgba(27, 61, 95, 0.98), rgba(9, 25, 39, 0.98));
+    .launcher-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 20px 24px;
+      background: rgba(8, 34, 53, 0.32);
+      border-bottom: 1px solid rgba(255,255,255,.08);
     }
-    .hero-copy::after {
-      content: "";
-      position: absolute;
-      right: -40px;
-      bottom: -40px;
-      width: 260px;
-      height: 260px;
-      border-radius: 36px;
-      background:
-        linear-gradient(180deg, rgba(53, 207, 127, 0.26), rgba(31, 157, 91, 0.08));
-      transform: rotate(18deg);
-      opacity: .75;
-    }
-    .hero-art {
-      position: relative;
-      padding: 24px;
-      background:
-        linear-gradient(180deg, rgba(13, 34, 53, 0.96), rgba(7, 18, 28, 0.98));
-    }
-    .hero-art::before,
-    .hero-art::after {
-      content: "";
-      position: absolute;
-      border-radius: 24px;
-      filter: blur(2px);
-    }
-    .hero-art::before {
-      inset: 20px auto auto 20px;
-      width: 120px;
-      height: 120px;
-      background: linear-gradient(180deg, rgba(255, 214, 77, .22), rgba(255, 214, 77, 0));
-    }
-    .hero-art::after {
-      inset: auto 18px 18px auto;
-      width: 180px;
-      height: 180px;
-      background: linear-gradient(180deg, rgba(64, 191, 255, .18), rgba(64, 191, 255, 0));
-    }
-    .art-grid {
-      position: relative;
-      z-index: 1;
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .art-tile {
-      min-height: 120px;
-      border-radius: 22px;
-      border: 1px solid rgba(255,255,255,.08);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.01)),
-        linear-gradient(180deg, rgba(22, 54, 84, .9), rgba(8, 21, 33, .96));
-      padding: 18px;
-      display: grid;
-      align-content: end;
-      gap: 8px;
-    }
-    .art-tile strong {
-      font-size: 20px;
+    .launcher-head h1 {
+      margin: 0;
+      font-size: clamp(28px, 4vw, 44px);
       line-height: 1;
     }
-    .art-tile span {
-      color: #9fc0d8;
-      font-size: 14px;
+    .launcher-head a {
+      color: #ffffff;
+      opacity: 0.88;
+      text-decoration: none;
     }
-    h1,h2,h3 { margin: 0 0 12px; }
-    h1 {
-      max-width: 11ch;
-      font-size: clamp(42px, 6vw, 68px);
-      line-height: .95;
+    .launcher-body {
+      display: grid;
+      gap: 24px;
+      padding: 26px 24px 28px;
     }
-    h2 {
-      font-size: clamp(28px, 3vw, 40px);
-      line-height: .98;
-    }
-    h3 {
-      font-size: 20px;
+    .block {
+      background: rgba(18, 44, 68, 0.26);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 20px;
+      padding: 22px;
     }
     .eyebrow {
-      margin: 0 0 8px;
-      color: #ffd64d;
+      margin: 0 0 10px;
+      color: #cff3ff;
       text-transform: uppercase;
-      letter-spacing: .14em;
+      letter-spacing: .12em;
       font-size: 12px;
-      font-weight: 700;
+      font-weight: 800;
     }
-    .lede {
-      max-width: 52ch;
-      color: #9fc0d8;
-      font-size: 18px;
-      line-height: 1.45;
-    }
-    .sublede {
-      color: #9fc0d8;
-      font-size: 15px;
-      line-height: 1.45;
-      max-width: 42ch;
-    }
-    .hero-actions,
-    .actions {
-      display: flex;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-    .hero-actions { margin-top: 22px; }
-    .chips {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-top: 18px;
-    }
-    .chip {
-      padding: 8px 12px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.1);
-      color: #d8e6f2;
-      font-size: 13px;
-      font-weight: 700;
-    }
-    .grid {
-      display: grid;
-      gap: 20px;
-      grid-template-columns: repeat(12, minmax(0, 1fr));
-    }
-    .span-4 { grid-column: span 4; }
-    .span-5 { grid-column: span 5; }
-    .span-6 { grid-column: span 6; }
-    .span-7 { grid-column: span 7; }
-    .span-12 { grid-column: span 12; }
-    .stack { display: grid; gap: 12px; }
-    .panel-body { padding: 24px; }
-    .metric-grid {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .runtime-grid {
-      display: grid;
-      gap: 14px;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-    }
-    .metric-card {
-      padding: 16px;
+    .launcher-button {
+      width: 100%;
+      min-height: 84px;
       border-radius: 18px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.08);
+      border: 2px solid #8be15d;
+      background: linear-gradient(180deg, #159742 0%, #0e8d3b 100%);
+      color: #ffffff;
+      font: inherit;
+      font-size: 26px;
+      font-weight: 700;
+      cursor: pointer;
     }
-    .metric-card span {
-      display: block;
-      color: #9fc0d8;
-      font-size: 12px;
-      text-transform: uppercase;
-      letter-spacing: .08em;
-      margin-bottom: 8px;
-    }
-    .metric-card strong {
-      font-size: 22px;
-      line-height: 1.05;
+    .launcher-button:disabled {
+      opacity: .58;
+      cursor: not-allowed;
     }
     .notice {
       display: none;
-      margin: 0 0 16px;
-      padding: 14px 16px;
+      padding: 16px 18px;
       border-radius: 16px;
+      line-height: 1.4;
       background: rgba(143,209,255,.16);
       border: 1px solid rgba(143,209,255,.45);
     }
-    .notice.error { background: rgba(214,87,87,.18); border-color: rgba(214,87,87,.55); display:block; }
-    .notice.success { background: rgba(45,187,114,.18); border-color: rgba(45,187,114,.55); display:block; }
-    input, button { font: inherit; }
-    input {
-      width: 100%;
-      padding: 14px 16px;
-      border-radius: 14px;
-      border: 1px solid rgba(255,255,255,.18);
-      background: rgba(5,14,22,.45);
+    .notice.error { background: rgba(214,87,87,.18); border-color: rgba(214,87,87,.55); display: block; }
+    .notice.success { background: rgba(45,187,114,.18); border-color: rgba(45,187,114,.55); display: block; }
+    .code-box {
+      display: grid;
+      gap: 18px;
+      text-align: center;
+    }
+    .code-title {
+      margin: 0;
+      font-size: 18px;
+      line-height: 1.45;
       color: #eef4fb;
     }
-    button {
-      min-height: 50px;
-      padding: 12px 18px;
+    .code-value-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      align-items: center;
+      padding: 18px 20px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,.12);
+      background: rgba(255,255,255,.06);
+    }
+    .code-value {
+      font-size: 30px;
+      letter-spacing: .14em;
+      font-weight: 700;
+      text-align: left;
+    }
+    .code-value.masked {
+      letter-spacing: .08em;
+    }
+    .icon-button,
+    .copy-button,
+    .download-button {
+      font: inherit;
+      cursor: pointer;
       border: 0;
       border-radius: 14px;
-      cursor: pointer;
-      background: linear-gradient(180deg, #35cf7f, #1f9d5b);
-      color: #062114;
-      font-weight: 800;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
     }
-    button.secondary { background: linear-gradient(180deg, #35536d, #24384c); color: #eef4fb; }
-    button.ghost {
-      background: transparent;
-      border: 1px solid rgba(255,255,255,.14);
-      color: #eef4fb;
+    .icon-button {
+      width: 52px;
+      height: 52px;
+      background: rgba(255,255,255,.08);
+      color: #ffffff;
     }
-    button:disabled {
-      opacity: .55;
+    .copy-button {
+      min-height: 60px;
+      padding: 12px 20px;
+      background: linear-gradient(180deg, #1a9f48 0%, #11863b 100%);
+      color: #ffffff;
+    }
+    .copy-button:disabled {
+      opacity: .58;
       cursor: not-allowed;
     }
-    pre {
+    .downloads {
+      display: grid;
+      gap: 14px;
+    }
+    .download-button {
+      width: 100%;
+      min-height: 68px;
+      padding: 14px 18px;
+      background: linear-gradient(180deg, #a48312 0%, #8d700f 100%);
+      color: #ffffff;
+      font-size: 22px;
+    }
+    .download-button.disabled {
+      background: linear-gradient(180deg, #4b6679 0%, #354a59 100%);
+      color: #d4e2ec;
+      cursor: default;
+      pointer-events: none;
+    }
+    .small-note {
       margin: 0;
-      min-height: 80px;
-      max-height: 320px;
+      color: #d5e9f6;
+      line-height: 1.45;
+      text-align: center;
+      font-size: 16px;
+    }
+    details {
+      border-top: 1px solid rgba(255,255,255,.08);
+      padding-top: 12px;
+    }
+    summary {
+      cursor: pointer;
+      font-weight: 800;
+      color: #d8e6f2;
+      list-style: none;
+    }
+    summary::-webkit-details-marker { display: none; }
+    pre {
+      margin: 12px 0 0;
+      min-height: 60px;
+      max-height: 220px;
       overflow: auto;
       white-space: pre-wrap;
       word-break: break-word;
@@ -947,226 +1075,73 @@ static string RenderLauncherLoaderPage(string ticket)
       font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
       font-size: 13px;
     }
-    dl { margin: 0; display: grid; gap: 12px; }
-    .summary-grid {
-      grid-template-columns: repeat(3, minmax(0, 1fr));
-    }
-    dt { color: #9fc0d8; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; }
-    dd { margin: 4px 0 0; font-weight: 700; font-size: 17px; line-height: 1.2; }
-    .status-pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      padding: 10px 14px;
-      border-radius: 999px;
-      background: rgba(255,255,255,.08);
-      border: 1px solid rgba(255,255,255,.12);
-      font-weight: 700;
-    }
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
-      background: #ffd64d;
-      box-shadow: 0 0 12px rgba(255,214,77,.55);
-    }
-    .status-dot.live {
-      background: #35cf7f;
-      box-shadow: 0 0 12px rgba(53,207,127,.55);
-    }
-    .status-dot.error {
-      background: #ff7777;
-      box-shadow: 0 0 12px rgba(255,119,119,.55);
-    }
-    .launcher-copy {
-      position: relative;
-      z-index: 1;
-      max-width: 560px;
-    }
-    .feature-list {
-      display: grid;
-      gap: 12px;
-    }
-    .runtime-stage {
-      margin-top: 18px;
-      padding: 20px;
-      border-radius: 20px;
-      background:
-        linear-gradient(180deg, rgba(21,61,93,.72), rgba(6,18,29,.94)),
-        linear-gradient(180deg, rgba(255,255,255,.05), rgba(255,255,255,0));
-      border: 1px solid rgba(255,255,255,.08);
-    }
-    .feature-row {
-      display: grid;
-      gap: 8px;
-      grid-template-columns: 1fr auto;
-      align-items: center;
-      padding: 14px 16px;
-      border-radius: 16px;
-      background: rgba(255,255,255,.04);
-      border: 1px solid rgba(255,255,255,.08);
-    }
-    .feature-row strong {
-      display: block;
-      margin-bottom: 4px;
-      font-size: 15px;
-    }
-    .feature-row span {
-      color: #9fc0d8;
-      font-size: 13px;
-    }
-    .mini-label {
-      padding: 7px 10px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 800;
-      background: rgba(53,207,127,.16);
-      border: 1px solid rgba(53,207,127,.32);
-      color: #c9f5db;
-    }
-    details {
-      border-top: 1px solid rgba(255,255,255,.08);
-      padding-top: 14px;
-    }
-    summary {
-      cursor: pointer;
-      font-weight: 800;
-      color: #d8e6f2;
-      margin-bottom: 12px;
-      list-style: none;
-    }
-    summary::-webkit-details-marker { display: none; }
-    a { color: #8fd1ff; }
-    .footer-note {
-      color: #9fc0d8;
-      font-size: 14px;
-      line-height: 1.45;
-    }
-    .hidden { display: none; }
-    @media (max-width: 920px) {
-      .hero { grid-template-columns: 1fr; }
-      .grid { grid-template-columns: repeat(1, minmax(0, 1fr)); }
-      .span-4, .span-5, .span-6, .span-7, .span-12 { grid-column: span 1; }
-      .summary-grid, .metric-grid, .runtime-grid { grid-template-columns: 1fr; }
+    @media (max-width: 640px) {
+      main {
+        padding: 16px;
+      }
+      .launcher-body,
+      .launcher-head {
+        padding-left: 16px;
+        padding-right: 16px;
+      }
+      .launcher-head h1 {
+        font-size: 24px;
+      }
+      .launcher-button,
+      .download-button {
+        font-size: 20px;
+      }
+      .code-value-row {
+        grid-template-columns: 1fr;
+      }
+      .code-value {
+        text-align: center;
+        font-size: 24px;
+      }
     }
   </style>
 </head>
 <body>
   <main>
-    <div class="shell">
-      <section class="hero">
-        <article class="panel hero-copy">
-          <div class="launcher-copy">
-            <p class="eyebrow">Habbo Launcher</p>
-            <h1>Abre la app y entra al hotel.</h1>
-            <p class="lede">La CMS solo entrega el acceso. El usuario no está dentro del hotel hasta que el cliente y el emulador confirman la entrada real.</p>
-            <div id="banner" class="notice"></div>
-            <div class="hero-actions">
-              <button id="launch-button" type="button" disabled>Abrir Habbo</button>
-              <a class="ghost-link" href="http://127.0.0.1:4100/sites/epsilon-access/">Volver a la CMS</a>
-            </div>
-          </div>
-        </article>
-        <article class="panel hero-art">
-          <div class="art-grid">
-            <div class="art-tile">
-              <strong>1</strong>
-              <span>Preparar acceso</span>
-            </div>
-            <div class="art-tile">
-              <strong>2</strong>
-              <span>Abrir app o cliente</span>
-            </div>
-            <div class="art-tile">
-              <strong>3</strong>
-              <span>Conectar al emulador</span>
-            </div>
-            <div class="art-tile">
-              <strong>4</strong>
-              <span>Confirmar entrada real</span>
-            </div>
-          </div>
-        </article>
-      </section>
+    <section class="launcher-modal">
+      <div class="launcher-head">
+        <h1>Juega con la app de Epsilon</h1>
+        <a href="http://127.0.0.1:4100/sites/epsilon-access/">Cerrar</a>
+      </div>
+      <div class="launcher-body">
+        <button id="launch-button" class="launcher-button" type="button" disabled>Abrir launcher instalado</button>
+        <div id="banner" class="notice"></div>
 
-      <section class="grid">
-        <article class="panel span-7">
-          <div class="panel-body">
-            <p class="eyebrow">Launcher</p>
-            <h2>Estado del launcher</h2>
-            <p class="footer-note" id="launcher-copy">El launcher está validando si puede entregar el control al cliente. Todavía no existe entrada confirmada al hotel.</p>
-          </div>
-        </article>
-
-        <article class="panel span-5">
-          <div class="panel-body">
-            <p class="eyebrow">Secuencia</p>
-            <h2>Cómo entra el usuario</h2>
-            <div class="feature-list">
-              <div class="feature-row">
-                <div>
-                  <strong>1. CMS</strong>
-                  <span>Login y sesión web.</span>
-                </div>
-                <div class="mini-label">web</div>
-              </div>
-              <div class="feature-row">
-                <div>
-                  <strong>2. Launcher</strong>
-                  <span>Abre el cliente o la app.</span>
-                </div>
-                <div class="mini-label" id="access-badge">handoff</div>
-              </div>
-              <div class="feature-row">
-                <div>
-                  <strong>3. Emulador</strong>
-                  <span>Confirma la presencia real.</span>
-                </div>
-                <div class="mini-label" id="client-badge">runtime</div>
-              </div>
+        <section class="block">
+          <div class="code-box">
+            <p class="code-title">Si tu app de Epsilon te pide un código de inicio, puedes copiarlo aquí.</p>
+            <div class="code-value-row">
+              <strong id="launcher-code-value" class="code-value masked">••••••••••••</strong>
+              <button id="toggle-code-button" class="icon-button" type="button" aria-label="Mostrar código">👁</button>
             </div>
+            <button id="copy-code-button" class="copy-button" type="button" disabled>Copiar código</button>
+            <p id="launcher-copy" class="small-note">La app instalada ejecuta el loader del juego. El emulador es quien confirma la entrada real.</p>
           </div>
-        </article>
+        </section>
 
-        <article class="panel span-12">
-          <div class="panel-body">
-            <p class="eyebrow">Cliente</p>
-            <h2>Disponibilidad del cliente</h2>
-            <div class="stack" style="margin-top: 18px;">
-              <div class="feature-row">
-                <div>
-                  <strong id="client-state-title">Validando cliente</strong>
-                  <span id="client-state-copy">El launcher está comprobando si existe un cliente publicado y listo para abrir.</span>
-                </div>
-                <div class="mini-label" id="client-state-badge">checking</div>
-              </div>
-              <p class="footer-note" id="client-state-note">Mientras no exista un cliente publicado, el launcher no puede afirmar que el usuario está dentro del hotel.</p>
-            </div>
+        <section class="block">
+          <p class="eyebrow">Descargas</p>
+          <div class="downloads">
+            <a class="download-button{{(macLauncherReady ? string.Empty : " disabled")}}" href="{{macLauncherHref}}">{{(macLauncherReady ? "Descargar para macOS" : "macOS próximamente")}}</a>
+            <a class="download-button disabled" href="#">Descargar para Windows</a>
+            <a class="download-button disabled" href="#">Descargar para Linux</a>
           </div>
-        </article>
+          <p id="client-state-note" class="small-note">La web solo entrega el acceso. La app de Epsilon ejecuta el loader del juego.</p>
+        </section>
 
-        <article class="panel span-12">
-          <div class="panel-body">
-            <div class="actions" style="justify-content: space-between; align-items: center; margin-bottom: 12px;">
-              <div>
-                <p class="eyebrow">Avanzado</p>
-                <h3>Diagnóstico oculto</h3>
-              </div>
-              <div class="status-pill">
-                <span id="status-dot" class="status-dot"></span>
-                <span id="status-text">validando</span>
-              </div>
-            </div>
-            <p class="footer-note">La información técnica queda escondida por defecto. Solo se abre cuando hace falta depurar el launcher.</p>
-            <details id="diagnostics-panel">
-              <summary>Ver detalle técnico</summary>
-              <pre id="bootstrap-output">loading...</pre>
-            </details>
-          </div>
-        </article>
-
-      </section>
-    </div>
+        <section class="block">
+          <details id="diagnostics-panel">
+            <summary>Ver detalle técnico</summary>
+            <pre id="bootstrap-output">loading...</pre>
+          </details>
+        </section>
+      </div>
+    </section>
   </main>
   <script>
     (function () {
@@ -1176,24 +1151,24 @@ static string RenderLauncherLoaderPage(string ticket)
       const launcherCopy = document.getElementById("launcher-copy");
       const bootstrapOutput = document.getElementById("bootstrap-output");
       const launchButton = document.getElementById("launch-button");
-      const accessBadge = document.getElementById("access-badge");
-      const clientBadge = document.getElementById("client-badge");
-      const clientStateTitle = document.getElementById("client-state-title");
-      const clientStateCopy = document.getElementById("client-state-copy");
-      const clientStateBadge = document.getElementById("client-state-badge");
+      const copyCodeButton = document.getElementById("copy-code-button");
+      const toggleCodeButton = document.getElementById("toggle-code-button");
+      const codeValue = document.getElementById("launcher-code-value");
       const clientStateNote = document.getElementById("client-state-note");
-      const statusDot = document.getElementById("status-dot");
-      const statusText = document.getElementById("status-text");
       const diagnosticsPanel = document.getElementById("diagnostics-panel");
-      let currentBootstrap = null;
+      let currentCode = "";
+      let codeVisible = false;
+
+      function buildLauncherAppUrl() {
+        if (!currentCode) {
+          return "";
+        }
+
+        return "epsilonlauncher://redeem?code=" + encodeURIComponent(currentCode);
+      }
 
       if (ticket && params.has("roomId")) {
         window.history.replaceState({}, "", "/launcher/loader?ticket=" + encodeURIComponent(ticket));
-      }
-
-      function setStatus(mode, text) {
-        statusDot.className = "status-dot " + mode;
-        statusText.textContent = text;
       }
 
       function setBanner(text, mode) {
@@ -1203,130 +1178,159 @@ static string RenderLauncherLoaderPage(string ticket)
           banner.className = "notice";
           return;
         }
+
         banner.textContent = text;
         banner.className = "notice " + mode;
         banner.style.display = "block";
+      }
+
+      function renderCode() {
+        if (!currentCode) {
+          codeValue.textContent = "••••••••••••";
+          codeValue.className = "code-value masked";
+          return;
+        }
+
+        codeValue.textContent = codeVisible ? currentCode : "••••••••••••";
+        codeValue.className = "code-value" + (codeVisible ? "" : " masked");
       }
 
       async function request(path, options) {
         const response = await fetch(path, options);
         const text = await response.text();
         let payload = null;
-        try { payload = text ? JSON.parse(text) : null; } catch { payload = { raw: text }; }
+
+        try {
+          payload = text ? JSON.parse(text) : null;
+        } catch {
+          payload = { raw: text };
+        }
+
         if (!response.ok) {
           throw new Error(JSON.stringify(payload || { error: response.statusText }));
         }
+
         return payload;
+      }
+
+      async function resolveCode() {
+        try {
+          return await request("/launcher/access-codes/current?ticket=" + encodeURIComponent(ticket));
+        } catch (error) {
+          if (String(error).includes("access_code_not_found")) {
+            return await request("/launcher/access-codes", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ ticket: ticket, platformKind: "native_app" })
+            });
+          }
+
+          throw error;
+        }
       }
 
       async function refresh() {
         if (!ticket) {
           setBanner("Falta el ticket de sesión. Vuelve a la CMS y entra de nuevo.", "error");
-          accessBadge.textContent = "error";
-          clientBadge.textContent = "none";
-          launcherCopy.textContent = "Sin handoff válido, el launcher no puede abrir ningún cliente.";
-          clientStateTitle.textContent = "No hay ticket";
-          clientStateCopy.textContent = "Sin ticket no existe handoff válido desde la CMS hacia el launcher.";
-          clientStateBadge.textContent = "error";
-          clientStateNote.textContent = "La entrada al hotel solo puede empezar desde un ticket real generado por el backend.";
+          launcherCopy.textContent = "Sin ticket no existe acceso válido desde la CMS hacia la app.";
+          clientStateNote.textContent = "La app y el emulador necesitan un ticket real o un código válido.";
           bootstrapOutput.textContent = JSON.stringify({ hasTicket: false }, null, 2);
           diagnosticsPanel.open = false;
           launchButton.disabled = true;
-          launchButton.textContent = "Abrir Habbo";
-          setStatus("error", "ticket requerido");
+          copyCodeButton.disabled = true;
+          currentCode = "";
+          renderCode();
           return;
         }
+
         try {
           const bootstrap = await request("/launcher/bootstrap?ticket=" + encodeURIComponent(ticket));
           const canLaunch = Boolean(bootstrap.launchEntitlement && bootstrap.launchEntitlement.canLaunch);
-          const entryAssetUrl = bootstrap.entryAssetUrl || "";
-          const clientAvailable = await hasClientAsset(entryAssetUrl);
-          accessBadge.textContent = canLaunch ? "ready" : "blocked";
-          clientBadge.textContent = clientAvailable ? "ready" : "pending";
-          launcherCopy.textContent = canLaunch
-            ? "El launcher recibió acceso válido. Falta abrir el cliente para empezar la sesión real."
-            : "El launcher recibió el handoff, pero el acceso todavía no permite abrir el cliente.";
-          currentBootstrap = bootstrap;
+
+          if (!canLaunch) {
+            bootstrapOutput.textContent = JSON.stringify({
+              hasTicket: true,
+              canLaunch: false
+            }, null, 2);
+            diagnosticsPanel.open = false;
+            launchButton.disabled = true;
+            copyCodeButton.disabled = true;
+            currentCode = "";
+            renderCode();
+          launcherCopy.textContent = "El acceso sigue bloqueado. La app todavía no puede ejecutar el loader.";
+            clientStateNote.textContent = "Primero se necesita un acceso válido. Después la app ejecutará el loader del juego.";
+            setBanner("Tu acceso todavía no puede abrir la app.", "error");
+            return;
+          }
+
+          const code = await resolveCode();
+          currentCode = code && code.code ? code.code : "";
+          renderCode();
+          launchButton.disabled = !currentCode;
+          copyCodeButton.disabled = !currentCode;
+          launcherCopy.textContent = "La app instalada ejecuta el loader del juego. El emulador confirma la entrada real.";
+          clientStateNote.textContent = "Si ya tienes la app instalada, copia el código y úsalo allí. Si no la tienes, descárgala primero.";
           bootstrapOutput.textContent = JSON.stringify({
-            hasSession: Boolean(bootstrap.session),
-            canLaunch,
-            clientAvailable,
-            hasEntryAssetUrl: Boolean(bootstrap.entryAssetUrl),
+            hasTicket: true,
+            canLaunch: true,
+            hasCode: Boolean(currentCode),
             supportedDevices: bootstrap.profile && bootstrap.profile.supportedDevices ? bootstrap.profile.supportedDevices : []
           }, null, 2);
           diagnosticsPanel.open = false;
-
-          if (!canLaunch) {
-            launchButton.disabled = true;
-            launchButton.textContent = "Acceso bloqueado";
-            clientStateTitle.textContent = "Acceso bloqueado";
-            clientStateCopy.textContent = "El launcher no puede abrir el cliente hasta que el acceso quede autorizado.";
-            clientStateBadge.textContent = "blocked";
-            clientStateNote.textContent = "Aunque exista handoff, eso no significa que el usuario haya entrado al hotel.";
-            setBanner("El launcher recibió el handoff, pero el acceso al cliente está bloqueado.", "error");
-            setStatus("error", "acceso bloqueado");
-            return;
-          }
-
-          if (!clientAvailable) {
-            launchButton.disabled = true;
-            launchButton.textContent = "Cliente no publicado";
-            clientStateTitle.textContent = "Cliente no disponible";
-            clientStateCopy.textContent = "El launcher está listo, pero todavía no existe un cliente final publicado para abrir el hotel.";
-            clientStateBadge.textContent = "pending";
-            clientStateNote.textContent = "Hasta que el cliente no exista y no confirme runtime, no hay entrada real al hotel.";
-            setBanner("El launcher está listo. Falta el cliente publicado.", "success");
-            setStatus("live", "launcher listo");
-            return;
-          }
-
-          launchButton.disabled = false;
-          launchButton.textContent = "Abrir Habbo";
-          clientStateTitle.textContent = "Cliente disponible";
-          clientStateCopy.textContent = "El launcher ya puede entregar el control al cliente del hotel.";
-          clientStateBadge.textContent = "ready";
-          clientStateNote.textContent = "Abrir Habbo solo abre el cliente. La presencia real dentro del hotel sigue dependiendo del emulador.";
-          setBanner("El launcher está listo para abrir el cliente.", "success");
-          setStatus("live", "listo para abrir");
+          setBanner("Tu acceso está listo. Usa la app de Epsilon para continuar.", "success");
         } catch (error) {
-          accessBadge.textContent = "error";
-          clientBadge.textContent = "error";
-          launcherCopy.textContent = "El launcher no pudo resolver el handoff.";
-          clientStateTitle.textContent = "Error del loader";
-          clientStateCopy.textContent = "No se pudo validar el bootstrap o el acceso.";
-          clientStateBadge.textContent = "error";
-          clientStateNote.textContent = "El launcher debe resolver este fallo antes de intentar abrir el cliente.";
+          launcherCopy.textContent = "La app no pudo resolver el acceso.";
+          clientStateNote.textContent = "El launcher debe validar el acceso antes de ejecutar el loader.";
           bootstrapOutput.textContent = String(error);
-          setBanner("El loader no pudo validar bootstrap o conexión.", "error");
+          setBanner("El launcher no pudo validar el acceso o el código.", "error");
           diagnosticsPanel.open = true;
           launchButton.disabled = true;
-          launchButton.textContent = "Abrir Habbo";
-          setStatus("error", "error");
-        }
-      }
-
-      async function hasClientAsset(entryAssetUrl) {
-        if (!entryAssetUrl) {
-          return false;
-        }
-        try {
-          const response = await fetch(entryAssetUrl, { method: "HEAD" });
-          return response.ok;
-        } catch {
-          return false;
+          copyCodeButton.disabled = true;
+          currentCode = "";
+          renderCode();
         }
       }
 
       launchButton.addEventListener("click", async function () {
-        const entryAssetUrl = currentBootstrap && currentBootstrap.entryAssetUrl ? currentBootstrap.entryAssetUrl : "";
-        if (!entryAssetUrl) {
+        if (!currentCode) {
           return;
         }
 
-        launchButton.disabled = true;
-        launchButton.textContent = "Abriendo…";
-        const separator = entryAssetUrl.includes("?") ? "&" : "?";
-        window.location.href = entryAssetUrl + separator + "ticket=" + encodeURIComponent(ticket);
+        try {
+          const launcherUrl = buildLauncherAppUrl();
+          if (launcherUrl) {
+            window.location.href = launcherUrl;
+          }
+
+          launchButton.textContent = "Abriendo launcher…";
+          setBanner("Intentando abrir la app de Epsilon. Si no se abre, copia el código manualmente.", "success");
+          window.setTimeout(function () {
+            launchButton.textContent = "Abrir launcher instalado";
+          }, 1400);
+        } catch {
+          setBanner("No se pudo abrir la app. Puedes mostrar el código y copiarlo manualmente.", "error");
+        }
+      });
+
+      copyCodeButton.addEventListener("click", async function () {
+        if (!currentCode) {
+          return;
+        }
+
+        try {
+          await navigator.clipboard.writeText(currentCode);
+          copyCodeButton.textContent = "Copiado";
+          window.setTimeout(function () {
+            copyCodeButton.textContent = "Copiar código";
+          }, 1200);
+        } catch {
+          setBanner("No se pudo copiar el código.", "error");
+        }
+      });
+
+      toggleCodeButton.addEventListener("click", function () {
+        codeVisible = !codeVisible;
+        renderCode();
       });
 
       refresh();
@@ -1335,6 +1339,12 @@ static string RenderLauncherLoaderPage(string ticket)
 </body>
 </html>
 """;
+}
+
+static string ResolveNativeLauncherMacDmgPath(string contentRootPath)
+{
+    string repoRoot = Path.GetFullPath(Path.Combine(contentRootPath, "..", ".."));
+    return Path.Combine(repoRoot, "apps", "epsilon-launcher-native", "dist", "EpsilonLauncher-macOS-arm64.dmg");
 }
 
 #pragma warning disable CS8321
@@ -1349,186 +1359,54 @@ static string RenderLauncherPlayPage(string ticket, long roomId)
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Play | Epsilon Launcher</title>
   <style>
-    :root { color-scheme: dark; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font-family: "Trebuchet MS", Verdana, sans-serif; color: #eef4fb; background: linear-gradient(180deg, #0b1c2c 0%, #09131d 100%); }
-    main { max-width: 1240px; margin: 0 auto; padding: 20px; display: grid; gap: 20px; }
-    .topbar, .panel { background: rgba(18,44,68,.92); border: 1px solid rgba(255,255,255,.1); border-radius: 22px; box-shadow: 0 18px 50px rgba(0,0,0,.28); }
-    .topbar { padding: 18px 20px; display: flex; justify-content: space-between; gap: 14px; align-items: center; flex-wrap: wrap; }
-    .hero { display: grid; gap: 20px; grid-template-columns: minmax(0, 1.5fr) minmax(320px, .8fr); }
-    .viewport {
-      min-height: 520px; padding: 24px; position: relative; overflow: hidden;
-      background: radial-gradient(circle at top center, rgba(64,191,255,.15), transparent 28%), linear-gradient(180deg, rgba(17,45,70,.95), rgba(7,18,28,.98));
+    body {
+      margin: 0;
+      font-family: "Trebuchet MS", Verdana, sans-serif;
+      background: linear-gradient(180deg, #15334f 0%, #09131d 100%);
+      color: #eef4fb;
+      display: grid;
+      place-items: center;
+      min-height: 100vh;
+      padding: 24px;
     }
-    .viewport::after {
-      content: "";
-      position: absolute;
-      inset: auto -80px -120px auto;
-      width: 420px;
-      height: 420px;
-      transform: rotate(18deg);
-      border-radius: 42px;
-      background: linear-gradient(180deg, rgba(53,207,127,.22), rgba(53,207,127,.05));
+    .card {
+      width: min(560px, 100%);
+      padding: 28px;
+      border-radius: 24px;
+      background: rgba(18,44,68,.92);
+      border: 1px solid rgba(255,255,255,.12);
+      box-shadow: 0 18px 50px rgba(0,0,0,.28);
     }
-    .viewport h1, .panel h2 { margin: 0 0 12px; }
-    .eyebrow { color: #ffd64d; text-transform: uppercase; letter-spacing: .14em; font-size: 12px; font-weight: 800; margin: 0 0 8px; }
-    .lede { color: #9fc0d8; max-width: 54ch; line-height: 1.45; }
-    .hud { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 20px; }
-    .pill { padding: 10px 14px; border-radius: 999px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); font-weight: 700; }
-    .stage {
-      position: relative; z-index: 1; margin-top: 28px; min-height: 280px; border-radius: 24px; border: 1px solid rgba(255,255,255,.08);
-      background: linear-gradient(180deg, rgba(26,78,116,.65), rgba(8,28,44,.95)), linear-gradient(180deg, rgba(255,255,255,.04), rgba(255,255,255,0));
-      padding: 22px; display: grid; align-content: space-between;
+    h1 {
+      margin: 0 0 12px;
+      font-size: clamp(30px, 5vw, 42px);
+      line-height: 1;
     }
-    .stage-grid { display: grid; gap: 14px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
-    .tile { padding: 16px; border-radius: 18px; background: rgba(7,18,28,.28); border: 1px solid rgba(255,255,255,.08); }
-    .tile span { display: block; color: #9fc0d8; font-size: 12px; text-transform: uppercase; letter-spacing: .08em; margin-bottom: 8px; }
-    .tile strong { font-size: 22px; line-height: 1.1; }
-    .panel { padding: 20px; }
-    .stack { display: grid; gap: 12px; }
-    .actions { display: flex; gap: 12px; flex-wrap: wrap; }
-    a.button-link { display: inline-flex; align-items: center; justify-content: center; min-height: 48px; padding: 12px 16px; border-radius: 14px; font: inherit; font-weight: 800; text-decoration: none; color: #eef4fb; background: linear-gradient(180deg, #35536d, #24384c); }
-    button { min-height: 48px; padding: 12px 16px; border-radius: 14px; border: 0; cursor: pointer; font: inherit; font-weight: 800; background: linear-gradient(180deg, #35cf7f, #1f9d5b); color: #062114; }
-    button.secondary { background: linear-gradient(180deg, #35536d, #24384c); color: #eef4fb; }
-    .notice { display:none; padding: 12px 14px; border-radius: 14px; background: rgba(143,209,255,.16); border: 1px solid rgba(143,209,255,.45); }
-    .notice.error { display:block; background: rgba(214,87,87,.18); border-color: rgba(214,87,87,.55); }
-    .notice.success { display:block; background: rgba(45,187,114,.18); border-color: rgba(45,187,114,.55); }
-    pre { margin: 0; max-height: 320px; overflow: auto; white-space: pre-wrap; word-break: break-word; border-radius: 14px; padding: 14px; background: rgba(5,14,22,.55); border: 1px solid rgba(255,255,255,.08); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
-    details { border-top: 1px solid rgba(255,255,255,.08); padding-top: 14px; }
-    summary { cursor: pointer; font-weight: 800; }
-    @media (max-width: 920px) { .hero, .stage-grid { grid-template-columns: 1fr; } }
+    p {
+      margin: 0 0 18px;
+      color: #9fc0d8;
+      line-height: 1.45;
+    }
+    a {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-height: 50px;
+      padding: 12px 18px;
+      border-radius: 14px;
+      background: linear-gradient(180deg, #35cf7f, #1f9d5b);
+      color: #062114;
+      font-weight: 800;
+      text-decoration: none;
+    }
   </style>
 </head>
 <body>
-  <main>
-    <section class="topbar">
-      <div>
-        <p class="eyebrow">Launcher técnico</p>
-        <strong>Vista interna del runtime</strong>
-      </div>
-      <div class="hud">
-        <div class="pill">Room <span id="room-pill">{{roomId}}</span></div>
-        <a class="button-link" href="/launcher/loader?ticket={{escapedTicket}}">Volver al loader</a>
-      </div>
-    </section>
-    <section class="hero">
-      <article class="panel viewport">
-        <div>
-          <p class="eyebrow">Diagnóstico</p>
-          <h1>Esta no es la entrada del usuario.</h1>
-          <p class="lede">La entrada correcta sigue en el loader del launcher. Esta vista queda solo para inspección técnica del runtime mientras el cliente web final no existe como asset real.</p>
-          <div id="play-banner" class="notice"></div>
-        </div>
-        <div class="stage">
-          <div class="stage-grid">
-            <div class="tile"><span>Sala</span><strong id="play-room-label">{{roomId}}</strong></div>
-            <div class="tile"><span>Actores</span><strong id="play-actors-label">checking</strong></div>
-            <div class="tile"><span>Items</span><strong id="play-items-label">checking</strong></div>
-          </div>
-          <div class="actions">
-            <button id="play-refresh">Actualizar sala</button>
-            <button id="play-move" class="secondary">Mover a 14,7</button>
-            <button id="play-chat" class="secondary">Decir hola</button>
-          </div>
-        </div>
-      </article>
-      <article class="panel">
-        <p class="eyebrow">Snapshot</p>
-        <h2>Estado de sala</h2>
-        <div class="stack">
-          <div class="tile"><span>Nombre</span><strong id="play-name-label">checking</strong></div>
-          <div class="tile"><span>Layout</span><strong id="play-layout-label">checking</strong></div>
-          <div class="tile"><span>Tu avatar</span><strong id="play-self-label">checking</strong></div>
-        </div>
-        <details style="margin-top: 18px;">
-          <summary>Ver snapshot técnico</summary>
-          <pre id="play-output">loading...</pre>
-        </details>
-      </article>
-    </section>
-  </main>
-  <script>
-    (function () {
-      const params = new URLSearchParams(window.location.search);
-      const ticket = params.get("ticket") || "";
-      const roomId = Number(params.get("roomId") || "{{roomId}}");
-      const banner = document.getElementById("play-banner");
-      const output = document.getElementById("play-output");
-      const actorsLabel = document.getElementById("play-actors-label");
-      const itemsLabel = document.getElementById("play-items-label");
-      const nameLabel = document.getElementById("play-name-label");
-      const layoutLabel = document.getElementById("play-layout-label");
-      const selfLabel = document.getElementById("play-self-label");
-
-      function setBanner(text, mode) {
-        if (!text) {
-          banner.style.display = "none";
-          banner.textContent = "";
-          banner.className = "notice";
-          return;
-        }
-        banner.textContent = text;
-        banner.className = "notice " + mode;
-        banner.style.display = "block";
-      }
-
-      async function request(path, options) {
-        const response = await fetch(path, options);
-        const text = await response.text();
-        let payload = null;
-        try { payload = text ? JSON.parse(text) : null; } catch { payload = { raw: text }; }
-        if (!response.ok) {
-          throw new Error(JSON.stringify(payload || { error: response.statusText }));
-        }
-        return payload;
-      }
-
-      async function refreshRoom() {
-        try {
-          const snapshot = await request("/launcher/runtime/room/" + encodeURIComponent(roomId) + "?ticket=" + encodeURIComponent(ticket));
-          const actors = Array.isArray(snapshot.actors) ? snapshot.actors : [];
-          const items = Array.isArray(snapshot.items) ? snapshot.items : [];
-          actorsLabel.textContent = String(actors.length);
-          itemsLabel.textContent = String(items.length);
-          nameLabel.textContent = snapshot.room && snapshot.room.name ? snapshot.room.name : "unknown";
-          layoutLabel.textContent = snapshot.layout && snapshot.layout.layoutCode ? snapshot.layout.layoutCode : "unknown";
-          const self = actors.find(function (actor) { return actor.actorKind === 0; });
-          selfLabel.textContent = self && self.username ? self.username : "none";
-          output.textContent = JSON.stringify(snapshot, null, 2);
-          setBanner("", "success");
-        } catch (error) {
-          output.textContent = String(error);
-          setBanner("No se pudo cargar el runtime de sala.", "error");
-        }
-      }
-
-      async function act(path, payload, successText) {
-        try {
-          await request(path, {
-            method: "POST",
-            headers: { "content-type": "application/json" },
-            body: JSON.stringify(payload)
-          });
-          setBanner(successText, "success");
-          await refreshRoom();
-        } catch (error) {
-          setBanner(String(error), "error");
-        }
-      }
-
-      document.getElementById("play-refresh").addEventListener("click", function () {
-        refreshRoom();
-      });
-      document.getElementById("play-move").addEventListener("click", function () {
-        act("/launcher/runtime/room-move", { ticket: ticket, roomId: roomId, destinationX: 14, destinationY: 7 }, "Movimiento ejecutado.");
-      });
-      document.getElementById("play-chat").addEventListener("click", function () {
-        act("/launcher/runtime/room-chat", { ticket: ticket, roomId: roomId, message: "hola, primera prueba operativa" }, "Mensaje enviado.");
-      });
-
-      refreshRoom();
-    })();
-  </script>
+  <article class="card">
+    <h1>Vista interna del launcher</h1>
+    <p>Esta superficie no es la entrada del usuario. El acceso real se prepara en el loader y continúa en la app.</p>
+    <a href="/launcher/loader?ticket={{escapedTicket}}">Volver al loader</a>
+  </article>
 </body>
 </html>
 """;

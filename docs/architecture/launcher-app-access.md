@@ -1,5 +1,7 @@
 # Launcher App Access
 
+The full CMS/Launcher/Game Loader boundary is defined in [modular-cms-launcher-loader.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modular-cms-launcher-loader.md). This document focuses only on the access-code handoff.
+
 ## Canonical flow
 
 1. `User -> CMS`

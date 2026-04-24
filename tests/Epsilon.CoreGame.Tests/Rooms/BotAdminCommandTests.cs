@@ -74,8 +74,8 @@ public sealed class BotAdminCommandTests
 
         Assert.True(result.Succeeded);
         Assert.NotNull(helper.Goal);
-        Assert.Equal(9, helper.Goal!.X);
-        Assert.Equal(5, helper.Goal.Y);
+        Assert.Equal(9, helper.Goal!.DestinationX);
+        Assert.Equal(5, helper.Goal.DestinationY);
     }
 
     [Fact]

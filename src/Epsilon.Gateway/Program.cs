@@ -6,6 +6,7 @@ using Epsilon.Gateway;
 using Epsilon.Persistence;
 using Epsilon.Protocol;
 using System.Reflection;
+using System.Net;
 using Microsoft.Extensions.Logging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -500,7 +501,6 @@ app.MapPost("/hotel/collectibles/wallet/verify", async (
     });
 });
 
-if (app.Environment.IsDevelopment())
 app.MapPost("/hotel/collectibles/dev/ownership", async (
     HttpContext httpContext,
     DevCollectibleOwnershipInput input,
@@ -512,6 +512,12 @@ app.MapPost("/hotel/collectibles/dev/ownership", async (
     ILaunchEntitlementService launchEntitlementService,
     CancellationToken cancellationToken) =>
 {
+    IPAddress? remoteAddress = httpContext.Connection.RemoteIpAddress;
+    if (remoteAddress is not null && !IPAddress.IsLoopback(remoteAddress))
+    {
+        return Results.NotFound();
+    }
+
     SessionTicket? session = await ResolveSessionAsync(httpContext, sessionStore, cancellationToken);
     if (session is null)
     {

@@ -6,6 +6,7 @@ obj/
 *.user
 *.suo
 *.nupkg
+*.lscache
 .env
 catalog/cache/
 references/raw/

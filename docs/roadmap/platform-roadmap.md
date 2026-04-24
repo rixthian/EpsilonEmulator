@@ -183,7 +183,7 @@ Current release outcome:
 Current release risk:
 
 - CMS and launcher app are still unstable and need another hardening pass
-- the published client is still `web-alpha`, not the final Unity/Nitro client
+- the published loader is still `game-loader`, not the final Unity/Nitro client package
 - the persistence story is still not strong enough for a durable public hotel
 
 That means the next roadmap priority is not “more surfaces.”

@@ -1,5 +1,11 @@
 # Module Boundaries
 
+The cross-surface access boundary is defined in [modular-cms-launcher-loader.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/modular-cms-launcher-loader.md). Use that document when deciding whether a behavior belongs to the CMS, launcher app, game loader, launcher backend, runtime gateway, or emulator.
+
+The local service orchestration boundary is defined in [local-orchestration-topology.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/local-orchestration-topology.md). Use that document when deciding how CMS, launcher, gateway, assets, imaging, database, Redis, and admin services should run together.
+
+The emulator/runtime reference boundary is defined in [emulator-reference-model.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/emulator-reference-model.md). Use that document when comparing Epsilon modules against mature emulator projects such as Arcturus Community.
+
 ## `Epsilon.Gateway`
 
 Responsibilities:
@@ -90,6 +96,12 @@ Responsibilities:
 - operational health endpoints
 - replay/test tooling endpoints
 - content and compatibility inspection tools
+- catalog administration commands following [catalog-admin-tooling.md](/Users/yasminluengo/Documents/Playground/EpsilonEmulator/docs/architecture/catalog-admin-tooling.md)
+
+Must not:
+
+- expose catalog mutation endpoints to normal users
+- let staff tools write directly to catalog tables without command validation, audit, and publication control
 
 ## `cms/system`
 
